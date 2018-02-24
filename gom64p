@@ -1,0 +1,136 @@
+#!/usr/bin/python3
+# coding=utf-8
+# © 2015 Master
+# This code is covered under GPLv2+, see LICENSE
+#####################
+
+#############
+## MODULES ##
+#############
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+gi.require_version("Gio", "2.0")
+gi.require_version("GLib", "2.0")
+import argparse, sys, os
+
+from gi.repository import Gtk,Gdk,Gio,GLib
+from gettext import gettext as _
+
+import widget.window as w_main
+import global_module as g
+
+
+###############
+## VARIABLES ##
+###############
+
+###############
+## FUNCTIONS ##
+###############
+
+##########
+## MAIN ##
+##########
+
+# Change the process' name:
+#try:
+#    from ctypes import CDLL, byref, create_string_buffer
+#    name = b"good-old-m64p"
+#    libc = CDLL('libc.so.6')    #TODO: This is Linux only.
+#    buff = create_string_buffer(len(name)+1) #Note: One larger than the name (man prctl says that)
+#    buff.value = name                 #Null terminated string as it should be
+#    libc.prctl(15, byref(buff), 0, 0, 0)
+#except:
+#    print("Error: Failed to set the process name")
+#    pass
+
+class GoodOldM64pApp(Gtk.Application):
+
+    def __init__(self):
+        Gtk.Application.__init__(self,application_id="org.mupen64plus.good-old-m64p",
+                                flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
+
+        self.connect('command-line', self.do_command_line)
+        GLib.set_application_name(_("Good Old Mupen64+"))
+        GLib.set_prgname('gom64p')
+        #GLib.setenv("")
+        #self.settings = Gio.Settings.new('org.mupen64plus.good-old-m64p')
+
+        self.main = None
+        self.args = None
+        #g.m64p_dir = os.getcwd()
+        g.m64p_dir = os.path.dirname(os.path.abspath(__file__))
+
+    def do_startup(self):
+        '''
+        Gtk.Application startup handler
+        '''
+
+        Gtk.Application.do_startup(self)
+    def do_activate(self):
+        '''
+        Gtk.Application activate handler
+        '''
+
+        if not self.main:
+            self.main = w_main.GoodOldM64pWindow(self)
+
+    def do_shutdown(self):
+        '''
+        Gtk.Application shutdown handler
+        Do clean up before the application is closed.
+        this is triggered when self.quit() is called.
+        '''
+
+        print("Closing...")
+        g.frontend_conf.write()
+        #TODO: There's anything left to do?
+        Gtk.Application.do_shutdown(self)
+
+    def do_command_line(self, argc, argv):
+        '''
+        Gtk.Application command line handler
+        called if Gio.ApplicationFlags.HANDLES_COMMAND_LINE is set.
+        must call the self.do_activate() to get the application up and running.
+        '''
+
+        #https://docs.python.org/3/library/argparse.html
+        command_parser = argparse.ArgumentParser(prog="Good Old Mupen64+",
+                        usage=sys.argv[0] + " [OPTIONS]",
+                        description="gom64p is a frontend (in Python \
+                        and GTK+3) for mupen64plus, a free software and \
+                        multi-platform Nintendo 64 emulator.")
+        command_parser.add_argument('-d','--debug', action='store_true',
+                      help='Enable debug mode (not related with mupen64plus\'s \
+                      debugger!)')
+        command_parser.add_argument('--enable-csd', action='store_true',
+                      help='Enable Client Side Decorations (only on GNOME)')
+        command_parser.add_argument('--lib', action='store',
+                      help='path to libmupen64plus')
+        command_parser.add_argument('--configdir', action='store',
+                      help='path to mupen64plus\'s configs dir')
+        command_parser.add_argument('--plugindir', action='store',
+                      help='path to mupen64plus\'s plugin dir')
+        command_parser.add_argument('--datadir', action='store',
+                      help='path to mupen64plus\'s data dir')
+        self.args = command_parser.parse_args(argv.get_arguments()[1:])
+        self.do_activate()
+        return 0
+
+
+if __name__ == "__main__":
+    print("GTK+ version: " + str(Gtk.MAJOR_VERSION) + "." +
+                          str(Gtk.MINOR_VERSION) + "." + str(Gtk.MICRO_VERSION))
+    # Keep GTK+ from mixing languages
+    #Locale.setlocale(Locale.LC_MESSAGES, "C")
+
+    # Since GTK+ does not support KeyboardInterrupt, reset SIGINT to default.
+    #Signal.signal(Signal.SIGINT, Signal.SIG_DFL)
+
+    # Initialize GObject's treads capability | deprecated
+    #GObject.threads_init()
+
+    application = GoodOldM64pApp()
+    exit_status = application.run(sys.argv)
+    sys.exit(exit_status)
