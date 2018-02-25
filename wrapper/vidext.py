@@ -9,7 +9,7 @@
 #############
 import ctypes as c
 
-import external.sdl2 as sdl2
+#import external.sdl2 as sdl2
 import widget.glwidget as w_gl
 import wrapper.datatypes as wrp_dt
 
