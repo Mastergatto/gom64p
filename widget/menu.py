@@ -479,7 +479,7 @@ class Menu:
         g.m64p_wrapper.advance_frame()
 
     def return_state_lock(self):
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if g.lock == True and g.m64p_wrapper.compatible == False:
             return False
         else:
             return True
