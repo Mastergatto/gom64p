@@ -139,16 +139,16 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             treeview = self.browser_list.treeview_call()
 
             self.browser_box.add(treeview)
-        elif g.lock == False and g.m64p_wrapper.compatible == False:
-            warning = Gtk.Label(label="Mupen64Plus's core library version is incompatible. Please upgrade it.")
-            self.browser_box.add(warning)
-            self.browser_box.show_all()
+        else:
+            if g.lock == True:
+                warning = Gtk.Label(label="Mupen64Plus's core library hasn't been found. \n Please check it in Options > Configure")
+                self.browser_box.add(warning)
+                self.browser_box.show_all()
 
-        elif g.lock == True and g.m64p_wrapper.compatible == True:
-            #self.browser_list = None
-            warning = Gtk.Label(label="Mupen64Plus's core library hasn't been found. \n Please check it in Options > Configure")
-            self.browser_box.add(warning)
-            self.browser_box.show_all()
+            else:
+                warning = Gtk.Label(label="Mupen64Plus's core library version is incompatible. Please upgrade it.")
+                self.browser_box.add(warning)
+                self.browser_box.show_all()
 
         self.switch_box.add(self.browser_box)
 
