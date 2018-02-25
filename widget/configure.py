@@ -25,7 +25,7 @@ class ConfigDialog(Gtk.Dialog):
         self.former_update()
         self.is_changed = False
 
-        if g.lock != True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             g.m64p_wrapper.plugins_shutdown()
             g.m64p_wrapper.ConfigOpenSection('Core')
 
@@ -132,7 +132,7 @@ class ConfigDialog(Gtk.Dialog):
         cpu_core_combo.append('0',"Pure Interpreter")
         cpu_core_combo.append('1',"Interpreter")
         cpu_core_combo.append('2',"Dynamic Recompiler")
-        if g.lock != True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             if g.m64p_wrapper.ConfigGetParameter('R4300Emulator') != None:
                 cpu_core_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('R4300Emulator')))
         else:
@@ -158,7 +158,7 @@ class ConfigDialog(Gtk.Dialog):
 
         sidma_adjustment = Gtk.Adjustment(value=0, lower=-1, upper=5, step_increment=1.0) #TODO: Check if exists a maximum value here
         sidma_spin = Gtk.SpinButton.new(sidma_adjustment, 1.0, 0)
-        if g.lock != True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             sidma_spin.set_value(g.m64p_wrapper.ConfigGetParameter('SiDmaDuration'))
         else:
             sidma_spin.set_sensitive(False)
@@ -167,7 +167,7 @@ class ConfigDialog(Gtk.Dialog):
 
         countxop_adjustment = Gtk.Adjustment(value=0, lower=0, upper=5, step_increment=1.0) #TODO: Check if exists a maximum value here
         countxop_spin = Gtk.SpinButton.new(countxop_adjustment, 1.0, 0)
-        if g.lock != True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             countxop_spin.set_value(g.m64p_wrapper.ConfigGetParameter('CountPerOp'))
         else:
             countxop_spin.set_sensitive(False)
@@ -199,7 +199,7 @@ class ConfigDialog(Gtk.Dialog):
         video_box = Gtk.VBox()
         video_general_box = Gtk.VBox()
 
-        if g.lock != True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             g.m64p_wrapper.ConfigOpenSection('Video-General')
         fullscreen_chkbox = self.insert_checkbox('Fullscreen', 'Video-General', 'm64p', "Always start in fullscreen mode", None)
         vsync_chkbox = self.insert_checkbox('VerticalSync', 'Video-General', 'm64p', "Enable VerticalSync", None)
@@ -214,7 +214,7 @@ class ConfigDialog(Gtk.Dialog):
         rotate_combo.append('1',"(90°)")
         rotate_combo.append('2',"Flipped (180°)")
         rotate_combo.append('3',"(270°)")
-        if g.lock != True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             if g.m64p_wrapper.ConfigGetParameter('Rotate') != None:
                 rotate_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('Rotate')))
         else:
@@ -243,7 +243,7 @@ class ConfigDialog(Gtk.Dialog):
         input_box = Gtk.HBox()
         rsp_box = Gtk.HBox()
 
-        if g.lock != True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             g.m64p_wrapper.ConfigOpenSection('Core')
 
         gfx_combo = Gtk.ComboBoxText()
@@ -258,7 +258,7 @@ class ConfigDialog(Gtk.Dialog):
 
         self.gfx_configure_button = Gtk.Button(label="Configure")
         self.gfx_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'gfx')
-        if g.lock == True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             gfx_combo.set_sensitive(False)
             self.gfx_configure_button.set_sensitive(False)
 
@@ -277,7 +277,7 @@ class ConfigDialog(Gtk.Dialog):
         audio_combo.connect('changed', self.on_combobox_changed, 'AudioPlugin')
         self.audio_configure_button = Gtk.Button(label="Configure")
         self.audio_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'audio')
-        if g.lock == True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             audio_combo.set_sensitive(False)
             self.audio_configure_button.set_sensitive(False)
 
@@ -298,7 +298,7 @@ class ConfigDialog(Gtk.Dialog):
         self.input_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'input')
         if g.frontend_conf.get('InputPlugin') == "mupen64plus-input-raphnetraw.so": #TODO: Is still necessary?
             self.input_configure_button.set_sensitive(False)
-        if g.lock == True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             input_combo.set_sensitive(False)
             self.input_configure_button.set_sensitive(False)
 
@@ -317,7 +317,7 @@ class ConfigDialog(Gtk.Dialog):
         rsp_combo.connect('changed', self.on_combobox_changed, 'RSPPlugin')
         self.rsp_configure_button = Gtk.Button(label="Configure")
         self.rsp_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'rsp')
-        if g.lock == True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             rsp_combo.set_sensitive(False)
             self.rsp_configure_button.set_sensitive(False)
 
@@ -333,7 +333,7 @@ class ConfigDialog(Gtk.Dialog):
         config_notebook.append_page(plugins_box, plugins_tab)
 
         ## Paths ##
-        if g.lock != True:
+        if g.lock == False or g.m64p_wrapper.compatible == True:
             g.m64p_wrapper.ConfigOpenSection('Core')
         paths_tab = Gtk.Label(label="Paths")
 
@@ -405,7 +405,7 @@ class ConfigDialog(Gtk.Dialog):
             if response == Gtk.ResponseType.OK:
                 g.frontend_conf.write()
 
-                if g.lock != True:
+                if g.lock == False or g.m64p_wrapper.compatible == True:
                     g.m64p_wrapper.plugins_preload()
                     g.m64p_wrapper.plugins_startup()
                     g.m64p_wrapper.ConfigSaveFile()
@@ -419,7 +419,7 @@ class ConfigDialog(Gtk.Dialog):
                     self.apply_button.set_sensitive(False)
                     self.former_update()
 
-                    if g.lock != True:
+                    if g.lock == False or g.m64p_wrapper.compatible == True:
                         if g.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
                             g.m64p_wrapper.ConfigSaveSection("Core")
                         if g.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
@@ -427,7 +427,7 @@ class ConfigDialog(Gtk.Dialog):
                         if g.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
                             g.m64p_wrapper.ConfigSaveSection("Video-General")
 
-                if g.lock != True:
+                if g.lock == False or g.m64p_wrapper.compatible == True:
                     g.m64p_wrapper.plugins_preload()
                     #g.m64p_wrapper.restart(g.frontend_conf.get('CoreLib'))
 
@@ -435,7 +435,7 @@ class ConfigDialog(Gtk.Dialog):
                 if self.is_changed == True:
                     self.revert()
 
-                    if g.lock != True:
+                    if g.lock == False or g.m64p_wrapper.compatible == True:
                         if g.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
                             g.m64p_wrapper.ConfigRevertChanges("Core")
                         if g.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
@@ -443,7 +443,7 @@ class ConfigDialog(Gtk.Dialog):
                         if g.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
                             g.m64p_wrapper.ConfigRevertChanges("Video-General")
 
-                if g.lock != True:
+                if g.lock == False or g.m64p_wrapper.compatible == True:
                     g.m64p_wrapper.plugins_startup()
                 self.config_window.destroy()
 
@@ -586,7 +586,7 @@ class ConfigDialog(Gtk.Dialog):
             if g.frontend_conf.get(param) != None:
                 entry.set_text(g.frontend_conf.get(param))
         elif config == "m64p":
-            if g.lock != True:
+            if g.lock == False or g.m64p_wrapper.compatible == True:
                 if g.m64p_wrapper.ConfigGetParameter(param) != None:
                     entry.set_text(g.m64p_wrapper.ConfigGetParameter(param))
             else:
@@ -600,7 +600,7 @@ class ConfigDialog(Gtk.Dialog):
             if g.frontend_conf.get(param) == True:
                 checkbox.set_active(True)
         elif config == "m64p":
-            if g.lock != True:
+            if g.lock == False or g.m64p_wrapper.compatible == True:
                 if g.m64p_wrapper.ConfigGetParameter(param) == True:
                     checkbox.set_active(True)
             else:
