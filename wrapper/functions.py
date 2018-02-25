@@ -22,8 +22,18 @@ class API():
         self.plugins_dir = params['pluginsdir']
         self.frontend_api_version = params['api_version']
         self.compatible = False
-        self.config_dir = params['configdir'].encode('utf-8')
-        self.data_dir = params['datadir'].encode('utf-8')
+
+        configpath = params['configdir'].encode('utf-8')
+        if configpath != b'':
+            self.config_dir = configpath
+        else:
+            self.config_dir = None
+
+        datapath = params['datadir'].encode('utf-8')
+        if datapath != b'':
+            self.data_dir = datapath
+        else:
+            self.data_dir = None
 
         #self.core_filename = "libmupen64plus.so.2.0.0" #LINUX ONLY
         self.gfx_filename = params['gfx']
