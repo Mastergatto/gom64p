@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk,Gdk,Gio
+from gi.repository import Gtk
 import ctypes as c
 
 import global_module as g

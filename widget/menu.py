@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk,GObject
+from gi.repository import Gtk
 import threading
 
 import global_module as g

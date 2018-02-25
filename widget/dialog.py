@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk,Gdk,GLib,Gio,GdkPixbuf,GObject
+from gi.repository import Gtk
 import global_module as g
 
 #############

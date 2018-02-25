@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk,Gdk,Gio
+from gi.repository import Gtk
 import sys, os, os.path, threading, ast, hashlib
 
 import global_module as g
