@@ -258,7 +258,7 @@ class ConfigDialog(Gtk.Dialog):
 
         self.gfx_configure_button = Gtk.Button(label="Configure")
         self.gfx_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'gfx')
-        if g.lock == False or g.m64p_wrapper.compatible == True:
+        if g.lock == True or g.m64p_wrapper.compatible == False:
             gfx_combo.set_sensitive(False)
             self.gfx_configure_button.set_sensitive(False)
 
@@ -277,7 +277,7 @@ class ConfigDialog(Gtk.Dialog):
         audio_combo.connect('changed', self.on_combobox_changed, 'AudioPlugin')
         self.audio_configure_button = Gtk.Button(label="Configure")
         self.audio_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'audio')
-        if g.lock == False or g.m64p_wrapper.compatible == True:
+        if g.lock == True or g.m64p_wrapper.compatible == False:
             audio_combo.set_sensitive(False)
             self.audio_configure_button.set_sensitive(False)
 
@@ -298,7 +298,7 @@ class ConfigDialog(Gtk.Dialog):
         self.input_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'input')
         if g.frontend_conf.get('InputPlugin') == "mupen64plus-input-raphnetraw.so": #TODO: Is still necessary?
             self.input_configure_button.set_sensitive(False)
-        if g.lock == False or g.m64p_wrapper.compatible == True:
+        if g.lock == True or g.m64p_wrapper.compatible == False:
             input_combo.set_sensitive(False)
             self.input_configure_button.set_sensitive(False)
 
@@ -317,7 +317,7 @@ class ConfigDialog(Gtk.Dialog):
         rsp_combo.connect('changed', self.on_combobox_changed, 'RSPPlugin')
         self.rsp_configure_button = Gtk.Button(label="Configure")
         self.rsp_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'rsp')
-        if g.lock == False or g.m64p_wrapper.compatible == True:
+        if g.lock == True or g.m64p_wrapper.compatible == False:
             rsp_combo.set_sensitive(False)
             self.rsp_configure_button.set_sensitive(False)
 
