@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # coding=utf-8
-# © 2015 Master
+# © 2018 Mastergatto
 # This code is covered under GPLv2+, see LICENSE
 #####################
 
@@ -32,18 +32,6 @@ import global_module as g
 ##########
 ## MAIN ##
 ##########
-
-# Change the process' name:
-#try:
-#    from ctypes import CDLL, byref, create_string_buffer
-#    name = b"good-old-m64p"
-#    libc = CDLL('libc.so.6')    #TODO: This is Linux only.
-#    buff = create_string_buffer(len(name)+1) #Note: One larger than the name (man prctl says that)
-#    buff.value = name                 #Null terminated string as it should be
-#    libc.prctl(15, byref(buff), 0, 0, 0)
-#except:
-#    print("Error: Failed to set the process name")
-#    pass
 
 class GoodOldM64pApp(Gtk.Application):
 
@@ -127,9 +115,6 @@ if __name__ == "__main__":
 
     # Since GTK+ does not support KeyboardInterrupt, reset SIGINT to default.
     #Signal.signal(Signal.SIGINT, Signal.SIG_DFL)
-
-    # Initialize GObject's treads capability | deprecated
-    #GObject.threads_init()
 
     application = GoodOldM64pApp()
     exit_status = application.run(sys.argv)

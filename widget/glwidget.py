@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # coding=utf-8
-# © 2017 Master
+# © 2018 Mastergatto
 # This code is covered under GPLv2+, see LICENSE
 #####################
 
