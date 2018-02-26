@@ -1259,12 +1259,14 @@ class API():
             country = 'F'
         elif country_raw == 68 or country_raw == 324 or country_raw == 580:
             #68 = 1.0, 324 = 1.1, 580 = 1.2
+            country = 'G'
         elif country_raw == 73:
             country = 'I'
         elif country_raw == 83:
             country = 'S'
         else:
-            country = str(country_raw)
+            #country = str(country_raw)
+            country = '?'
 
 
         header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2, "clockrate": clockrate,
