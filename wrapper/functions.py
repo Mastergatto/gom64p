@@ -1237,27 +1237,28 @@ class API():
         crc2 = self.rom_header.CRC2
 
         raw_name = self.rom_header.Name[:]
-        name = ""
-        for character in raw_name:
-            name += character.to_bytes((character.bit_length() + 7) // 8, 'big').decode()
+        name = bytes(raw_name).decode('cp932','replace')
 
         manufacturer = self.rom_header.Manufacturer_ID
         cartridge = self.rom_header.Cartridge_ID
         country_raw = self.rom_header.Country_code
         if country_raw == 69 or country_raw == 325 or country_raw == 581:
+            # 69 = 1.0, 325 = 1.1, 581 = 1.2
             country = 'U'
-        elif country_raw == 74 or country_raw == 842 or country_raw == 586:
+        elif country_raw == 74 or country_raw == 842 or country_raw == 330 or country_raw == 586:
+            # 74 = 1.0, 330 = 1.1, 586 = 1.2, 842 = 1.3
             country = 'J'
         elif country_raw == 65:
             country = 'JU'
-        elif country_raw == 80 or country_raw == 336:
+        elif country_raw == 80 or country_raw == 336 or country_raw == 592 or country_raw == 88  or country_raw == 89:
+            # 80 = 1.0, 336 = 1.1, 592 = 1.2, 88 = region 1 with some lang, 89 = region 2 with some other lang
             country = 'E'
         elif country_raw == 85:
             country = 'A'
         elif country_raw == 70:
             country = 'F'
-        elif country_raw == 68:
-            country = 'G'
+        elif country_raw == 68 or country_raw == 324 or country_raw == 580:
+            #68 = 1.0, 324 = 1.1, 580 = 1.2
         elif country_raw == 73:
             country = 'I'
         elif country_raw == 83:
