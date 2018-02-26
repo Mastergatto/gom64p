@@ -1265,7 +1265,6 @@ class API():
         elif country_raw == 83:
             country = 'S'
         else:
-            #country = str(country_raw)
             country = '?'
 
 

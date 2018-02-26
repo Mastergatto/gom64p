@@ -21,7 +21,7 @@ import widget.plugin as w_plugin
 class ConfigDialog(Gtk.Dialog):
     def __init__(self, parent):
         self.parent_widget = parent
-        self.former_values = None
+        self.former_values = {}
         self.former_update()
         self.is_changed = False
 
@@ -47,6 +47,7 @@ class ConfigDialog(Gtk.Dialog):
         config_notebook.set_vexpand(True)
 
         ## Frontend tab ##
+        g.frontend_conf.open_section("Frontend")
         frontend_tab = Gtk.Label(label="Frontend")
 
         m64plib_frame = Gtk.Frame(label="mupen64plus library", shadow_type=1)
@@ -558,25 +559,35 @@ class ConfigDialog(Gtk.Dialog):
     def revert(self):
         self.is_changed = False
         self.apply_button.set_sensitive(False)
+        g.frontend_conf.open_section("Frontend")
         g.frontend_conf.set('PluginsDir', self.former_values['plugins_dir'])
         g.frontend_conf.set('ConfigDir', self.former_values['config_dir'])
         g.frontend_conf.set('DataDir', self.former_values['data_dir'])
-        g.frontend_conf.set('GameDirs', self.former_values['game_directories'])
+        #g.frontend_conf.set('GameDirs', self.former_values['game_directories'])
         g.frontend_conf.set('GfxPlugin', self.former_values['gfx_plugin'])
         g.frontend_conf.set('AudioPlugin', self.former_values['audio_plugin'])
         g.frontend_conf.set('InputPlugin', self.former_values['input_plugin'])
         g.frontend_conf.set('RSPPlugin', self.former_values['rsp_plugin'])
+        g.frontend_conf.open_section("GameDirs")
+        g.frontend_conf.set('path1', self.former_values['path1'])
+        g.frontend_conf.set('path2', self.former_values['path2'])
+        g.frontend_conf.set('path3', self.former_values['path3'])
 
     def former_update(self):
         self.is_changed = False
-        self.former_values = {'plugins_dir': g.frontend_conf.get('PluginsDir'),
-                              'config_dir': g.frontend_conf.get('ConfigDir'),
-                              'data_dir': g.frontend_conf.get('DataDir'),
-                              'game_directories': g.frontend_conf.get('GameDirs'),
-                              'gfx_plugin': g.frontend_conf.get('GfxPlugin'),
-                              'audio_plugin': g.frontend_conf.get('AudioPlugin'),
-                              'input_plugin': g.frontend_conf.get('InputPlugin'),
-                              'rsp_plugin': g.frontend_conf.get('RSPPlugin')}
+        g.frontend_conf.open_section("Frontend")
+        self.former_values['plugins_dir'] = g.frontend_conf.get('PluginsDir')
+        self.former_values['config_dir'] = g.frontend_conf.get('ConfigDir')
+        self.former_values['data_dir'] = g.frontend_conf.get('DataDir')
+        #self.former_values['game_directories'] = g.frontend_conf.get('GameDirs')
+        self.former_values['gfx_plugin'] = g.frontend_conf.get('GfxPlugin')
+        self.former_values['audio_plugin'] = g.frontend_conf.get('AudioPlugin')
+        self.former_values['input_plugin'] = g.frontend_conf.get('InputPlugin')
+        self.former_values['rsp_plugin'] = g.frontend_conf.get('RSPPlugin')
+        g.frontend_conf.open_section("GameDirs")
+        self.former_values['path1'] = g.frontend_conf.get('path1')
+        self.former_values['path2'] = g.frontend_conf.get('path2')
+        self.former_values['path3'] = g.frontend_conf.get('path3')
 
     def insert_entry(self, param, section, config, placeholder, help):
         entry = Gtk.Entry()
