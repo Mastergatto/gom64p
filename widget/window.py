@@ -15,7 +15,7 @@ import utils.cache as u_cache
 import widget.menu as w_m
 import widget.rombrowser as w_brw
 import widget.tpak as w_tpak
-#import widget.glwidget as w_gl
+import widget.glwidget as w_gl
 import wrapper.datatypes as wrp_dt
 
 ###############
@@ -37,6 +37,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         ### Frontend
         self.application = app
         #self.running = 0
+        self.canvas = None
 
         args_debug = self.application.args.debug
         args_csd = self.application.args.enable_csd
@@ -84,9 +85,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         # LAYOUT main window: csd,menubar,toolbar,box filter(label,entry),box((treeview,scroll),videoext),statusbar
 
         self.main_box = Gtk.VBox()
-        self.switch_box = Gtk.VBox()
         self.browser_box = Gtk.VBox()
-        self.video_box = Gtk.Box()
+        self.video_box = Gtk.VBox()
         self.filter_box = Gtk.HBox()
 
         self.browser_box.set_size_request(320,240)
@@ -125,6 +125,14 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         ## Toolbar ##
         self.toolbar = self.main_menu.toolbar_call()
 
+        # Notebook #
+        self.notebook = Gtk.Notebook()
+        self.notebook.set_vexpand(True)
+        self.notebook.set_show_tabs(False)
+        self.notebook.set_show_border(False)
+
+        browser_tab = Gtk.Label(label="browser")
+
         ## Filter entry ##
         if g.lock == False and g.m64p_wrapper.compatible == True:
             self.filter_label = Gtk.Label(label="Filter:")
@@ -135,7 +143,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             self.filter_box.pack_start(self.filter_entry, True, True, 5)
             self.browser_box.pack_start(self.filter_box, False, False, 5)
 
-            self.browser_list = w_brw.List()
+            self.browser_list = w_brw.List(self.m64p_window)
             treeview = self.browser_list.treeview_call()
 
             self.browser_box.add(treeview)
@@ -150,19 +158,12 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 self.browser_box.add(warning)
                 self.browser_box.show_all()
 
-        self.switch_box.add(self.browser_box)
-
-        ## VideoBox ##
-        #self.drawing_area = w_gl.drawing_area
-        #self.video_box.set_size_request(640,480)
-
-        #self.video_box.add(self.drawing_area)
-        self.switch_box.add(self.video_box)
+        self.notebook.append_page(self.browser_box, browser_tab)
 
         ## Alright, let's add the box ##
         self.main_box.pack_start(self.menubar, False, False, 0)
         self.main_box.pack_start(self.toolbar, False, False, 0)
-        self.main_box.pack_start(self.switch_box, True, True, 0)
+        self.main_box.pack_start(self.notebook, True, True, 0)
         self.main_box.pack_end(self.Statusbar, False, False, 0)
 
         self.m64p_window.add(self.main_box)
@@ -183,9 +184,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         #self.toolbar.hide()
         #self.filter_box.hide()
 
-        self.browser_box.show()
-        #self.video_box.hide()
-        self.switch_box.show()
+        self.notebook.show_all()
         #self.Statusbar.hide()
         self.m64p_window.show()
 
@@ -204,6 +203,35 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         self.headerbar.pack_end(button)
         self.headerbar.show_all()
+
+    def add_video_tab(self):
+        ## VideoBox ##
+        vidext_tab = Gtk.Label(label="vidext")
+
+        if g.m64p_wrapper.vext_override == True:
+            import wrapper.vidext as wrp_vext
+            wrp_vext.m64p_video.set_window(self.m64p_window)
+            #wrp_vext.m64p_video.set_parent(self.canvas)
+            self.canvas = w_gl.GL_Area(self.m64p_window)
+            #self.canvas = Gtk.GLArea()
+            self.canvas.set_hexpand(True)
+            self.canvas.connect("render", wrp_vext.m64p_video.render)
+            #print(self.canvas.get_error())
+            self.canvas.set_has_depth_buffer(True)
+            #self.canvas.set_auto_render(False)
+            #self.canvas.set_use_es(True)
+            #self.canvas.set_double_buffered(False)
+            #self.video_box.set_size_request(320,240)
+            self.video_box.add(self.canvas)
+            #self.canvas.make_current()
+            #self.canvas.attach_buffers()
+        else:
+            running = Gtk.Label(label="Emulator is running.")
+            self.video_box.add(running)
+
+        self.notebook.append_page(self.video_box, vidext_tab)
+        self.notebook.show_all()
+        self.notebook.set_current_page(1)
 
 
     ### SIGNALS (clicked for button, activate for menu)
@@ -239,8 +267,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def on_FakeEmulation_toggled(self, *args):
         if self.FakeEmulation.get_active() == 1:
             print("DEBUG: Fake emulation has now started!")
-            self.browser_box.hide()
-            self.video_box.show_all()
+            self.notebook.set_current_page(1)
             #window_size = self.m64p_window.get_size()
             #print(window_size)
             self.m64p_window.resize(640,480)
@@ -248,8 +275,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             self.Statusbar.push(self.StatusbarContext,"Emulation STARTED")
         else:
             print("DEBUG: Fake emulation has stopped!")
-            self.video_box.hide()
-            self.browser_box.show()
+            self.notebook.set_current_page(0)
             #print(window_size)
             #self.m64p_window.resize(window_size[0],window_size[1])
             self.m64p_window.set_resizable(True)
@@ -267,16 +293,15 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         if param == wrp_dt.m64p_core_param.M64CORE_EMU_STATE.value:
             print(wrp_dt.m64p_core_param(param).name, wrp_dt.m64p_emu_state(value).name)
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
-                self.m64p_window.video_box.hide()
-                self.m64p_window.browser_box.show()
+                self.notebook.set_current_page(0)
+                self.notebook.remove_page(1)
                 self.m64p_window.set_resizable(True)
                 self.main_menu.sensitive_menu_stop()
                 self.Statusbar.push(self.StatusbarContext, "Emulation STOPPED")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_RUNNING':
-                self.m64p_window.browser_box.hide()
-                self.m64p_window.video_box.show_all()
-                self.m64p_window.resize(640,480)
-                self.m64p_window.set_resizable(False)
+                #self.notebook.set_current_page(1)
+                #self.m64p_window.resize(640,480)
+                #self.m64p_window.set_resizable(False)
                 self.main_menu.sensitive_menu_run()
                 self.Statusbar.push(self.StatusbarContext, "Emulation STARTED")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_PAUSED':
@@ -298,8 +323,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             print(context.contents, wrp_dt.m64p_core_param(param).name, value)
             self.Statusbar.push(self.StatusbarContext, "Speed limit: " + str(value))
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value: #TODO:Not implemented
-            #print(context.contents, wrp_dt.m64p_core_param(param), str(value).encode("utf-8"))
-            pass
+            print(context.contents, wrp_dt.m64p_core_param(param), str(value).encode("utf-8"))
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_VOLUME.value:
             print(context.contents, wrp_dt.m64p_core_param(param).name, value, "%")
             self.Statusbar.push(self.StatusbarContext, "Audio volume: " + str(value) + "%")

@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk, GObject
 import sys, os, os.path, threading, ast, hashlib
 
 import global_module as g
@@ -21,7 +21,8 @@ import global_module as g
 #############
 
 class List:
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent
         self.selected_game = None
         self.rom_list = None
         self.cache_validated = False
@@ -214,6 +215,8 @@ class List:
                 self.treeview_menu.popup_at_pointer(event)
 
     def rom_startup(self):
+        GObject.idle_add(self.parent.add_video_tab)
+        #self.parent.notebook.set_current_page(1)
         g.running = True
         g.m64p_wrapper.run(self.rom)
 

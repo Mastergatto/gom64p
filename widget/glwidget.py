@@ -11,46 +11,54 @@ from gi.repository import Gtk,Gdk,GLib,Gio,GdkPixbuf,GObject
 import os.path
 
 import global_module as g
-import widget.dialog as w_dialog
-import widget.plugin as w_plugin
+import wrapper.datatypes as wrp_dt
+import wrapper.vidext as wrp_vext
 
-#if 'WAYLAND_DISPLAY' in os.environ and 'PYOPENGL_PLATFORM' not in os.environ:
-#    os.environ['PYOPENGL_PLATFORM'] = 'egl'
-
-from OpenGL.GL import glClearColor, glClear, GL_COLOR_BUFFER_BIT, glFlush, GL_DEPTH_BUFFER_BIT
+if 'WAYLAND_DISPLAY' in os.environ and 'PYOPENGL_PLATFORM' not in os.environ:
+    os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
 #############
 ## CLASSES ##
 #############
 
 class GL_Area(Gtk.GLArea):
-    def __init__(self):
+    def __init__(self, parent):
         Gtk.GLArea.__init__(self)
+        self.parent = parent
         self.context = None
+        #self.gl_context.set_debug_enabled(True)
         self.set_hexpand(True)
-        self.set_has_depth_buffer(True)
+        #self.set_has_depth_buffer(False)
+        #self.set_has_stencil_buffer(False)
 
+        #self.connect("realize", self.area_realize)
+        #self.connect('render', self.area_render)
+        #self.connect('create-context', self.area_context)
 
-
-        #self.connect("realize", self.on_realize)
-        self.connect('render', self.render)
-        self.connect('create-context', self.area_context)
-
-    def on_realize(self, gl_area):
+    def area_realize(self, gl_area):
+        gl_area.make_current()
         err = gl_area.get_error()
         if err:
             print("The error is {}".format(err))
+        else:
+            self.context = gl_area.get_context()
+            print("realizing... fine so far")
+        return True
 
-    def render(self, gl_area, gl_ctx):
-        print(gl_area, gl_ctx)
-        self.context = gl_ctx
-        print(self.context)
-        glClearColor(0, 0, 0, 1)
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+    def area_render(self, gl_area, gl_ctx):
+        #print(gl_area, gl_ctx)
+        gl_area.make_current()
+        #gl_area.queue_render()
+        #gl_area.attach_buffers()
+        print("rendering...")
         return True
 
     def area_context(self, gl_area):
-        print(self.context , "context")
-        return self.context
-
-drawing_area = GL_Area()
+        err = gl_area.get_error()
+        if err:
+            print("The error is {}".format(err))
+            return None
+        else:
+            self.context = gl_area.get_context()
+            print("context:", self.context)
+            return self.context

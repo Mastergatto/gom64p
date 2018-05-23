@@ -22,6 +22,7 @@ class API():
         self.plugins_dir = params['pluginsdir']
         self.frontend_api_version = params['api_version']
         self.compatible = False
+        self.vext_override = False
 
         configpath = params['configdir'].encode('utf-8')
         if configpath != b'':
@@ -1524,6 +1525,7 @@ class API():
             print(self.ConfigGetUserDataPath())
             print(self.ConfigGetUserCachePath())
             #self.CoreOverrideVidExt()
+            #self.vext_override = True
 
             self.plugins_preload()
             self.plugins_startup()
