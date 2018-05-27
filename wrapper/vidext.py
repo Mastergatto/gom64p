@@ -8,7 +8,6 @@
 ## MODULES ##
 #############
 import ctypes as c
-from gi.repository import Gdk
 
 import wrapper.datatypes as wrp_dt
 
@@ -64,11 +63,10 @@ class Vidext():
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def gl_set_attr(self, attr, value):
-        print("Vidext: gl_set_attr(attr:"wrp_dt.m64p_GLattr(attr).name, "value:", value, ")")
+        print("Vidext: gl_set_attr(attr:", wrp_dt.m64p_GLattr(attr).name, "value:", value, ")")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def gl_swap_buffer(self):
-        self.window.canvas.attach_buffers()
         print("Vidext: gl_swap_buffer()")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
@@ -83,7 +81,6 @@ class Vidext():
     def video_resize_window(self, width, height):
         print("Vidext: video_resize_window(width:", width, "height:", height, ")")
         self.window.canvas.do_resize(width, height)
-        #self.window.canvas.make_current()
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_get_fb_name(self):
