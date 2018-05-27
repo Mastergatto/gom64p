@@ -99,6 +99,8 @@ CB_PARAMETERS = PARAMETERSPROTO(list_param_callback)
 
 cart_rom = c.CFUNCTYPE(c.c_void_p, c.POINTER(c.c_void_p), c.c_int)
 cart_ram = c.CFUNCTYPE(c.c_void_p, c.POINTER(c.c_void_p), c.c_int)
+ipl_rom = c.CFUNCTYPE(c.c_void_p, c.POINTER(c.c_void_p))
+disk_image = c.CFUNCTYPE(c.c_void_p, c.POINTER(c.c_void_p))
 
 class m64p_media_loader(c.Structure):
     pass
@@ -106,7 +108,9 @@ class m64p_media_loader(c.Structure):
 m64p_media_loader._fields_ = [
         ("cb_data", c.POINTER(m64p_media_loader)),
         ("get_gb_cart_rom", cart_rom), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
-        ("get_gb_cart_ram", cart_ram) #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
+        ("get_gb_cart_ram", cart_ram), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
+        ("get_dd_rom", ipl_rom), #char* (*get_dd_rom)(void* cb_data);
+        ("get_dd_disk", disk_image) #char* (*get_dd_disk)(void* cb_data);
     ]
 
 #media_buffer = c.create_string_buffer
@@ -152,8 +156,30 @@ def get_gb_cart_ram(cb_data, controller_id):
     else:
         return None
 
+def get_ipl_rom(cb_data):
+    g.m64p_wrapper.ConfigOpenSection("64DD")
+    filename = g.m64p_wrapper.ConfigGetParameter("IPL-ROM")
+    if filename != '':
+        #media_array = media_buffer(filename, 4096)
+        caster = c.cast(filename.encode('utf-8'), c.c_void_p).value
+        return caster
+    else:
+        return None
+
+def get_dd_image(cb_data):
+    g.m64p_wrapper.ConfigOpenSection("64DD")
+    filename = g.m64p_wrapper.ConfigGetParameter("Disk")
+    if filename != '':
+        #media_array = media_buffer(filename, 4096)
+        caster = c.cast(filename.encode('utf-8'), c.c_void_p).value
+        return caster
+    else:
+        return None
+
 
 MEDIA_LOADER = m64p_media_loader()
 MEDIA_LOADER.cb_data = c.pointer(MEDIA_LOADER)
 MEDIA_LOADER.get_gb_cart_rom = cart_rom(get_gb_cart_rom)
 MEDIA_LOADER.get_gb_cart_ram = cart_ram(get_gb_cart_ram)
+MEDIA_LOADER.get_dd_rom = ipl_rom(get_ipl_rom)
+MEDIA_LOADER.get_dd_disk = disk_image(get_dd_image)
