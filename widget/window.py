@@ -207,21 +207,22 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def add_video_tab(self):
         ## VideoBox ##
         vidext_tab = Gtk.Label(label="vidext")
+        n_pages = self.notebook.get_n_pages()
+        if n_pages == 1:
+            if g.m64p_wrapper.vext_override == True:
+                import wrapper.vidext as wrp_vext
+                wrp_vext.m64p_video.set_window(self.m64p_window)
+                #wrp_vext.m64p_video.set_parent(self.canvas)
+                self.canvas = w_gl.GL_Area(self.m64p_window)
+                self.canvas.set_hexpand(True)
+                #self.canvas.connect("render", wrp_vext.m64p_video.render)
+                self.video_box.add(self.canvas)
+            else:
+                running = Gtk.Label(label="Emulator is running.")
+                self.video_box.add(running)
 
-        if g.m64p_wrapper.vext_override == True:
-            import wrapper.vidext as wrp_vext
-            wrp_vext.m64p_video.set_window(self.m64p_window)
-            #wrp_vext.m64p_video.set_parent(self.canvas)
-            self.canvas = w_gl.GL_Area(self.m64p_window)
-            self.canvas.set_hexpand(True)
-            #self.canvas.connect("render", wrp_vext.m64p_video.render)
-            self.video_box.add(self.canvas)
-        else:
-            running = Gtk.Label(label="Emulator is running.")
-            self.video_box.add(running)
-
-        self.notebook.append_page(self.video_box, vidext_tab)
-        self.notebook.show_all()
+            self.notebook.append_page(self.video_box, vidext_tab)
+            self.notebook.show_all()
         self.notebook.set_current_page(1)
 
 
@@ -285,7 +286,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             print(wrp_dt.m64p_core_param(param).name, wrp_dt.m64p_emu_state(value).name)
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
                 self.notebook.set_current_page(0)
-                self.notebook.remove_page(1)
                 self.m64p_window.set_resizable(True)
                 self.main_menu.sensitive_menu_stop()
                 self.Statusbar.push(self.StatusbarContext, "Emulation STOPPED")

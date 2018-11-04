@@ -216,7 +216,6 @@ class List:
 
     def rom_startup(self):
         GObject.idle_add(self.parent.add_video_tab)
-        #self.parent.notebook.set_current_page(1)
         g.running = True
         g.m64p_wrapper.run(self.rom)
 
@@ -231,6 +230,4 @@ class List:
 
     def header(self,crc1,crc2):
         command = g.m64p_wrapper.CoreGetRomSettings(crc1,crc2)
-
-
 
