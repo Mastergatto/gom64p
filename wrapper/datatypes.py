@@ -44,6 +44,11 @@ def m64p_handle(handle):
 def m64p_dynlib_handle(handle):
     return c.c_void_p(handle._handle)
 
+# typedef void (*m64p_function)(void);
+def m64p_function(handle):
+    function = c.CFUNCTYPE(c.c_void_p)(("m64p_function", m64p_dynlib_handle(handle)))
+    return function
+
 # typedef void (*m64p_frame_callback)(unsigned int FrameIndex);
 def m64p_frame_callback(handle, frame):
     cb = c.CFUNCTYPE(c.c_void_p, c.c_int)(("m64p_frame_callback", m64p_dynlib_handle(handle)), (frame))

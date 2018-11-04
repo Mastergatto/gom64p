@@ -401,7 +401,7 @@ class API():
     def VidExt_GL_GetProcAddress(self, proc):
         #void * VidExt_GL_GetProcAddress(const char* Proc)
         #TODO: Untested
-        function = wrp_dt.cfunc("VidExt_GL_GetProcAddress", self.m64p_lib_core, c.c_void_p,
+        function = wrp_dt.cfunc("VidExt_GL_GetProcAddress", self.m64p_lib_core, wrp_dt.m64p_function,
                         ("Proc", c.c_char_p, 1, proc.encode("utf-8")))
 
         function.errcheck = wrp_dt.m64p_errcheck
