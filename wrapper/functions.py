@@ -66,8 +66,8 @@ class API():
         #MUPEN_CORE_VERSION 0x020501
         #FRONTEND_API_VERSION 0x020102
         #CONFIG_API_VERSION   0x020301
-        #DEBUG_API_VERSION    0x020000
-        #VIDEXT_API_VERSION   0x030000
+        #DEBUG_API_VERSION    0x020001
+        #VIDEXT_API_VERSION   0x030100
 
         #RSP_API_VERSION   0x20000
         #GFX_API_VERSION   0x20200
@@ -695,6 +695,23 @@ class API():
                         ("index", c.c_uint, 1),
                         ("bkp", c.POINTER(wrp_dt.m64p_breakpoint), 1))
 
+        function.errcheck = wrp_dt.m64p_errcheck
+        status = function()
+
+    def DebugBreakpointTriggeredBy(self):
+        #void DebugBreakpointTriggeredBy(uint32_t *flags, uint32_t *accessed)
+        #TODO: Untested, https://github.com/mupen64plus/mupen64plus-core/blob/b4f43dbeb028d71f8af14547e26e5f862d295552/doc/emuwiki-api-doc/Mupen64Plus-v2.0-Core-Debugger.mediawiki
+        function = wrp_dt.cfunc("DebugBreakpointTriggeredBy", self.m64p_lib_core, c.c_void_p,
+                                ("flags", c.POINTER(c.c_uint), 1),
+                                ("accessed", c.POINTER(c.c_uint), 1))
+        function.errcheck = wrp_dt.m64p_errcheck
+        status = function()
+
+    def DebugVirtualToPhysical(self):
+        #uint32_t DebugVirtualToPhysical(uint32_t address)
+        #TODO: Untested, https://github.com/mupen64plus/mupen64plus-core/blob/b4f43dbeb028d71f8af14547e26e5f862d295552/doc/emuwiki-api-doc/Mupen64Plus-v2.0-Core-Debugger.mediawiki
+        function = wrp_dt.cfunc("DebugVirtualToPhysical", self.m64p_lib_core, c.c_uint,
+                                ("address", c.c_uint, 1))
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
 
