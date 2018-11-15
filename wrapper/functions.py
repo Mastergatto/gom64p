@@ -1541,8 +1541,8 @@ class API():
             print(self.ConfigGetUserConfigPath())
             print(self.ConfigGetUserDataPath())
             print(self.ConfigGetUserCachePath())
-            self.CoreOverrideVidExt()
-            self.vext_override = True
+            if self.vext_override == True:
+                self.CoreOverrideVidExt()
 
             self.plugins_preload()
             self.plugins_startup()
