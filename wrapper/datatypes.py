@@ -170,15 +170,18 @@ class m64p_cheat_code(c.Structure):
     ]
 
 cb_data = c.c_void_p
-cart_rom = c.CFUNCTYPE(c.c_char_p, cb_data, c.c_int)
-cart_ram = c.CFUNCTYPE(c.c_char_p, cb_data, c.c_int)
+cart_rom_cb = c.CFUNCTYPE(c.c_char_p, cb_data, c.c_int)
+cart_ram_cb = c.CFUNCTYPE(c.c_char_p, cb_data, c.c_int)
+dd_rom_cb = c.CFUNCTYPE(c.c_char_p, cb_data)
+dd_disk_cb = c.CFUNCTYPE(c.c_char_p, cb_data)
 
 class m64p_media_loader(c.Structure):
-    #TODO: UNTESTED! c_char_p = path, c_int = number controller
     _fields_ = [
         ("cb_data", cb_data),
-        ("get_gb_cart_rom", c.POINTER(cart_rom)), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
-        ("get_gb_cart_ram", c.POINTER(cart_ram))  #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
+        ("get_gb_cart_rom", cart_rom_cb), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
+        ("get_gb_cart_ram", cart_ram_cb), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
+        ("get_dd_rom", dd_rom_cb),        #char* (*get_dd_rom)(void* cb_data)
+        ("get_dd_disk", dd_disk_cb)       #char* (*get_dd_disk)(void* cb_data);
     ]
 
 ##############################################

@@ -14,22 +14,23 @@ DEBUGPROTO = c.CFUNCTYPE(None, c.c_void_p, c.c_int, c.c_char_p)
 
 #TODO: logging
 def debug_callback(context, level, message):
+    context_dec = c.cast(context, c.c_char_p).value.decode("utf-8")
     if level <= wrp_dt.m64p_msg_level.M64MSG_ERROR.value:
         #sys.stderr.write("%s: %s\n" % (context, message))
         #print(m64p_msg_level(level),"(",context,"):", message.decode())
-        print("ERROR(",context,"):", message.decode())
+        print("ERROR(" + context_dec + "):", message.decode("utf-8"))
         #pass
     elif level == wrp_dt.m64p_msg_level.M64MSG_WARNING.value:
         #sys.stderr.write("%s: %s\n" % (context.decode(), message.decode()))
-        #print("WARNING(",context,"):", message.decode())
+        #print("WARNING(" + context_dec + "):", message.decode())
         pass
     elif level == wrp_dt.m64p_msg_level.M64MSG_INFO.value or level == wrp_dt.m64p_msg_level.M64MSG_STATUS.value:
         #sys.stderr.write("%s: %s\n" % (context.decode(), message.decode()))
-        #print("INFO(",context,"):", message.decode())
+        #print("INFO(" + context_dec +"):", message.decode())
         pass
     elif level == wrp_dt.m64p_msg_level.M64MSG_VERBOSE.value:
         #sys.stderr.write("%s: %s\n" % (context, message.decode()))
-        #print("VERBOSE(",context,"):", message.decode())
+        #print("VERBOSE(" + context_dec +"):", message.decode())
         pass
 
 CB_DEBUG = DEBUGPROTO(debug_callback)
@@ -97,29 +98,33 @@ def list_param_callback(context, param_name, param_type):
 
 CB_PARAMETERS = PARAMETERSPROTO(list_param_callback)
 
-cart_rom = c.CFUNCTYPE(c.c_void_p, c.POINTER(c.c_void_p), c.c_int)
-cart_ram = c.CFUNCTYPE(c.c_void_p, c.POINTER(c.c_void_p), c.c_int)
-ipl_rom = c.CFUNCTYPE(c.c_void_p, c.POINTER(c.c_void_p))
-disk_image = c.CFUNCTYPE(c.c_void_p, c.POINTER(c.c_void_p))
+cb_data = c.c_void_p
+cart_rom_cb = c.CFUNCTYPE(c.c_void_p, cb_data, c.c_int)
+cart_ram_cb = c.CFUNCTYPE(c.c_void_p, cb_data, c.c_int)
+dd_rom_cb = c.CFUNCTYPE(c.c_void_p, cb_data)
+dd_disk_cb = c.CFUNCTYPE(c.c_void_p, cb_data)
 
 class m64p_media_loader(c.Structure):
-    pass
-
-m64p_media_loader._fields_ = [
-        ("cb_data", c.POINTER(m64p_media_loader)),
-        ("get_gb_cart_rom", cart_rom), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
-        ("get_gb_cart_ram", cart_ram), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
-        ("get_dd_rom", ipl_rom), #char* (*get_dd_rom)(void* cb_data);
-        ("get_dd_disk", disk_image) #char* (*get_dd_disk)(void* cb_data);
+    _fields_ = [
+        ("cb_data", cb_data),
+        ("get_gb_cart_rom", cart_rom_cb), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
+        ("get_gb_cart_ram", cart_ram_cb), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
+        ("get_dd_rom", dd_rom_cb),      #char* (*get_dd_rom)(void* cb_data)
+        ("get_dd_disk", dd_disk_cb)     #char* (*get_dd_disk)(void* cb_data);
     ]
 
-#media_buffer = c.create_string_buffer
-#media_array = c.create_string_buffer(4096)
 
+
+#FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend
+media_value = c.create_string_buffer(4096)
+filename = c.create_string_buffer(4096)
+
+
+@cart_rom_cb
 def get_gb_cart_rom(cb_data, controller_id):
-    #print(cb_data.contents, controller_id)
-    filename = None
-    cast = None
+    #print(cb_data, controller_id)
+    #filename = None
+    value = None
     g.m64p_wrapper.ConfigOpenSection("Transferpak")
     if controller_id == 0:
         filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-1")
@@ -130,16 +135,15 @@ def get_gb_cart_rom(cb_data, controller_id):
     elif controller_id == 3:
         filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-4")
     if filename != '':
-        #media_array = media_buffer(filename, 4096)
-        cast = c.cast(filename.encode('utf-8'), c.c_void_p).value
-        return cast
+        media_value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
+        return media_value
     else:
         return None
 
+@cart_ram_cb
 def get_gb_cart_ram(cb_data, controller_id):
-    #print(cb_data.contents, controller_id)
-    filename = None
-    cast = None
+    #filename = None
+    value = None
     g.m64p_wrapper.ConfigOpenSection("Transferpak")
     if controller_id == 0:
         filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-1")
@@ -150,22 +154,22 @@ def get_gb_cart_ram(cb_data, controller_id):
     elif controller_id == 3:
         filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-4")
     if filename != '':
-        #media_array = media_buffer(filename, 4096)
-        cast = c.cast(filename.encode('utf-8'), c.c_void_p).value
-        return cast
+        media_value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
+        return media_value
     else:
         return None
 
-def get_ipl_rom(cb_data):
-    filename = None
-    cast = None
+@dd_rom_cb
+def get_dd_rom(cb_data):
+    #filename = None
+    value = None
     g.m64p_wrapper.ConfigOpenSection("64DD")
     try:
         filename = g.m64p_wrapper.ConfigGetParameter("IPL-ROM")
         if filename != '':
             #media_array = media_buffer(filename, 4096)
-            cast= c.cast(filename.encode('utf-8'), c.c_void_p).value
-            return cast
+            media_value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
+            return media_value
         else:
             return None
     except:
@@ -173,16 +177,17 @@ def get_ipl_rom(cb_data):
         g.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
         return None
 
-def get_dd_image(cb_data):
-    filename = None
-    cast = None
+@dd_disk_cb
+def get_dd_disk(cb_data):
+    #filename = None
+    value = None
     g.m64p_wrapper.ConfigOpenSection("64DD")
     try:
         filename = g.m64p_wrapper.ConfigGetParameter("Disk")
         if filename != '':
             #media_array = media_buffer(filename, 4096)
-            cast = c.cast(filename.encode('utf-8'), c.c_void_p).value
-            return cast
+            media_value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
+            return media_value
         else:
             return None
     except:
@@ -190,10 +195,4 @@ def get_dd_image(cb_data):
         g.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
         return None
 
-
-MEDIA_LOADER = m64p_media_loader()
-MEDIA_LOADER.cb_data = c.pointer(MEDIA_LOADER)
-MEDIA_LOADER.get_gb_cart_rom = cart_rom(get_gb_cart_rom)
-MEDIA_LOADER.get_gb_cart_ram = cart_ram(get_gb_cart_ram)
-MEDIA_LOADER.get_dd_rom = ipl_rom(get_ipl_rom)
-MEDIA_LOADER.get_dd_disk = disk_image(get_dd_image)
+MEDIA_LOADER = m64p_media_loader(None, get_gb_cart_rom, get_gb_cart_ram, get_dd_rom, get_dd_disk)

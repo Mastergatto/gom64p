@@ -276,6 +276,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
 
     def state_callback(self, context, param, value):
+        context_dec = c.cast(context, c.c_char_p).value.decode("utf-8")
         if param == wrp_dt.m64p_core_param.M64CORE_EMU_STATE.value:
             print(wrp_dt.m64p_core_param(param).name, wrp_dt.m64p_emu_state(value).name)
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
@@ -294,36 +295,36 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 self.Statusbar.push(self.StatusbarContext, "Emulation PAUSED")
 
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value:
-            print(context.contents, wrp_dt.m64p_core_param(param).name, wrp_dt.m64p_video_mode(value).name)
+            print(context_dec, wrp_dt.m64p_core_param(param).name, wrp_dt.m64p_video_mode(value).name)
         elif param == wrp_dt.m64p_core_param.M64CORE_SAVESTATE_SLOT.value:
             if self.main_menu.active_slot != value:
                 self.main_menu.active_slot = value
                 self.main_menu.save_slot_items[value].set_active(True)
-            print(context.contents, wrp_dt.m64p_core_param(param).name, "SLOT:", value)
+            print(context_dec, wrp_dt.m64p_core_param(param).name, "SLOT:", value)
             #self.Statusbar.push(self.StatusbarContext, "Slot selected: " + str(value))
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_FACTOR.value:
-            print(context.contents, wrp_dt.m64p_core_param(param).name, value, "%")
+            print(context_dec, wrp_dt.m64p_core_param(param).name, value, "%")
             self.Statusbar.push(self.StatusbarContext, "Emulation speed: " + str(value) + "%")
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_LIMITER.value:
-            print(context.contents, wrp_dt.m64p_core_param(param).name, value)
+            print(context_dec, wrp_dt.m64p_core_param(param).name, value)
             self.Statusbar.push(self.StatusbarContext, "Speed limit: " + str(value))
-        elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value: #TODO:Not fully implemented
-            print(context.contents, wrp_dt.m64p_core_param(param), str(value).encode("utf-8"))
+        elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value: #TODO:Not implemented
+            print(context_dec, wrp_dt.m64p_core_param(param), str(value).encode("utf-8"))
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_VOLUME.value:
-            print(context.contents, wrp_dt.m64p_core_param(param).name, value, "%")
+            print(context_dec, wrp_dt.m64p_core_param(param).name, value, "%")
             self.Statusbar.push(self.StatusbarContext, "Audio volume: " + str(value) + "%")
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_MUTE.value:
-            print(context.contents, wrp_dt.m64p_core_param(param).name, value)
+            print(context_dec, wrp_dt.m64p_core_param(param).name, value)
         elif param == wrp_dt.m64p_core_param.M64CORE_INPUT_GAMESHARK.value:
-            print(context.contents, wrp_dt.m64p_core_param(param).name, value)
+            print(context_dec, wrp_dt.m64p_core_param(param).name, value)
         elif param == wrp_dt.m64p_core_param.M64CORE_STATE_LOADCOMPLETE.value:
-            print(context.contents, wrp_dt.m64p_core_param(param).name, value)
+            print(context_dec, wrp_dt.m64p_core_param(param).name, value)
             if value == 1:
                 self.Statusbar.push(self.StatusbarContext, "Save state is loaded successfully")
         elif param == wrp_dt.m64p_core_param.M64CORE_STATE_SAVECOMPLETE.value:
-            print(context.contents, wrp_dt.m64p_core_param(param).name, value)
+            print(context_dec, wrp_dt.m64p_core_param(param).name, value)
             if value == 1:
                 self.Statusbar.push(self.StatusbarContext, "Save state is done successfully")
         else:
             # Unmapped params go here.
-            print(context.contents, param, value)
+            print(context_dec, param, value)

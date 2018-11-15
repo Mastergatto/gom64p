@@ -135,9 +135,9 @@ class API():
         status = function()
 
         if context != None:
-            print("(" + context + ")", status.decode())
+            print("ERROR(" + c.cast(context, c.c_char_p).value.decode("utf-8") + "):", status.decode())
         else:
-            print("ERROR, ", status.decode())
+            print("ERROR(): ", status.decode())
 
     ### Frontend functions
     ## Startup/Shutdown
@@ -208,7 +208,7 @@ class API():
         function = wrp_dt.cfunc("CoreDoCommand", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("Command", c.c_int, 1, command),
                         ("ParamInt", c.c_int, 1, arg1),
-                        ("ParamPtr", c.c_void_p, 1, arg2))
+                        ("ParamPtr", c.c_void_p, 2, arg2))
 
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
@@ -1461,7 +1461,7 @@ class API():
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SET_MEDIA_LOADER.value, c.c_int(c.sizeof(wrp_cb.MEDIA_LOADER)), c.byref(wrp_cb.MEDIA_LOADER))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to set the media loader. This means that the Transfer Pak won't work.")
+            print("CoreDoCommand: Unable to set the media loader. This means that the Transfer Pak or the 64DD won't work.")
         return status
 
     ####################
@@ -1541,8 +1541,8 @@ class API():
             print(self.ConfigGetUserConfigPath())
             print(self.ConfigGetUserDataPath())
             print(self.ConfigGetUserCachePath())
-            #self.CoreOverrideVidExt()
-            #self.vext_override = True
+            self.CoreOverrideVidExt()
+            self.vext_override = True
 
             self.plugins_preload()
             self.plugins_startup()
