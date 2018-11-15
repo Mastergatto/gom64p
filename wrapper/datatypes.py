@@ -380,7 +380,7 @@ vext_gl_swapbuf = c.CFUNCTYPE(c.c_int)
 vext_set_caption = c.CFUNCTYPE(c.c_int, c.c_char_p)
 vext_toggle_fs = c.CFUNCTYPE(c.c_int)
 vext_resize_window = c.CFUNCTYPE(c.c_int, c.c_int, c.c_int)
-vext_get_default_fb = c.CFUNCTYPE(c.c_uint32)
+vext_get_default_fb = c.CFUNCTYPE(c.c_uint)
 class m64p_video_extension_functions(c.Structure):
     _fields_ = [
         ("Functions", c.c_uint),

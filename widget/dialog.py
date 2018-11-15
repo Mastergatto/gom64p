@@ -94,6 +94,44 @@ class GBChooserDialog(Gtk.FileChooserDialog):
         filter_any.add_pattern("*")
         dialog.add_filter(filter_any)
 
+class N64DDChooserDialog(Gtk.FileChooserDialog):
+
+    def __init__(self, parent, file):
+        self.path = None
+        self.dialog(parent, file)
+
+    def dialog(self, parent, file):
+        dialog = Gtk.FileChooserDialog(title="Please select the IPL/Disk ROM binary", transient_for=parent, action=0, add_buttons=0)
+        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("_Select", Gtk.ResponseType.ACCEPT)
+        #dialog.set_default_size(800, 400)
+        dialog.set_type_hint(1) #=Dialog
+        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        self.add_filters(dialog, file)
+
+        response = dialog.run()
+        if response == Gtk.ResponseType.ACCEPT:
+            self.path = dialog.get_filename()
+            print("File selected: " + self.path)
+            #return self.path
+        dialog.destroy()
+
+    def add_filters(self, dialog, file):
+        filter_text = Gtk.FileFilter()
+        if file == "ipl":
+            filter_text.set_name("IPL ROM (*.bin, *.rom)")
+            filter_text.add_pattern("*.bin")
+            filter_text.add_pattern("*.rom")
+        elif file == "disk":
+            filter_text.set_name("Disk image game (*.ndd)")
+            filter_text.add_pattern("*.ndd")
+        dialog.add_filter(filter_text)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        dialog.add_filter(filter_any)
+
 class SnapshotChooserDialog(Gtk.FileChooserDialog):
 
     def __init__(self, parent, dialogtype):

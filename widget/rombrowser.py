@@ -179,14 +179,17 @@ class List:
     def on_playitem_activated(self, widget):
         self.rom = self.selected_game
         if self.rom != None and g.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation", target=self.rom_startup)
-            thread.daemon = True
-            try:
-                thread.start()
-                return thread
-            except:
-                print("The emulation has encountered an unexpected error")
-                threading.main_thread()
+            if g.m64p_wrapper.vext_override == False:
+                thread = threading.Thread(name="Emulation", target=self.rom_startup)
+                thread.daemon = True
+                try:
+                    thread.start()
+                    return thread
+                except:
+                    print("The emulation has encountered an unexpected error")
+                    threading.main_thread()
+            else:
+                self.rom_startup()
 
     def menu(self):
         # Context menu
@@ -215,7 +218,8 @@ class List:
                 self.treeview_menu.popup_at_pointer(event)
 
     def rom_startup(self):
-        GObject.idle_add(self.parent.add_video_tab)
+        if g.m64p_wrapper.vext_override == False:
+            GObject.idle_add(self.parent.add_video_tab)
         g.running = True
         g.m64p_wrapper.run(self.rom)
 

@@ -21,22 +21,25 @@ import wrapper.datatypes as wrp_dt
 #############
 
 
-class TPakDialog(Gtk.Dialog):
+class MediaDialog(Gtk.Dialog):
     def __init__(self, parent):
         self.filename = None
         self.num_controller = None
         self.cb_data = None
 
-        self.tpak_window = Gtk.Dialog()
-        self.tpak_window.set_properties(self, title="Transfer Pak")
-        self.tpak_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-        self.tpak_window.set_default_size(550, 550)
-        self.tpak_window.set_transient_for(parent)
+        self.media_window = Gtk.Dialog()
+        self.media_window.set_properties(self, title="Media Loader")
+        self.media_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        self.media_window.set_default_size(550, 550)
+        self.media_window.set_transient_for(parent)
 
-        self.apply_button = self.tpak_window.add_button("Apply",Gtk.ResponseType.APPLY)
+        self.apply_button = self.media_window.add_button("Apply",Gtk.ResponseType.APPLY)
         self.apply_button.set_sensitive(False)
-        self.tpak_window.add_button("Cancel",Gtk.ResponseType.CANCEL)
-        self.tpak_window.add_button("OK",Gtk.ResponseType.OK)
+        self.media_window.add_button("Cancel",Gtk.ResponseType.CANCEL)
+        self.media_window.add_button("OK",Gtk.ResponseType.OK)
+
+        tpak_frame = Gtk.Frame(label="Transfer Pak options", shadow_type=1)
+        n64dd_frame = Gtk.Frame(label="64DD options", shadow_type=1)
 
         tpak_grid = Gtk.Grid()
 
@@ -134,19 +137,54 @@ class TPakDialog(Gtk.Dialog):
         tpak_grid.attach(player4_ram_open, 2, 14, 1, 1)
         tpak_grid.attach(player4_ram_clear, 3, 14, 1, 1)
 
+        tpak_frame.add(tpak_grid)
 
-        self.tpak_box = self.tpak_window.get_content_area()
-        self.tpak_box.add(tpak_grid)
-        self.tpak_window.show_all()
+        n64dd_grid = Gtk.Grid()
+
+        g.m64p_wrapper.ConfigOpenSection("64DD")
+
+        ipl_rom_label = Gtk.Label("IPL ROM:")
+        ipl_rom = self.insert_entry("IPL-ROM", "Filename of the IPL ROM, required for 64DD games to work", "Filename of the IPL ROM, required for 64DD games to work")
+        ipl_rom_open = Gtk.Button.new_with_label("Open")
+        ipl_rom_open.connect("clicked", self.on_search_64dd_path, ipl_rom, "ipl")
+        ipl_rom_clear = Gtk.Button.new_with_label("Clear")
+        ipl_rom_clear.connect("clicked", self.on_clear_entry, ipl_rom)
+        disk_rom_label = Gtk.Label("Disk ROM:")
+        disk_rom = self.insert_entry("Disk", "Filename .ndd of the disk game", "Filename .ndd of the disk game")
+        disk_rom_open = Gtk.Button.new_with_label("Open")
+        disk_rom_open.connect("clicked", self.on_search_64dd_path, disk_rom, "disk")
+        disk_rom_clear = Gtk.Button.new_with_label("Clear")
+        disk_rom_clear.connect("clicked", self.on_clear_entry, disk_rom)
+
+        n64dd_grid.attach(ipl_rom_label, 0, 1, 1, 1)
+        n64dd_grid.attach(ipl_rom, 1, 1, 1, 1)
+        n64dd_grid.attach(ipl_rom_open, 2, 1, 1, 1)
+        n64dd_grid.attach(ipl_rom_clear, 3, 1, 1, 1)
+        n64dd_grid.attach(disk_rom_label, 0, 2, 1, 1)
+        n64dd_grid.attach(disk_rom, 1, 2, 1, 1)
+        n64dd_grid.attach(disk_rom_open, 2, 2, 1, 1)
+        n64dd_grid.attach(disk_rom_clear, 3, 2, 1, 1)
+        #n64dd_grid.attach(, 1, 3, 1, 1)
+        #n64dd_grid.attach(, 0, 4, 1, 1)
+
+        n64dd_frame.add(n64dd_grid)
+
+        media_box = self.media_window.get_content_area()
+        media_box.pack_start(tpak_frame, False, False, 0)
+        media_box.pack_start(n64dd_frame, False, False, 0)
+
+        self.media_window.show_all()
 
         response = Gtk.ResponseType.APPLY
         while response == Gtk.ResponseType.APPLY:
-            response = self.tpak_window.run()
+            response = self.media_window.run()
             if response == Gtk.ResponseType.OK:
                 if g.m64p_wrapper.ConfigHasUnsavedChanges("Transferpak") == True:
                     g.m64p_wrapper.ConfigSaveSection("Transferpak")
+                if g.m64p_wrapper.ConfigHasUnsavedChanges("64DD") == True:
+                    g.m64p_wrapper.ConfigSaveSection("64DD")
 
-                self.tpak_window.destroy()
+                self.media_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 if self.is_changed == True:
                     pass
@@ -154,7 +192,9 @@ class TPakDialog(Gtk.Dialog):
             else:
                 if g.m64p_wrapper.ConfigHasUnsavedChanges("Transferpak") == True:
                     g.m64p_wrapper.ConfigRevertChanges("Transferpak")
-                self.tpak_window.destroy()
+                if g.m64p_wrapper.ConfigHasUnsavedChanges("64DD") == True:
+                    g.m64p_wrapper.ConfigRevertChanges("64DD")
+                self.media_window.destroy()
 
     def insert_entry(self, param, placeholder, help):
         entry = Gtk.Entry()
@@ -182,7 +222,7 @@ class TPakDialog(Gtk.Dialog):
         self.filename = ""
 
     def on_search_file_path(self, widget, entry, mem):
-        dialog = w_dialog.GBChooserDialog(self.tpak_window, mem)
+        dialog = w_dialog.GBChooserDialog(self.media_window, mem)
         self.filename = dialog.path
         if self.filename != None:
             self.is_changed = True
@@ -190,5 +230,50 @@ class TPakDialog(Gtk.Dialog):
             entry.set_text(self.filename)
         else:
             print('Dialog is canceled.')
+
+    def on_search_64dd_path(self, widget, entry, mem):
+        dialog = w_dialog.N64DDChooserDialog(self.media_window, mem)
+        self.filename = dialog.path
+        if self.filename != None:
+            self.is_changed = True
+            self.apply_button.set_sensitive(True)
+            entry.set_text(self.filename)
+        else:
+            print('Dialog is canceled.')
+
+class N64DD_Dialog(Gtk.Dialog):
+    def __init__(self, parent):
+        self.filename = None
+        self.num_controller = None
+        self.cb_data = None
+
+        self.n64dd_window = Gtk.Dialog()
+        self.n64dd_window.set_properties(self, title="64DD")
+        self.n64dd_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        self.n64dd_window.set_default_size(550, 550)
+        self.n64dd_window.set_transient_for(parent)
+
+        self.apply_button = self.n64dd_window.add_button("Apply",Gtk.ResponseType.APPLY)
+        self.apply_button.set_sensitive(False)
+        self.n64dd_window.add_button("Cancel",Gtk.ResponseType.CANCEL)
+        self.n64dd_window.add_button("OK",Gtk.ResponseType.OK)
+
+        n64dd_grid = Gtk.Grid()
+
+        g.m64p_wrapper.ConfigOpenSection("64DD")
+
+        ipl_rom_label = Gtk.Label("IPL ROM:")
+        ipl_rom = self.insert_entry("IPL-ROM", "Filename of the IPL ROM, required for 64DD games to work", "Filename of the IPL ROM, required for 64DD games to work")
+        ipl_rom_open = Gtk.Button.new_with_label("Open")
+        ipl_rom_open.connect("clicked", self.on_search_64dd_path, ipl_rom, "rom")
+        ipl_rom_clear = Gtk.Button.new_with_label("Clear")
+        ipl_rom_clear.connect("clicked", self.on_clear_entry, ipl_rom)
+        disk_rom_label = Gtk.Label("Disk ROM:")
+        disk_rom = self.insert_entry("Disk", "Filename .ndd of the disk game", "Filename .ndd of the disk game")
+        disk_rom_open = Gtk.Button.new_with_label("Open")
+        disk_rom_open.connect("clicked", self.on_search_64dd_path, disk_rom, "ram")
+        disk_rom_clear = Gtk.Button.new_with_label("Clear")
+        disk_rom_clear.connect("clicked", self.on_clear_entry, disk_rom)
+
 
         

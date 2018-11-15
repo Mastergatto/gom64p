@@ -119,7 +119,7 @@ m64p_media_loader._fields_ = [
 def get_gb_cart_rom(cb_data, controller_id):
     #print(cb_data.contents, controller_id)
     filename = None
-    caster = None
+    cast = None
     g.m64p_wrapper.ConfigOpenSection("Transferpak")
     if controller_id == 0:
         filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-1")
@@ -131,15 +131,15 @@ def get_gb_cart_rom(cb_data, controller_id):
         filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-4")
     if filename != '':
         #media_array = media_buffer(filename, 4096)
-        caster = c.cast(filename.encode('utf-8'), c.c_void_p).value
-        return caster
+        cast = c.cast(filename.encode('utf-8'), c.c_void_p).value
+        return cast
     else:
         return None
 
 def get_gb_cart_ram(cb_data, controller_id):
     #print(cb_data.contents, controller_id)
     filename = None
-    caster = None
+    cast = None
     g.m64p_wrapper.ConfigOpenSection("Transferpak")
     if controller_id == 0:
         filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-1")
@@ -151,29 +151,43 @@ def get_gb_cart_ram(cb_data, controller_id):
         filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-4")
     if filename != '':
         #media_array = media_buffer(filename, 4096)
-        caster = c.cast(filename.encode('utf-8'), c.c_void_p).value
-        return caster
+        cast = c.cast(filename.encode('utf-8'), c.c_void_p).value
+        return cast
     else:
         return None
 
 def get_ipl_rom(cb_data):
+    filename = None
+    cast = None
     g.m64p_wrapper.ConfigOpenSection("64DD")
-    filename = g.m64p_wrapper.ConfigGetParameter("IPL-ROM")
-    if filename != '':
-        #media_array = media_buffer(filename, 4096)
-        caster = c.cast(filename.encode('utf-8'), c.c_void_p).value
-        return caster
-    else:
+    try:
+        filename = g.m64p_wrapper.ConfigGetParameter("IPL-ROM")
+        if filename != '':
+            #media_array = media_buffer(filename, 4096)
+            cast= c.cast(filename.encode('utf-8'), c.c_void_p).value
+            return cast
+        else:
+            return None
+    except:
+        print("IPL-ROM parameter not found. Creating it.")
+        g.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
         return None
 
 def get_dd_image(cb_data):
+    filename = None
+    cast = None
     g.m64p_wrapper.ConfigOpenSection("64DD")
-    filename = g.m64p_wrapper.ConfigGetParameter("Disk")
-    if filename != '':
-        #media_array = media_buffer(filename, 4096)
-        caster = c.cast(filename.encode('utf-8'), c.c_void_p).value
-        return caster
-    else:
+    try:
+        filename = g.m64p_wrapper.ConfigGetParameter("Disk")
+        if filename != '':
+            #media_array = media_buffer(filename, 4096)
+            cast = c.cast(filename.encode('utf-8'), c.c_void_p).value
+            return cast
+        else:
+            return None
+    except:
+        print("Disk image parameter not found. Creating it.")
+        g.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
         return None
 
 

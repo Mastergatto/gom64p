@@ -83,7 +83,8 @@ class FrontendConf(Configuration):
                             'AudioPlugin': 'mupen64plus-audio-sdl.so',
                             'InputPlugin': 'mupen64plus-input-sdl.so',
                             'RSPPlugin': 'mupen64plus-rsp-hle.so',
-                            'GameDirs': ''
+                            'VidExt': 'False',
+                            'TrueFullscreen': 'False'
                             }
         self.config['GameDirs'] = {'path1': '',
                             'path2': '',

@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk
+from gi.repository import Gtk, GObject
 import threading
 
 import global_module as g
@@ -15,7 +15,7 @@ import widget.cheats as w_cheats
 import widget.configure as w_conf
 import widget.dialog as w_dialog
 import widget.plugin as w_plugin
-import widget.tpak as w_tpak
+import widget.media as w_media
 import wrapper.datatypes as wrp_dt
 
 
@@ -147,7 +147,7 @@ class Menu:
 
         self.emulation_menu_current_slot = self.insert_menu_item("Current save state slot", False, None, self.save_slot_menu)
         self.emulation_menu_cheats = self.insert_menu_item_obj("Cheats", self.return_state_lock(), w_cheats.CheatsDialog, self.m64p_window) #TODO: desensitive it
-        self.emulation_menu_transfer_pak = self.insert_menu_item_obj("Transfer Pak", self.return_state_lock(), w_tpak.TPakDialog, self.m64p_window)
+        self.emulation_menu_transfer_pak = self.insert_menu_item_obj("Media Loader", self.return_state_lock(), w_media.MediaDialog, self.m64p_window)
 
 
         self.emulation_menu.append(self.emulation_menu_play)
@@ -310,6 +310,8 @@ class Menu:
     def rom_startup(self):
         #TEST
         g.running = True
+        if g.m64p_wrapper.vext_override == False:
+            GObject.idle_add(self.parent.add_video_tab)
         g.m64p_wrapper.run(self.rom)
         #GLib.idle_add(self.run, priority=GLib.PRIORITY_LOW)
 
@@ -318,20 +320,23 @@ class Menu:
         self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "Selecting the ROM...")
         self.rom = dialog.path
         if self.rom != None and g.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation",target=self.rom_startup)
-            thread.daemon = True
-            try:
-                thread.start()
-                return thread
+            if g.m64p_wrapper.vext_override == False:
+                thread = threading.Thread(name="Emulation",target=self.rom_startup)
+                thread.daemon = True
+                try:
+                    thread.start()
+                    return thread
             #except (KeyboardInterrupt, SystemExit):
             #    #https://docs.python.org/3/library/signal.html
             #    thread.stop()
             #    sys.exit()
 
-            except:
-                print("The emulation has encountered an unexpected error")
-                threading.main_thread()
-                #pass
+                except:
+                    print("The emulation has encountered an unexpected error")
+                    threading.main_thread()
+                    #pass
+            else:
+                self.rom_startup()
 
     def on_action_stop(self, *args):
         g.m64p_wrapper.stop()

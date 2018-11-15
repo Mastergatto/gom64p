@@ -195,7 +195,7 @@ class ConfigDialog(Gtk.Dialog):
 
         video_general_frame = Gtk.Frame(label="General",shadow_type=1)
         rotate_frame = Gtk.Frame(label="Rotate Screen",shadow_type=1)
-        resolution_frame = Gtk.Frame(label="Resolution",shadow_type=1)
+        webcam_frame = Gtk.Frame(label="Webcam",shadow_type=1)
 
         video_box = Gtk.VBox()
         video_general_box = Gtk.VBox()
@@ -204,29 +204,42 @@ class ConfigDialog(Gtk.Dialog):
             g.m64p_wrapper.ConfigOpenSection('Video-General')
         fullscreen_chkbox = self.insert_checkbox('Fullscreen', 'Video-General', 'm64p', "Always start in fullscreen mode", None)
         vsync_chkbox = self.insert_checkbox('VerticalSync', 'Video-General', 'm64p', "Enable VerticalSync", None)
+        vidext_chkbox = self.insert_checkbox('VidExt', 'Frontend', 'frontend', "Enable Vidext", "This option will allow to play the game inside frontend's window")
 
         video_general_box.pack_start(fullscreen_chkbox, False, False, 0)
         video_general_box.pack_start(vsync_chkbox, False, False, 0)
+        video_general_box.pack_start(vidext_chkbox, False, False, 0)
 
         video_general_frame.add(video_general_box)
 
-        rotate_combo = Gtk.ComboBoxText()
-        rotate_combo.append('0',"Normal (0°)")
-        rotate_combo.append('1',"(90°)")
-        rotate_combo.append('2',"Flipped (180°)")
-        rotate_combo.append('3',"(270°)")
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            if g.m64p_wrapper.ConfigGetParameter('Rotate') != None:
-                rotate_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('Rotate')))
-        else:
-            rotate_combo.set_sensitive(False)
+        #rotate_combo = Gtk.ComboBoxText()
+        #rotate_combo.append('0',"Normal (0°)")
+        #rotate_combo.append('1',"(90°)")
+        #rotate_combo.append('2',"Flipped (180°)")
+        #rotate_combo.append('3',"(270°)")
+        #if g.lock == False and g.m64p_wrapper.compatible == True:
+        #    if g.m64p_wrapper.ConfigGetParameter('Rotate') != None:
+        #        rotate_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('Rotate')))
+        #else:
+        #    rotate_combo.set_sensitive(False)
 
-        rotate_combo.connect('changed', self.on_combobox_changed, 'Rotate')
-        rotate_frame.add(rotate_combo)
+        #rotate_combo.connect('changed', self.on_combobox_changed, 'Rotate')
+        #rotate_frame.add(rotate_combo)
+
+        webcam_box = Gtk.VBox() #TODO: Change with Gtk.Grid()
+
+        if g.lock == False and g.m64p_wrapper.compatible == True:
+            g.m64p_wrapper.ConfigOpenSection('Core')
+        webcam1_entry = self.insert_entry('GbCameraVideoCaptureBackend1', 'Core', 'm64p', "Gameboy Camera Video Capture backend", None)
+        #webcam1_button = Gtk.Button.new_with_label("Open")
+        #webcam_button.connect("clicked", self.on_search_path_lib, webcam1_entry)
+
+        webcam_box.pack_start(webcam1_entry, False, False, 0)
+        webcam_frame.add(webcam_box)
 
         video_box.pack_start(video_general_frame, False, False, 0)
-        video_box.pack_start(rotate_frame, False, False, 0)
-        #video_box.pack_start(resolution_frame, False, False, 0)
+        #video_box.pack_start(rotate_frame, False, False, 0)
+        video_box.pack_start(webcam_frame, False, False, 0)
 
         config_notebook.append_page(video_box, video_tab)
 
