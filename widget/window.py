@@ -14,7 +14,6 @@ import global_module as g
 import utils.cache as u_cache
 import widget.menu as w_m
 import widget.rombrowser as w_brw
-import widget.tpak as w_tpak
 import widget.glwidget as w_gl
 import wrapper.datatypes as wrp_dt
 
@@ -58,7 +57,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         #self.set_application_name("mupen64plus")
         self.set_position(1)
-        self.set_default_size(800, 640)
+        self.set_default_size(320, 240)
+        self.set_size_request(800, 640)
         self.set_default_icon_from_file("ui/mupen64plus.svg")
 
         ##If detected, it will close the application ##
@@ -89,7 +89,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.video_box = Gtk.VBox()
         self.filter_box = Gtk.HBox()
 
-        self.browser_box.set_size_request(320,240)
+        #self.browser_box.set_size_request(320,240)
 
         if args_debug == True:
             print("Debug mode: Enabled")
@@ -210,13 +210,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         n_pages = self.notebook.get_n_pages()
         if n_pages == 1:
             if g.m64p_wrapper.vext_override == True:
-                import wrapper.vidext as wrp_vext
-                wrp_vext.m64p_video.set_window(self.m64p_window)
-                #wrp_vext.m64p_video.set_parent(self.canvas)
-                self.canvas = w_gl.GL_Area(self.m64p_window)
-                self.canvas.set_hexpand(True)
-                #self.canvas.connect("render", wrp_vext.m64p_video.render)
-                self.video_box.add(self.canvas)
+                pass
             else:
                 running = Gtk.Label(label="Emulator is running.")
                 self.video_box.add(running)
@@ -313,7 +307,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_LIMITER.value:
             print(context.contents, wrp_dt.m64p_core_param(param).name, value)
             self.Statusbar.push(self.StatusbarContext, "Speed limit: " + str(value))
-        elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value: #TODO:Not implemented
+        elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value: #TODO:Not fully implemented
             print(context.contents, wrp_dt.m64p_core_param(param), str(value).encode("utf-8"))
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_VOLUME.value:
             print(context.contents, wrp_dt.m64p_core_param(param).name, value, "%")
