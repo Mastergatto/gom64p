@@ -116,8 +116,8 @@ class m64p_media_loader(c.Structure):
 
 
 #FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend
-media_value = c.create_string_buffer(4096)
-filename = c.create_string_buffer(4096)
+#value = c.cast(c.create_string_buffer(4096),c.c_void_p).value
+#filename = c.create_string_buffer(4096)
 
 
 @cart_rom_cb
@@ -135,8 +135,8 @@ def get_gb_cart_rom(cb_data, controller_id):
     elif controller_id == 3:
         filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-4")
     if filename != '':
-        media_value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
-        return media_value
+        value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
+        return value
     else:
         return None
 
@@ -154,8 +154,8 @@ def get_gb_cart_ram(cb_data, controller_id):
     elif controller_id == 3:
         filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-4")
     if filename != '':
-        media_value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
-        return media_value
+        value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
+        return value
     else:
         return None
 

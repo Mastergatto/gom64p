@@ -218,9 +218,10 @@ class List:
                 self.treeview_menu.popup_at_pointer(event)
 
     def rom_startup(self):
-        if g.m64p_wrapper.vext_override == False:
-            GObject.idle_add(self.parent.add_video_tab)
+        GObject.idle_add(self.parent.add_video_tab)
         g.running = True
+        if g.frontend_conf.get("vidext") == "True":
+            g.m64p_wrapper.vext_override = True
         g.m64p_wrapper.run(self.rom)
 
     #UNUSED

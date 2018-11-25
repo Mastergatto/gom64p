@@ -209,7 +209,15 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         vidext_tab = Gtk.Label(label="vidext")
         n_pages = self.notebook.get_n_pages()
         if n_pages == 1:
-            if g.m64p_wrapper.vext_override == True:
+            if g.frontend_conf.get("vidext") == "True":
+                #self.canvas = Gtk.GLArea()
+                #self.canvas.set_has_depth_buffer(True)
+                #self.canvas.set_has_alpha(True)
+                #self.canvas.set_has_stencil_buffer(True)
+                #self.canvas.set_auto_render(False)
+                #import wrapper.vidext as wrp_vext
+                #wrp_vext.m64p_video.set_window(self.m64p_window)
+                #self.video_box.add(self.canvas)
                 pass
             else:
                 running = Gtk.Label(label="Emulator is running.")

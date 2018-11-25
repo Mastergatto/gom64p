@@ -61,19 +61,19 @@ class ConfigDialog(Gtk.Dialog):
         HotkeyBox = Gtk.VBox()
         FrontendMiscellaneousBox = Gtk.VBox()
 
-        m64p_lib_entry = self.insert_entry('M64pLib', 'Frontend', 'frontend', "Mupen64plus library .so, .dll or .dylib", None)
+        m64p_lib_entry = self.insert_entry('M64pLib', 'Frontend', 'frontend', "Mupen64plus library .so, .dll or .dylib", "Mupen64plus library .so, .dll or .dylib")
         m64p_lib_button = Gtk.Button.new_with_label("Open")
         m64p_lib_button.connect("clicked", self.on_search_path_lib, m64p_lib_entry)
 
-        m64p_plugins_entry = self.insert_entry('PluginsDir', 'Frontend', 'frontend', "Choose a dir where library and plugins are found", None)
+        m64p_plugins_entry = self.insert_entry('PluginsDir', 'Frontend', 'frontend', "Choose a dir where library and plugins are found", "Choose a dir where library and plugins are found")
         m64p_plugins_button = Gtk.Button.new_with_label("Open")
         m64p_plugins_button.connect("clicked", self.on_search_path_dir, m64p_plugins_entry)
 
-        config_dir_entry = self.insert_entry('ConfigDir', 'Frontend', 'frontend', "Choose a dir where .cfg will be stored", None)
+        config_dir_entry = self.insert_entry('ConfigDir', 'Frontend', 'frontend', "Choose a dir where .cfg will be stored", "Choose a dir where .cfg will be stored")
         config_dir_button = Gtk.Button.new_with_label("Open")
         config_dir_button.connect("clicked", self.on_search_path_dir, config_dir_entry)
 
-        data_dir_entry = self.insert_entry('DataDir', 'Frontend', 'frontend', "Choose a dir where INIs will be stored", None)
+        data_dir_entry = self.insert_entry('DataDir', 'Frontend', 'frontend', "Choose a dir where INIs will be stored", "Choose a dir where INIs will be stored")
         data_dir_button = Gtk.Button.new_with_label("Open")
         data_dir_button.connect("clicked", self.on_search_path_dir, data_dir_entry)
 
@@ -136,6 +136,7 @@ class ConfigDialog(Gtk.Dialog):
         if g.lock == False and g.m64p_wrapper.compatible == True:
             if g.m64p_wrapper.ConfigGetParameter('R4300Emulator') != None:
                 cpu_core_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('R4300Emulator')))
+                cpu_core_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('R4300Emulator'))
         else:
             cpu_core_combo.set_sensitive(False)
         cpu_core_combo.connect('changed', self.on_combobox_changed, 'R4300Emulator')
@@ -161,6 +162,7 @@ class ConfigDialog(Gtk.Dialog):
         sidma_spin = Gtk.SpinButton.new(sidma_adjustment, 1.0, 0)
         if g.lock == False and g.m64p_wrapper.compatible == True:
             sidma_spin.set_value(g.m64p_wrapper.ConfigGetParameter('SiDmaDuration'))
+            sidma_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('SiDmaDuration'))
         else:
             sidma_spin.set_sensitive(False)
         sidma_spin.connect("value-changed", self.on_spinbutton_changed, 'Core', 'SiDmaDuration')
@@ -170,6 +172,7 @@ class ConfigDialog(Gtk.Dialog):
         countxop_spin = Gtk.SpinButton.new(countxop_adjustment, 1.0, 0)
         if g.lock == False and g.m64p_wrapper.compatible == True:
             countxop_spin.set_value(g.m64p_wrapper.ConfigGetParameter('CountPerOp'))
+            countxop_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('CountPerOp'))
         else:
             countxop_spin.set_sensitive(False)
         countxop_spin.connect("value-changed", self.on_spinbutton_changed, 'Core', 'CountPerOp')
@@ -522,7 +525,15 @@ class ConfigDialog(Gtk.Dialog):
     def on_checkbox_toggled(self, widget, section, param):
         self.is_changed = True
         self.apply_button.set_sensitive(True)
-        if section != None:
+        if section == "Frontend" or section == "GameDirs":
+            g.frontend_conf.open_section(section)
+            if widget.get_active() == True:
+                g.frontend_conf.set(param, "True")
+            elif widget.get_active() == False:
+                g.frontend_conf.set(param, "False")
+            else:
+                print("Config: Unexpected error")
+        else:
             g.m64p_wrapper.ConfigOpenSection(section)
             if widget.get_active() == True:
                 g.m64p_wrapper.ConfigSetParameter(param, True)
@@ -613,22 +624,26 @@ class ConfigDialog(Gtk.Dialog):
             if g.lock == False and g.m64p_wrapper.compatible == True:
                 if g.m64p_wrapper.ConfigGetParameter(param) != None:
                     entry.set_text(g.m64p_wrapper.ConfigGetParameter(param))
+                help = g.m64p_wrapper.ConfigGetParameterHelp(param)
             else:
                 entry.set_sensitive(False)
         entry.connect("changed", self.on_entry_changed, section, param)
+        entry.set_tooltip_text(help)
         return entry
 
     def insert_checkbox(self, param, section, config, label, help):
         checkbox = Gtk.CheckButton.new_with_label(label)
         if config == "frontend":
-            if g.frontend_conf.get(param) == True:
+            if g.frontend_conf.get(param) == "True":
                 checkbox.set_active(True)
         elif config == "m64p":
             if g.lock == False and g.m64p_wrapper.compatible == True:
                 if g.m64p_wrapper.ConfigGetParameter(param) == True:
                     checkbox.set_active(True)
+                help = g.m64p_wrapper.ConfigGetParameterHelp(param)
             else:
                 checkbox.set_sensitive(False)
         checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
+        checkbox.set_tooltip_text(help)
         return checkbox
         

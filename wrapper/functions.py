@@ -135,9 +135,9 @@ class API():
         status = function()
 
         if context != None:
-            print("ERROR(" + c.cast(context, c.c_char_p).value.decode("utf-8") + "):", status.decode())
+            print("ERROR(" + c.cast(context, c.c_char_p).value.decode("utf-8") + "):", status)
         else:
-            print("ERROR(): ", status.decode())
+            print("ERROR(): ", status)
 
     ### Frontend functions
     ## Startup/Shutdown
@@ -1014,7 +1014,7 @@ class API():
         status = function()
 
         if status != None:
-            return status.decode()
+            return status.decode("utf-8")
         else:
             print("No description is available for this parameter.")
 
@@ -1541,8 +1541,6 @@ class API():
             print(self.ConfigGetUserConfigPath())
             print(self.ConfigGetUserDataPath())
             print(self.ConfigGetUserCachePath())
-            if self.vext_override == True:
-                self.CoreOverrideVidExt()
 
             self.plugins_preload()
             self.plugins_startup()
@@ -1551,6 +1549,9 @@ class API():
             print("Error! Either the actual core is not compatible or something has gone wrong.")
 
     def run(self, rom):
+        if self.vext_override == True:
+            self.CoreOverrideVidExt()
+
         retval = self.rom_open(rom)
         if retval == 0:
             self.rom_get_header() ###
