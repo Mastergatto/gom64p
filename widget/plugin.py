@@ -93,6 +93,7 @@ class PluginDialog(Gtk.Dialog):
                 entry = Gtk.Entry()
                 entry.set_text(str(value))
                 entry.connect("changed", self.on_EntryChanged, parameter, param_type, value_param, section)
+                entry.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(parameter))
                 grid.attach(label, 0, counter, 1, 1)
                 grid.attach(entry, 1, counter, 1, 1)
                 counter += 1
@@ -105,6 +106,7 @@ class PluginDialog(Gtk.Dialog):
                 if value == True:
                     checkbox.set_active(True)
                 checkbox.connect("toggled", self.on_CheckboxToggled, section, parameter, value_param)
+                checkbox.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(parameter))
                 grid.attach(checkbox, 0, counter, 1, 1)
                 counter += 1
             elif param_type == 4: #str
@@ -114,6 +116,7 @@ class PluginDialog(Gtk.Dialog):
                 entry = Gtk.Entry()
                 entry.set_text(value)
                 entry.connect("changed", self.on_EntryChanged, parameter, param_type, value_param, section)
+                entry.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(parameter))
                 grid.attach(label, 0, counter, 1, 1)
                 grid.attach(entry, 1, counter, 1, 1)
                 counter += 1
