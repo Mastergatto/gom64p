@@ -8,7 +8,9 @@
 ## MODULES ##
 #############
 import ctypes as c
+from OpenGL.GL import *
 
+import external.sdl2 as sdl
 import wrapper.datatypes as wrp_dt
 
 ###############
@@ -21,76 +23,221 @@ import wrapper.datatypes as wrp_dt
 
 class Vidext():
     def __init__(self):
-        self.gl_context = None
+        self.sdl_context = None
         self.window = None
+        self.foreign_window = None
+        self.sdl_window = None
 
-    def render(self, area, context):
-        self.gl_context = context
-        self.window.canvas = area
-        self.window.canvas.do_render(self.gl_context)
+        self.modes = []
+        self.renderer = None
+        self.framebuffer = 0
+        self.fullscreen = 0
+        self.profile_mask = None
 
     def set_window(self, window):
         self.window = window
 
     def video_init(self):
         print("Vidext: video_init()")
-        self.gl_context = self.window.canvas.get_context()
+        #source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L34
+        sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO)
+        display = sdl.SDL_DisplayMode()
+        for mode in range(sdl.SDL_GetNumDisplayModes(0)):
+            ret = sdl.SDL_GetDisplayMode(0, mode, c.byref(display))
+            if (display.w, display.h) not in self.modes:
+                self.modes.append((display.w, display.h))
+
+        print(self.modes)
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_quit(self):
         print("Vidext: video_quit()")
-        self.gl_context.clear_current()
+        #sdl.SDL_FreeSurface()
+        sdl.SDL_DestroyRenderer(self.renderer)
+        sdl.SDL_GL_DeleteContext(self.sdl_context)
+        sdl.SDL_DestroyWindow(self.sdl_window)
+        sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_list_modes(self, sizearray, numsizes):
         print("Vidext: video_list_modes(sizearray:", sizearray, "numsizes", numsizes,")")
+        # source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L80
+        numsizes.contents.value = len(self.modes)
+        for num, mode in enumerate(self.modes):
+            width, height = mode
+            sizearray[num].uiWidth = width
+            sizearray[num].uiHeight = height
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_set_mode(self, width, height, bits, screenmode, flags):
-        print("Vidext: video_set_mode(width:", width, "height:", height, "bits:", bits, "screenmode:", wrp_dt.m64p_video_mode(screenmode).name, "flags:", wrp_dt.m64p_video_flags(flags).name, ")")
-        if self.gl_context != None:
-            self.window.canvas.do_resize(self.window.canvas, int(width), int(height))
+        print("Vidext: video_set_mode(width:" + str(width) + ", height:" + str(height) + ", bits:" + str(bits) +
+               ", screenmode:" + wrp_dt.m64p_video_mode(screenmode).name + ", flags:" + wrp_dt.m64p_video_flags(flags).name + ")")
+
+        if wrp_dt.m64p_video_flags(flags).name == 'M64VIDEOFLAG_SUPPORT_RESIZING':
+            self.sdl_window = sdl.SDL_CreateWindow(b"gom64p", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED,
+                width, height, sdl.SDL_WINDOW_OPENGL |sdl.SDL_WINDOW_RESIZABLE) # | sdl.SDL_WINDOW_HIDDEN)
+        else:
+            self.sdl_window = sdl.SDL_CreateWindow(b"gom64p", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED,
+                width, height, sdl.SDL_WINDOW_OPENGL) # | sdl.SDL_WINDOW_HIDDEN)
+
+        self.sdl_context = sdl.SDL_GL_CreateContext(self.sdl_window)
+        self.renderer = sdl.SDL_CreateRenderer(self.sdl_window, -1, sdl.SDL_RENDERER_ACCELERATED)
+        sdl.SDL_SetRenderDrawColor(self.renderer, 0, 0, 255, 255)
+        sdl.SDL_RenderClear(self.renderer)
+        sdl.SDL_RenderPresent(self.renderer)
+        #sdl.SDL_GL_SetAttribute(sdl.SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1)
+        sdl.SDL_GL_MakeCurrent(self.sdl_window, self.sdl_context)
+        #self.window.canvas.make_current()
+
+        print("video_set_mode context:", self.sdl_context)
+        if self.sdl_context != None:
+            self.sdl_context2 = sdl.SDL_GL_GetCurrentContext()
+            print("Context SDL:", self.sdl_context, self.sdl_context2)
+            #print(sdl.SDL_GetWindowID(self.sdl_window))
+
+            #sdl.SDL_SetWindowSize(self.sdl_window, width, height)
+
+            #sdl.SDL_GL_SwapWindow(self.sdl_window)
+            self.info = sdl.SDL_SysWMinfo()
+            #version = sdl.SDL_VERSION(c.byref(info.version))
+            version = sdl.SDL_GetVersion(c.byref(self.info.version))
+            self.window_info = sdl.SDL_GetWindowWMInfo(self.sdl_window, c.byref(self.info))
+            #print(self.info.subsystem)
+            if self.info.subsystem == sdl.SDL_SYSWM_X11:
+                print("The OS is Linux, using X11")
+            #TODO: How to get to info.x11.window?
+                print(repr(self.info))
+            elif self.info.subsystem == sdl.SDL_SYSWM_WAYLAND:
+                print("The OS is Linux, using Wayland")
+            elif self.info.subsystem == sdl.SDL_SYSWM_WINDOWS:
+                print("The OS is Windows")
+            elif self.info.subsystem == sdl.SDL_SYSWM_COCOA:
+                print("The OS is Mac OS X")
+
+            #print(sdl.SDL_GetError())
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            print("video set mode(): Failure")
+            print("Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_get_proc(self, proc):
-        print("Vidext: gl_get_proc(", proc.decode(), ")")
+        address = sdl.SDL_GL_GetProcAddress(proc)
+        if address is not None:
+            return address
+        else:
+            print("Vidext: gl_get_proc(" + proc.decode() + ") returns None")
 
     def gl_get_attr(self, attr, pvalue):
-        print("Vidext: gl_get_attr(attr:", wrp_dt.m64p_GLattr(attr).name, "pvalue:", pvalue.contents, ")")
-        return wrp_dt.m64p_error.M64ERR_SUCCESS.value
+        attr = wrp_dt.m64p_GLattr(attr).name
+        print("Vidext: gl_get_attr(attr:" + attr + ", pvalue:" + str(pvalue.contents.value) + ")")
+        value = None
+
+        if attr == 'M64P_GL_DOUBLEBUFFER':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_DOUBLEBUFFER, pvalue)
+        elif attr == 'M64P_GL_BUFFER_SIZE':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_BUFFER_SIZE, pvalue)
+        elif attr == 'M64P_GL_DEPTH_SIZE':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_DEPTH_SIZE, pvalue)
+        elif attr == 'M64P_GL_RED_SIZE':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_RED_SIZE, pvalue)
+        elif attr == 'M64P_GL_GREEN_SIZE':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_GREEN_SIZE, pvalue)
+        elif attr == 'M64P_GL_BLUE_SIZE':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_BLUE_SIZE, pvalue)
+        elif attr == 'M64P_GL_ALPHA_SIZE':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_ALPHA_SIZE, pvalue)
+        elif attr == 'M64P_GL_SWAP_CONTROL':
+            value = sdl.SDL_GL_GetSwapInterval()
+        elif attr == 'M64P_GL_MULTISAMPLEBUFFERS':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_MULTISAMPLEBUFFERS, pvalue)
+        elif attr == 'M64P_GL_MULTISAMPLESAMPLES':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_MULTISAMPLESAMPLES, pvalue)
+        elif attr == 'M64P_GL_CONTEXT_MAJOR_VERSION':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_CONTEXT_MAJOR_VERSION, pvalue)
+        elif attr == 'M64P_GL_CONTEXT_MINOR_VERSION':
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_CONTEXT_MINOR_VERSION, pvalue)
+        elif attr == 'M64P_GL_CONTEXT_PROFILE_MASK':
+            self.profile_mask = pvalue.contents.value
+            value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_CONTEXT_PROFILE_MASK, pvalue)
+        else:
+            pass
+
+        if value == pvalue.contents.value:
+            return wrp_dt.m64p_error.M64ERR_SUCCESS.value
+        else:
+            print("Vidext: gl_get_attr() has reported M64ERR_SYSTEM_FAIL, value is", value)
+            return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_set_attr(self, attr, value):
-        print("Vidext: gl_set_attr(attr:", wrp_dt.m64p_GLattr(attr).name, "value:", value, ")")
+        attr = wrp_dt.m64p_GLattr(attr).name
+        print("Vidext: gl_set_attr(attr: "+ str(attr) + ", value:" + str(value) + ")")
+
+        if attr == 'M64P_GL_DOUBLEBUFFER':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_DOUBLEBUFFER, value)
+        elif attr == 'M64P_GL_BUFFER_SIZE':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_BUFFER_SIZE, value)
+        elif attr == 'M64P_GL_DEPTH_SIZE':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_DEPTH_SIZE, value)
+        elif attr == 'M64P_GL_RED_SIZE':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_RED_SIZE, value)
+        elif attr == 'M64P_GL_GREEN_SIZE':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_GREEN_SIZE, value)
+        elif attr == 'M64P_GL_BLUE_SIZE':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_BLUE_SIZE, value)
+        elif attr == 'M64P_GL_ALPHA_SIZE':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_ALPHA_SIZE, value)
+        elif attr == 'M64P_GL_SWAP_CONTROL':
+            sdl.SDL_GL_SetSwapInterval(value)
+        elif attr == 'M64P_GL_MULTISAMPLEBUFFERS':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_MULTISAMPLEBUFFERS, value)
+        elif attr == 'M64P_GL_MULTISAMPLESAMPLES':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_MULTISAMPLESAMPLES, value)
+        elif attr == 'M64P_GL_CONTEXT_MAJOR_VERSION':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_CONTEXT_MAJOR_VERSION, value)
+        elif attr == 'M64P_GL_CONTEXT_MINOR_VERSION':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_CONTEXT_MINOR_VERSION, value)
+        elif attr == 'M64P_GL_CONTEXT_PROFILE_MASK':
+            sdl.SDL_GL_SetAttribute(sdl.SDL_GL_CONTEXT_PROFILE_MASK, value)
+        else:
+            pass
+
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def gl_swap_buffer(self):
-        print("Vidext: gl_swap_buffer()")
+        #XXX: It can spam this message in the output, better turn off it.
+        #print("Vidext: gl_swap_buffer()")
+        sdl.SDL_GL_SwapWindow(self.sdl_window)
+
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_set_caption(self, title):
-        print("Vidext: video_set_caption(", title.decode(), ")")
+        print("Vidext: video_set_caption(" + title.decode() + ")")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_toggle_fs(self):
         print("Vidext: video_toggle_fs()")
+        if self.fullscreen == 0:
+            self.fullscreen = 1
+            # XXX: SDL_WINDOW_FULLSCREEN is a bit overkill, because it changes the desktop's resolution too.
+            sdl.SDL_SetWindowFullscreen(self.sdl_window, sdl.SDL_WINDOW_FULLSCREEN_DESKTOP)
+        else:
+            self.fullscreen = 0
+            sdl.SDL_SetWindowFullscreen(self.sdl_window, 0)
+
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_resize_window(self, width, height):
-        print("Vidext: video_resize_window(width:", width, "height:", height, ")")
-        self.window.canvas.do_resize(width, height)
+        #This reacts to the resizing of the window with the cursor
+        print("Vidext: video_resize_window(width:" + str(width) + "height:" + str(height) + ")")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_get_fb_name(self):
         print("Vidext: video_get_fb_name()")
-        self.window.canvas.do_render()
-        return 0
+        framebuffer = glGetIntegerv(GL_FRAMEBUFFER_BINDING)
+        print("SDL framebuffer is:", framebuffer)
+        return framebuffer
 
 
-
-#TODO: choose better names
 m64p_video = Vidext()
 vidext_struct = wrp_dt.m64p_video_extension_functions()
 vidext_struct.Functions = 12
