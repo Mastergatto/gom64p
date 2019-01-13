@@ -202,6 +202,7 @@ class ConfigDialog(Gtk.Dialog):
 
         video_box = Gtk.VBox()
         video_general_box = Gtk.VBox()
+        video_width_height_box = Gtk.HBox()
 
         if g.lock == False and g.m64p_wrapper.compatible == True:
             g.m64p_wrapper.ConfigOpenSection('Video-General')
@@ -209,25 +210,49 @@ class ConfigDialog(Gtk.Dialog):
         vsync_chkbox = self.insert_checkbox('VerticalSync', 'Video-General', 'm64p', "Enable VerticalSync", None)
         vidext_chkbox = self.insert_checkbox('VidExt', 'Frontend', 'frontend', "Enable Vidext", "This option will allow to play the game inside frontend's window")
 
+        widthxheight_label = Gtk.Label(label="Screen width x height: ")
+        width_adjustment = Gtk.Adjustment(value=0, lower=0, upper=4096, step_increment=1.0)
+        width_spin = Gtk.SpinButton.new(width_adjustment, 1.0, 0)
+        if g.lock == False and g.m64p_wrapper.compatible == True:
+            width_spin.set_value(g.m64p_wrapper.ConfigGetParameter('ScreenWidth'))
+            width_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('ScreenWidth'))
+        else:
+            width_spin.set_sensitive(False)
+        width_spin.connect("value-changed", self.on_spinbutton_changed, 'Video-General', 'ScreenWidth')
+
+        height_adjustment = Gtk.Adjustment(value=0, lower=0, upper=4096, step_increment=1.0)
+        height_spin = Gtk.SpinButton.new(height_adjustment, 1.0, 0)
+        if g.lock == False and g.m64p_wrapper.compatible == True:
+            height_spin.set_value(g.m64p_wrapper.ConfigGetParameter('ScreenHeight'))
+            height_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('ScreenHeight'))
+        else:
+            height_spin.set_sensitive(False)
+        height_spin.connect("value-changed", self.on_spinbutton_changed, 'Video-General', 'ScreenHeight')
+
+        video_width_height_box.pack_start(widthxheight_label, False, False, 0)
+        video_width_height_box.pack_start(width_spin, False, False, 0)
+        video_width_height_box.pack_start(height_spin, False, False, 0)
+
         video_general_box.pack_start(fullscreen_chkbox, False, False, 0)
         video_general_box.pack_start(vsync_chkbox, False, False, 0)
         video_general_box.pack_start(vidext_chkbox, False, False, 0)
+        video_general_box.pack_start(video_width_height_box, False, False, 0)
 
         video_general_frame.add(video_general_box)
 
-        #rotate_combo = Gtk.ComboBoxText()
-        #rotate_combo.append('0',"Normal (0°)")
-        #rotate_combo.append('1',"(90°)")
-        #rotate_combo.append('2',"Flipped (180°)")
-        #rotate_combo.append('3',"(270°)")
-        #if g.lock == False and g.m64p_wrapper.compatible == True:
-        #    if g.m64p_wrapper.ConfigGetParameter('Rotate') != None:
-        #        rotate_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('Rotate')))
-        #else:
-        #    rotate_combo.set_sensitive(False)
+        rotate_combo = Gtk.ComboBoxText()
+        rotate_combo.append('0',"Normal (0°)")
+        rotate_combo.append('1',"(90°)")
+        rotate_combo.append('2',"Flipped (180°)")
+        rotate_combo.append('3',"(270°)")
+        if g.lock == False and g.m64p_wrapper.compatible == True:
+            if g.m64p_wrapper.ConfigGetParameter('Rotate') != None:
+                rotate_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('Rotate')))
+        else:
+            rotate_combo.set_sensitive(False)
 
-        #rotate_combo.connect('changed', self.on_combobox_changed, 'Rotate')
-        #rotate_frame.add(rotate_combo)
+        rotate_combo.connect('changed', self.on_combobox_changed, 'Rotate')
+        rotate_frame.add(rotate_combo)
 
         webcam_box = Gtk.VBox() #TODO: Change with Gtk.Grid()
 
@@ -241,7 +266,7 @@ class ConfigDialog(Gtk.Dialog):
         webcam_frame.add(webcam_box)
 
         video_box.pack_start(video_general_frame, False, False, 0)
-        #video_box.pack_start(rotate_frame, False, False, 0)
+        video_box.pack_start(rotate_frame, False, False, 0)
         video_box.pack_start(webcam_frame, False, False, 0)
 
         config_notebook.append_page(video_box, video_tab)
@@ -584,6 +609,7 @@ class ConfigDialog(Gtk.Dialog):
         self.is_changed = False
         self.apply_button.set_sensitive(False)
         g.frontend_conf.open_section("Frontend")
+        print(self.former_values['vidext'])
         g.frontend_conf.set('PluginsDir', self.former_values['plugins_dir'])
         g.frontend_conf.set('ConfigDir', self.former_values['config_dir'])
         g.frontend_conf.set('DataDir', self.former_values['data_dir'])
@@ -592,10 +618,12 @@ class ConfigDialog(Gtk.Dialog):
         g.frontend_conf.set('AudioPlugin', self.former_values['audio_plugin'])
         g.frontend_conf.set('InputPlugin', self.former_values['input_plugin'])
         g.frontend_conf.set('RSPPlugin', self.former_values['rsp_plugin'])
+        g.frontend_conf.set('Vidext', self.former_values['vidext'])
         g.frontend_conf.open_section("GameDirs")
         g.frontend_conf.set('path1', self.former_values['path1'])
         g.frontend_conf.set('path2', self.former_values['path2'])
         g.frontend_conf.set('path3', self.former_values['path3'])
+        print(self.former_values['vidext'], g.frontend_conf.get('Vidext'))
 
     def former_update(self):
         self.is_changed = False
@@ -608,6 +636,7 @@ class ConfigDialog(Gtk.Dialog):
         self.former_values['audio_plugin'] = g.frontend_conf.get('AudioPlugin')
         self.former_values['input_plugin'] = g.frontend_conf.get('InputPlugin')
         self.former_values['rsp_plugin'] = g.frontend_conf.get('RSPPlugin')
+        self.former_values['vidext'] = g.frontend_conf.get('Vidext')
         g.frontend_conf.open_section("GameDirs")
         self.former_values['path1'] = g.frontend_conf.get('path1')
         self.former_values['path2'] = g.frontend_conf.get('path2')
