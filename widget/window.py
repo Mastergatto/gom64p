@@ -45,7 +45,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         args_m64p_plugins = self.application.args.plugindir
         args_m64p_data = self.application.args.datadir
 
-        #TODO: Something isn't right, check this better. Also need to write in the conf.
+        #TODO: I feel something isn't right here, check this better later. Also need to write in the conf.
         if not args_m64p_lib:
             g.parameters['m64plib'] = args_m64p_lib
         if not args_m64p_config:
@@ -57,8 +57,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         #self.set_application_name("mupen64plus")
         self.set_position(1)
-        self.set_default_size(320, 240)
-        self.set_size_request(800, 640)
+        self.set_default_size(800, 640)
+        self.set_size_request(640, 560) # TODO: What's the good looking minimum size for the main window?
         self.set_default_icon_from_file("ui/mupen64plus.svg")
 
         ##If detected, it will close the application ##
@@ -209,16 +209,15 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         vidext_tab = Gtk.Label(label="vidext")
         n_pages = self.notebook.get_n_pages()
         if n_pages == 1:
-            if g.frontend_conf.get("vidext") == "True":
-                #self.canvas = Gtk.GLArea()
-                #self.canvas.set_has_depth_buffer(True)
+            if g.frontend_conf.get("Vidext") == "True":
+                self.canvas = Gtk.GLArea()
+                self.canvas.set_has_depth_buffer(True)
                 #self.canvas.set_has_alpha(True)
                 #self.canvas.set_has_stencil_buffer(True)
                 #self.canvas.set_auto_render(False)
-                #import wrapper.vidext as wrp_vext
-                #wrp_vext.m64p_video.set_window(self.m64p_window)
-                #self.video_box.add(self.canvas)
-                pass
+                import wrapper.vidext as wrp_vext
+                wrp_vext.m64p_video.set_window(self.m64p_window)
+                self.video_box.add(self.canvas)
             else:
                 running = Gtk.Label(label="Emulator is running.")
                 self.video_box.add(running)

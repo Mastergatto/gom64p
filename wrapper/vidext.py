@@ -8,6 +8,7 @@
 ## MODULES ##
 #############
 import ctypes as c
+from gi.repository import Gdk
 from OpenGL.GL import *
 
 import external.sdl2 as sdl
@@ -32,6 +33,7 @@ class Vidext():
         self.renderer = None
         self.framebuffer = 0
         self.fullscreen = 0
+        self.former_size = None
         self.profile_mask = None
 
     def set_window(self, window):
@@ -57,6 +59,8 @@ class Vidext():
         sdl.SDL_GL_DeleteContext(self.sdl_context)
         sdl.SDL_DestroyWindow(self.sdl_window)
         sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
+        self.window.canvas.set_size_request(1, 1) # First we must lift the restriction on the minimum size of the widget
+        self.window.resize(self.former_size[0], self.former_size[1])
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_list_modes(self, sizearray, numsizes):
@@ -87,6 +91,7 @@ class Vidext():
         sdl.SDL_RenderPresent(self.renderer)
         #sdl.SDL_GL_SetAttribute(sdl.SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1)
         sdl.SDL_GL_MakeCurrent(self.sdl_window, self.sdl_context)
+        #Gdk.cairo_draw_from_gl(cr, self.window, 0, )
         #self.window.canvas.make_current()
 
         print("video_set_mode context:", self.sdl_context)
@@ -94,7 +99,10 @@ class Vidext():
             self.sdl_context2 = sdl.SDL_GL_GetCurrentContext()
             print("Context SDL:", self.sdl_context, self.sdl_context2)
             #print(sdl.SDL_GetWindowID(self.sdl_window))
-
+            self.former_size = self.window.get_size()
+            self.window.set_resizable(False) # Needed for get_preferred_size() to work
+            self.window.canvas.set_size_request(width, height) # Necessary so that we tell the GUI to not shrink the window further than the size of the widget set by mupen64plus
+            self.window.canvas.get_preferred_size() # It doesn't just get the preferred size, it DOES resize the window too
             #sdl.SDL_SetWindowSize(self.sdl_window, width, height)
 
             #sdl.SDL_GL_SwapWindow(self.sdl_window)
@@ -233,9 +241,9 @@ class Vidext():
 
     def video_get_fb_name(self):
         print("Vidext: video_get_fb_name()")
-        framebuffer = glGetIntegerv(GL_FRAMEBUFFER_BINDING)
-        print("SDL framebuffer is:", framebuffer)
-        return framebuffer
+        self.framebuffer = glGetIntegerv(GL_FRAMEBUFFER_BINDING)
+        print("SDL framebuffer is:", self.framebuffer)
+        return self.framebuffer
 
 
 m64p_video = Vidext()
