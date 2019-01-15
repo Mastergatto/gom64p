@@ -158,24 +158,10 @@ class ConfigDialog(Gtk.Dialog):
         random_interrupt_chkbox = self.insert_checkbox('RandomizeInterrupt', "Core", "m64p", "Randomize PI/SI Interrupt Timing", None)
         osd_chkbox = self.insert_checkbox('OnScreenDisplay', "Core", "m64p", "Enable On Screen Display (OSD)", None)
 
-        sidma_adjustment = Gtk.Adjustment(value=0, lower=-1, upper=5, step_increment=1.0) #TODO: Check if exists a maximum value here
-        sidma_spin = Gtk.SpinButton.new(sidma_adjustment, 1.0, 0)
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            sidma_spin.set_value(g.m64p_wrapper.ConfigGetParameter('SiDmaDuration'))
-            sidma_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('SiDmaDuration'))
-        else:
-            sidma_spin.set_sensitive(False)
-        sidma_spin.connect("value-changed", self.on_spinbutton_changed, 'Core', 'SiDmaDuration')
+        sidma_spin = self.insert_spinbutton("SiDmaDuration", "Core", "m64p", -1, 5) #TODO: Check if exists a maximum value here
         sidma_label = Gtk.Label(label="Duration of SI DMA (-1: use per game settings)")
 
-        countxop_adjustment = Gtk.Adjustment(value=0, lower=0, upper=5, step_increment=1.0) #TODO: Check if exists a maximum value here
-        countxop_spin = Gtk.SpinButton.new(countxop_adjustment, 1.0, 0)
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            countxop_spin.set_value(g.m64p_wrapper.ConfigGetParameter('CountPerOp'))
-            countxop_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('CountPerOp'))
-        else:
-            countxop_spin.set_sensitive(False)
-        countxop_spin.connect("value-changed", self.on_spinbutton_changed, 'Core', 'CountPerOp')
+        countxop_spin = self.insert_spinbutton("CountPerOp", "Core", "m64p", 0, 5) #TODO: Check if exists a maximum value here
         countxop_label = Gtk.Label(label="Force n° of cycles per emulated instruction (if > 0)")
 
         emu_miscellaneous_grid.attach(auto_saveslot_chkbox, 0, 0, 2, 1)
@@ -211,23 +197,8 @@ class ConfigDialog(Gtk.Dialog):
         vidext_chkbox = self.insert_checkbox('VidExt', 'Frontend', 'frontend', "Enable Vidext", "This option will allow to play the game inside frontend's window")
 
         widthxheight_label = Gtk.Label(label="Screen width x height: ")
-        width_adjustment = Gtk.Adjustment(value=0, lower=0, upper=4096, step_increment=1.0)
-        width_spin = Gtk.SpinButton.new(width_adjustment, 1.0, 0)
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            width_spin.set_value(g.m64p_wrapper.ConfigGetParameter('ScreenWidth'))
-            width_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('ScreenWidth'))
-        else:
-            width_spin.set_sensitive(False)
-        width_spin.connect("value-changed", self.on_spinbutton_changed, 'Video-General', 'ScreenWidth')
-
-        height_adjustment = Gtk.Adjustment(value=0, lower=0, upper=4096, step_increment=1.0)
-        height_spin = Gtk.SpinButton.new(height_adjustment, 1.0, 0)
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            height_spin.set_value(g.m64p_wrapper.ConfigGetParameter('ScreenHeight'))
-            height_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('ScreenHeight'))
-        else:
-            height_spin.set_sensitive(False)
-        height_spin.connect("value-changed", self.on_spinbutton_changed, 'Video-General', 'ScreenHeight')
+        width_spin = self.insert_spinbutton("ScreenWidth", "Video-General", "m64p", 1, 4096) #TODO: Check if exists a maximum value here
+        height_spin = self.insert_spinbutton("ScreenHeight", "Video-General", "m64p", 1, 4096) #TODO: Check if exists a maximum value here
 
         video_width_height_box.pack_start(widthxheight_label, False, False, 0)
         video_width_height_box.pack_start(width_spin, False, False, 0)
@@ -642,37 +613,54 @@ class ConfigDialog(Gtk.Dialog):
         self.former_values['path2'] = g.frontend_conf.get('path2')
         self.former_values['path3'] = g.frontend_conf.get('path3')
 
-    def insert_entry(self, param, section, config, placeholder, help):
+    def insert_entry(self, param, section, config, placeholder, help=None):
         entry = Gtk.Entry()
         entry.set_placeholder_text(placeholder)
         entry.set_hexpand(True)
         if config == "frontend":
             if g.frontend_conf.get(param) != None:
                 entry.set_text(g.frontend_conf.get(param))
+            entry.set_tooltip_text(help)
         elif config == "m64p":
             if g.lock == False and g.m64p_wrapper.compatible == True:
                 if g.m64p_wrapper.ConfigGetParameter(param) != None:
                     entry.set_text(g.m64p_wrapper.ConfigGetParameter(param))
-                help = g.m64p_wrapper.ConfigGetParameterHelp(param)
+                entry.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param))
             else:
                 entry.set_sensitive(False)
         entry.connect("changed", self.on_entry_changed, section, param)
-        entry.set_tooltip_text(help)
         return entry
 
-    def insert_checkbox(self, param, section, config, label, help):
+    def insert_checkbox(self, param, section, config, label, help=None):
         checkbox = Gtk.CheckButton.new_with_label(label)
         if config == "frontend":
             if g.frontend_conf.get(param) == "True":
                 checkbox.set_active(True)
+            checkbox.set_tooltip_text(help)
         elif config == "m64p":
             if g.lock == False and g.m64p_wrapper.compatible == True:
                 if g.m64p_wrapper.ConfigGetParameter(param) == True:
                     checkbox.set_active(True)
-                help = g.m64p_wrapper.ConfigGetParameterHelp(param)
+                checkbox.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param))
             else:
                 checkbox.set_sensitive(False)
         checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
-        checkbox.set_tooltip_text(help)
         return checkbox
+
+    def insert_spinbutton(self, param, section, config, minimum, maximum, help=None):
+        adj_value = 0
+        adj_step = 1.0
+        spin_climb = 1.0
+
+        adjustment = Gtk.Adjustment(value=adj_value, lower=minimum, upper=maximum, step_increment=adj_step)
+        spin = Gtk.SpinButton.new(adjustment, spin_climb, 0)
+        if config == "frontend":
+            spin.set_value(g.frontend_conf.get(param))
+            spin.set_tooltip_text(help)
+        elif config == "m64p":
+            spin.set_value(g.m64p_wrapper.ConfigGetParameter(param))
+            spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param))
+        spin.set_snap_to_ticks(True)
+        spin.connect("value-changed", self.on_spinbutton_changed, section, param)
+        return spin
         
