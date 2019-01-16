@@ -220,9 +220,17 @@ class List:
     def rom_startup(self):
         GObject.idle_add(self.parent.add_video_tab)
         g.running = True
-        if g.frontend_conf.get("vidext") == "True":
+        g.frontend_conf.open_section("Frontend")
+        #print("Rombrowser:", g.frontend_conf.get_bool("Vidext"))
+        if g.frontend_conf.get_bool("Vidext") == True:
             g.m64p_wrapper.vext_override = True
+        else:
+            g.m64p_wrapper.vext_override = False
         g.m64p_wrapper.run(self.rom)
+
+        # Clean everything
+        GObject.idle_add(self.parent.remove_video_tab)
+        g.running = False
 
     #UNUSED
     def hashify(self,file):

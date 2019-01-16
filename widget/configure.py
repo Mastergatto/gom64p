@@ -594,7 +594,6 @@ class ConfigDialog(Gtk.Dialog):
         g.frontend_conf.set('path1', self.former_values['path1'])
         g.frontend_conf.set('path2', self.former_values['path2'])
         g.frontend_conf.set('path3', self.former_values['path3'])
-        print(self.former_values['vidext'], g.frontend_conf.get('Vidext'))
 
     def former_update(self):
         self.is_changed = False

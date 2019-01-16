@@ -209,23 +209,32 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         vidext_tab = Gtk.Label(label="vidext")
         n_pages = self.notebook.get_n_pages()
         if n_pages == 1:
-            if g.frontend_conf.get("Vidext") == "True":
+            g.frontend_conf.open_section("Frontend")
+            if g.frontend_conf.get_bool("Vidext") == True:
                 self.canvas = Gtk.GLArea()
                 self.canvas.set_has_depth_buffer(True)
                 #self.canvas.set_has_alpha(True)
                 #self.canvas.set_has_stencil_buffer(True)
-                #self.canvas.set_auto_render(False)
+                self.canvas.set_auto_render(False)
                 import wrapper.vidext as wrp_vext
                 wrp_vext.m64p_video.set_window(self.m64p_window)
                 self.video_box.add(self.canvas)
             else:
-                running = Gtk.Label(label="Emulator is running.")
-                self.video_box.add(running)
+                self.running_label = Gtk.Label(label="Emulator is running.")
+                self.video_box.add(self.running_label)
 
             self.notebook.append_page(self.video_box, vidext_tab)
             self.notebook.show_all()
         self.notebook.set_current_page(1)
 
+    def remove_video_tab(self):
+        self.notebook.remove_page(1)
+        self.notebook.set_current_page(0)
+        g.frontend_conf.open_section("Frontend")
+        if g.frontend_conf.get_bool("Vidext") == True:
+            self.video_box.remove(self.canvas)
+        else:
+            self.video_box.remove(self.running_label)
 
     ### SIGNALS (clicked for button, activate for menu)
 
