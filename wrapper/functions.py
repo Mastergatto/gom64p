@@ -1473,26 +1473,26 @@ class API():
             if check_core["version"] == self.core_version:
                 self.compatible = True
 
-        except OSError:
-            print("Core: mupen64plus library isn't found")
+        except:
+            print("Core: mupen64plus library hasn't been found")
             g.lock = True
 
     def plugins_startup(self):
-        if (self.gfx_filename == "dummy" and self.gfx_filename != "dummy-warning") and (self.gfx_filename != "dummy" and self.gfx_filename == "dummy-warning"):
+        if self.gfx_filename != "dummy":
             self.PluginStartup(self.m64p_lib_gfx, b"gfx")
         self.PluginStartup(self.m64p_lib_audio, b"audio")
         self.PluginStartup(self.m64p_lib_input, b"input")
         self.PluginStartup(self.m64p_lib_rsp, b"rsp")
 
     def plugins_shutdown(self):
-        if (self.gfx_filename == "dummy" and self.gfx_filename != "dummy-warning") and (self.gfx_filename != "dummy" and self.gfx_filename == "dummy-warning"):
+        if self.gfx_filename != "dummy":
             self.PluginShutdown(self.m64p_lib_gfx)
         self.PluginShutdown(self.m64p_lib_audio)
         self.PluginShutdown(self.m64p_lib_input)
         self.PluginShutdown(self.m64p_lib_rsp)
 
     def plugins_attach(self):
-        if (self.gfx_filename == "dummy" and self.gfx_filename != "dummy-warning") and (self.gfx_filename != "dummy" and self.gfx_filename == "dummy-warning"):
+        if self.gfx_filename != "dummy":
             self.CoreAttachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_GFX.value, self.m64p_lib_gfx)
         if self.audio_filename != "dummy":
             self.CoreAttachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_AUDIO.value, self.m64p_lib_audio)
@@ -1502,14 +1502,14 @@ class API():
             self.CoreAttachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_RSP.value, self.m64p_lib_rsp)
 
     def plugins_detach(self):
-        if (self.gfx_filename == "dummy" and self.gfx_filename != "dummy-warning") and (self.gfx_filename != "dummy" and self.gfx_filename == "dummy-warning"):
-            self.CoreDetachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_RSP.value)
+        if self.gfx_filename != "dummy":
+            self.CoreDetachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_GFX.value)
         if self.audio_filename != "dummy":
             self.CoreDetachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_INPUT.value)
         if self.input_filename != "dummy":
             self.CoreDetachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_AUDIO.value)
         if self.rsp_filename != "dummy":
-            self.CoreDetachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_GFX.value)
+            self.CoreDetachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_RSP.value)
 
     def plugins_preload(self):
         if self.gfx_filename != "dummy":
@@ -1517,7 +1517,7 @@ class API():
                 self.m64p_lib_gfx = c.CDLL(self.plugins_dir + self.gfx_filename)
             except:
                 print(self.gfx_filename + ": Plugin cannot be used. Dummy plugin is used instead, which means no video.")
-                self.gfx_filename = "dummy-warning"
+                self.gfx_filename = "dummy"
 
         try:
             self.m64p_lib_audio = c.CDLL(self.plugins_dir + self.audio_filename)
