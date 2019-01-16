@@ -101,7 +101,7 @@ class API():
                     "capabilities": capabilities.value}
             return info
         else:
-            self.CoreErrorMessage(status, "PluginGetVersion")
+            self.CoreErrorMessage(status, b"PluginGetVersion")
 
     def CoreGetAPIVersions(self):
         #m64p_error CoreGetAPIVersions(int *ConfigVersion, int *DebugVersion, int *VidextVersion, int *ExtraVersion)
@@ -125,7 +125,7 @@ class API():
                     "vidext": vidextversion.value, "extra": extraversion.value}
             return info
         else:
-            self.CoreErrorMessage(status, "CoreGetAPIVersions")
+            self.CoreErrorMessage(status, b"CoreGetAPIVersions")
 
     def CoreErrorMessage(self, ReturnCode, context=None):
         #const char * CoreErrorMessage(m64p_error ReturnCode)
@@ -135,9 +135,9 @@ class API():
         status = function()
 
         if context != None:
-            print("ERROR(" + c.cast(context, c.c_char_p).value.decode("utf-8") + "):", status)
+            print("ERROR(" + c.cast(context, c.c_char_p).value.decode("utf-8") + "):", status.decode("utf-8"))
         else:
-            print("ERROR(): ", status)
+            print("ERROR: ", status)
 
     ### Frontend functions
     ## Startup/Shutdown
@@ -159,7 +159,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "CoreStartup")
+            self.CoreErrorMessage(status, b"CoreStartup")
 
     def CoreShutdown(self):
         #m64p_error CoreShutdown(void)
@@ -171,7 +171,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "CoreShutdown")
+            self.CoreErrorMessage(status, b"CoreShutdown")
 
     def CoreAttachPlugin(self, plugin, handle):
         #m64p_error CoreAttachPlugin(m64p_plugin_type PluginType, m64p_dynlib_handle PluginLibHandle)
@@ -186,7 +186,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name)
+            self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name.encode("utf-8"))
 
     def CoreDetachPlugin(self, plugin):
         #m64p_error CoreDetachPlugin(m64p_plugin_type PluginType)
@@ -199,7 +199,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name)
+            self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name.encode("utf-8"))
 
     ## Command
     def CoreDoCommand(self, command, arg1=None, arg2=None):
@@ -216,7 +216,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, wrp_dt.m64p_command(command).name)
+            self.CoreErrorMessage(status, wrp_dt.m64p_command(command).name.encode("utf-8"))
 
     ## ROM Handling
     def CoreGetRomSettings(self, crc1, crc2):
@@ -240,12 +240,11 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return rom_settings
         else:
-            self.CoreErrorMessage(status, "CoreGetRomSettings")
+            self.CoreErrorMessage(status, b"CoreGetRomSettings")
 
     ## Video Extension
     def CoreOverrideVidExt(self):
         #m64p_error CoreOverrideVidExt(m64p_video_extension_functions *VideoFunctionStruct);
-        #TODO: Untested
         function = wrp_dt.cfunc("CoreOverrideVidExt", self.m64p_lib_core, wrp_dt.m64p_error,
                        ("VideoFunctionStruct", c.POINTER(wrp_dt.m64p_video_extension_functions), 2, c.byref(wrp_vext.vidext_struct)))
         function.errcheck = wrp_dt.m64p_errcheck
@@ -254,7 +253,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"CoreOverrideVidExt")
+            self.CoreErrorMessage(status, b"CoreOverrideVidExt")
 
     ## Cheat
     def CoreAddCheat(self, cheatname, codelist, numcodes):
@@ -271,7 +270,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"CoreAddCheat")
+            self.CoreErrorMessage(status, b"CoreAddCheat")
 
     def CoreCheatEnabled(self, cheatname, enabled):
         #m64p_error CoreCheatEnabled(const char *CheatName, int Enabled)
@@ -286,7 +285,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"CoreCheatEnabled")
+            self.CoreErrorMessage(status, b"CoreCheatEnabled")
 
     ### Video Extension
     ### XXX: Those functions aren't intented to be used by frontend, but rather to help with vidext implementation
@@ -303,7 +302,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_Init")
+            self.CoreErrorMessage(status, b"VidExt_Init")
 
     def VidExt_Quit(self):
         #m64p_error VidExt_Quit(void)
@@ -316,7 +315,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_Quit")
+            self.CoreErrorMessage(status, b"VidExt_Quit")
 
     ## Screen Handling
     def VidExt_ListFullscreenModes(self):
@@ -332,7 +331,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_ListFullscreenModes")
+            self.CoreErrorMessage(status, b"VidExt_ListFullscreenModes")
 
     def VidExt_SetVideoMode(self, width, height, bits, screenmode, flags):
         #m64p_error VidExt_SetVideoMode(int Width, int Height, int BitsPerPixel, m64p_video_mode ScreenMode, m64p_video_flags Flags)
@@ -351,7 +350,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_SetVideoMode")
+            self.CoreErrorMessage(status, b"VidExt_SetVideoMode")
 
     def VidExt_SetCaption(self, title):
         #m64p_error VidExt_SetCaption(const char *Title)
@@ -366,7 +365,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_SetCaption")
+            self.CoreErrorMessage(status, b"VidExt_SetCaption")
 
     def VidExt_ToggleFullScreen(self):
         #m64p_error VidExt_ToggleFullScreen(void)
@@ -380,7 +379,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_ToggleFullScreen")
+            self.CoreErrorMessage(status, b"VidExt_ToggleFullScreen")
 
     def VidExt_ResizeWindow(self, width, height):
         #m64p_error VidExt_ResizeWindow(int Width, int Height)
@@ -395,7 +394,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_ResizeWindow")
+            self.CoreErrorMessage(status, b"VidExt_ResizeWindow")
 
     ## OpenGL
     def VidExt_GL_GetProcAddress(self, proc):
@@ -410,7 +409,7 @@ class API():
         #if status == m64p_error.M64ERR_SUCCESS.value:
         #    return status
         #else:
-        #    print(self.CoreErrorMessage(status,"VidExt_ResizeWindow"))
+        #    print(self.CoreErrorMessage(status, b"VidExt_GL_GetProcAddress"))
 
     def VidExt_GL_SetAttribute(self, attr, value):
         #m64p_error VidExt_GL_SetAttribute(m64p_GLattr Attr, int Value)
@@ -425,7 +424,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_GL_SetAttribute")
+            self.CoreErrorMessage(status, b"VidExt_GL_SetAttribute")
 
     def VidExt_GL_GetAttribute(self, attr, pvalue):
         #m64p_error VidExt_GL_GetAttribute(m64p_GLattr Attr, int *pValue)
@@ -440,7 +439,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_GL_GetAttribute")
+            self.CoreErrorMessage(status, b"VidExt_GL_GetAttribute")
 
     def VidExt_GL_SwapBuffers(self):
         #m64p_error VidExt_GL_SwapBuffers(void)
@@ -454,7 +453,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"VidExt_GL_SwapBuffers")
+            self.CoreErrorMessage(status, b"VidExt_GL_SwapBuffers")
 
     ### Debugger
     ## General
@@ -480,7 +479,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"DebugSetCallbacks")
+            self.CoreErrorMessage(status, b"DebugSetCallbacks")
 
     def DebugSetCoreCompare(self):
         #m64p_error DebugSetCoreCompare(void (*dbg_core_compare)(unsigned int), void (*dbg_core_data_sync)(int, void *))
@@ -500,7 +499,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"DebugSetCoreCompare")
+            self.CoreErrorMessage(status, b"DebugSetCoreCompare")
 
     def DebugSetRunState(self):
         #m64p_error DebugSetRunState(int runstate)
@@ -514,7 +513,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"DebugSetRunState")
+            self.CoreErrorMessage(status, b"DebugSetRunState")
 
     def DebugGetState(self):
         #int DebugGetState(m64p_dbg_state statenum)
@@ -536,7 +535,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status,"DebugStep")
+            self.CoreErrorMessage(status, b"DebugStep")
 
     def DebugDecodeOp(self):
         #void DebugDecodeOp(unsigned int instruction, char *op, char *args, int pc)
@@ -730,7 +729,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigListSections")
+            self.CoreErrorMessage(status, b"ConfigListSections")
 
     def ConfigOpenSection(self, section):
         #m64p_error ConfigOpenSection(const char *SectionName, m64p_handle *ConfigSectionHandle)
@@ -752,7 +751,7 @@ class API():
             self.config_handle = handle.value
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigListSections")
+            self.CoreErrorMessage(status, b"ConfigListSections")
 
     def ConfigListParameters(self):
         #m64p_error ConfigListParameters(m64p_handle ConfigSectionHandle, void *context, void (*ParameterListCallback)(void * context, const char *ParamName, m64p_type ParamType))
@@ -768,7 +767,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigListParameters")
+            self.CoreErrorMessage(status, b"ConfigListParameters")
 
     def ConfigHasUnsavedChanges(self, section):
         #int ConfigHasUnsavedChanges(const char *SectionName)
@@ -779,7 +778,7 @@ class API():
         status = function()
 
         if status == 1:
-            print(section + ": Changes detected.")
+            print(section + ": Changes detected!")
             return True
         else:
             print(section + ": No unsaved changes. Move along, nothing to see here.")
@@ -798,7 +797,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigDeleteSection")
+            self.CoreErrorMessage(status, b"ConfigDeleteSection")
 
     def ConfigSaveFile(self):
         #m64p_error ConfigSaveFile(void)
@@ -811,7 +810,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigSaveFile")
+            self.CoreErrorMessage(status, b"ConfigSaveFile")
 
     def ConfigSaveSection(self, section):
         #m64p_error ConfigSaveSection(const char *SectionName)
@@ -825,7 +824,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigSaveSection")
+            self.CoreErrorMessage(status, b"ConfigSaveSection")
 
     def ConfigRevertChanges(self, section):
         #m64p_error ConfigRevertChanges(const char *SectionName)
@@ -839,7 +838,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigRevertChanges")
+            self.CoreErrorMessage(status, b"ConfigRevertChanges")
 
     ## Generic Get/Set Functions
     def ConfigSetParameter(self, name, paramvalue):
@@ -876,7 +875,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigSetParameter")
+            self.CoreErrorMessage(status, b"ConfigSetParameter")
 
     def ConfigSetParameterHelp(self, name, help):
         #m64p_error ConfigSetParameterHelp(m64p_handle ConfigSectionHandle, const char *ParamName, const char *ParamHelp)
@@ -892,7 +891,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigSetParameterHelp")
+            self.CoreErrorMessage(status, b"ConfigSetParameterHelp")
 
     def ConfigGetParameter(self, name):
         #m64p_error ConfigGetParameter(m64p_handle ConfigSectionHandle, const char *ParamName, m64p_type ParamType, void *ParamValue, int MaxSize)
@@ -935,7 +934,7 @@ class API():
                 #print(paramvalue.contents.value)
                 return paramvalue.contents.value
         else:
-            self.CoreErrorMessage(status, "ConfigGetParameter")
+            self.CoreErrorMessage(status, b"ConfigGetParameter")
 
     def ConfigExternalOpen(self, path):
         # m64p_error ConfigExternalOpen(const char *FileName, m64p_handle *Handle)
@@ -952,7 +951,7 @@ class API():
             self.config_ext_handle = handle.value
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigExternalOpen")
+            self.CoreErrorMessage(status, b"ConfigExternalOpen")
 
     def ConfigExternalClose(self):
         # m64p_error ConfigExternalClose(m64p_handle Handle)
@@ -966,7 +965,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigExternalClose")
+            self.CoreErrorMessage(status, b"ConfigExternalClose")
 
     def ConfigExternalGetParameter(self, sectionname, paramname):
         # m64p_error ConfigExternalGetParameter(m64p_handle Handle, const char *SectionName, const char *ParamName, char* ParamPtr, int ParamMaxLength)
@@ -986,7 +985,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return paramptr.value
         else:
-            self.CoreErrorMessage(status, "ConfigExternalGetParameter")
+            self.CoreErrorMessage(status, b"ConfigExternalGetParameter")
 
     def ConfigGetParameterType(self, paramname):
         #m64p_error ConfigGetParameterType(m64p_handle ConfigSectionHandle, const char *ParamName, m64p_type *ParamType)
@@ -1003,7 +1002,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return wrp_dt.m64p_type(param_type.value).name
         else:
-            self.CoreErrorMessage(status, "ConfigGetParameterType")
+            self.CoreErrorMessage(status, b"ConfigGetParameterType")
 
     def ConfigGetParameterHelp(self, name):
         #const char * ConfigGetParameterHelp(m64p_handle ConfigSectionHandle, const char *ParamName)
@@ -1016,7 +1015,7 @@ class API():
         if status != None:
             return status.decode("utf-8")
         else:
-            print("No description is available for this parameter.")
+            print("No description is available for this parameter: ", name)
 
     ##Special Get/Set Functions
     def ConfigSetDefaultInt(self, name, value, help):
@@ -1034,7 +1033,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigSetDefaultInt")
+            self.CoreErrorMessage(status, b"ConfigSetDefaultInt")
 
     def ConfigSetDefaultFloat(self, name, value, help):
         #m64p_error ConfigSetDefaultFloat(m64p_handle ConfigSectionHandle, const char *ParamName, float ParamValue, const char *ParamHelp)
@@ -1051,7 +1050,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigSetDefaultFloat")
+            self.CoreErrorMessage(status, b"ConfigSetDefaultFloat")
 
     def ConfigSetDefaultBool(self, name, value, help):
         #m64p_error ConfigSetDefaultBool(m64p_handle ConfigSectionHandle, const char *ParamName, int ParamValue, const char *ParamHelp)
@@ -1068,7 +1067,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigSetDefaultBool")
+            self.CoreErrorMessage(status, b"ConfigSetDefaultBool")
 
     def ConfigSetDefaultString(self, name, value, help):
         #m64p_error ConfigSetDefaultString(m64p_handle ConfigSectionHandle, const char *ParamName, const char * ParamValue, const char *ParamHelp)
@@ -1085,7 +1084,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "ConfigSetDefaultString")
+            self.CoreErrorMessage(status, b"ConfigSetDefaultString")
 
     def ConfigGetParamInt(self, name):
         #int ConfigGetParamInt(m64p_handle ConfigSectionHandle, const char *ParamName)
@@ -1138,7 +1137,7 @@ class API():
         if status != None:
             return status
         else:
-            print("ConfigGetParamString error")
+            print("ConfigGetParamString error" + name)
 
     ## OS-Abstraction Functions
     def ConfigGetSharedDataFilepath(self, string):
@@ -1190,7 +1189,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name)
+            self.CoreErrorMessage(status, ("PluginStartup: " + wrp_dt.m64p_plugin_type(plugin).name).encode("utf-8"))
 
     def PluginShutdown(self, plugin):
         #m64p_error PluginShutdown(void)
@@ -1202,7 +1201,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, "PluginShutdown")
+            self.CoreErrorMessage(status, ("PluginShutdown: " + wrp_dt.m64p_plugin_type(plugin).name).encode("utf-8"))
 
     #######CoreDoCommand commands #####
     def rom_open(self, rom_path):
@@ -1551,6 +1550,9 @@ class API():
     def run(self, rom):
         if self.vext_override == True:
             self.CoreOverrideVidExt()
+            print("Core: Vidext is now enabled!")
+        else:
+            print("Core: Vidext should be disabled.")
 
         retval = self.rom_open(rom)
         if retval == 0:
