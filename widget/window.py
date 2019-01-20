@@ -305,9 +305,11 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def on_key_press(self, widget, key):
         #print(key.hardware_keycode)
         g.m64p_wrapper.send_sdl_keydown(w_key.keysym_map(key.hardware_keycode))
+        return True
 
     def on_key_release(self, widget, key):
         g.m64p_wrapper.send_sdl_keyup(w_key.keysym_map(key.hardware_keycode))
+        return True
 
 
     def state_callback(self, context, param, value):
@@ -315,14 +317,10 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         if param == wrp_dt.m64p_core_param.M64CORE_EMU_STATE.value:
             print(wrp_dt.m64p_core_param(param).name, wrp_dt.m64p_emu_state(value).name)
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
-                self.notebook.set_current_page(0)
-                self.m64p_window.set_resizable(True)
                 self.main_menu.sensitive_menu_stop()
                 self.Statusbar.push(self.StatusbarContext, "Emulation STOPPED")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_RUNNING':
-                #self.notebook.set_current_page(1)
-                #self.m64p_window.resize(640,480)
-                #self.m64p_window.set_resizable(False)
+                self.m64p_window.canvas.grab_focus()
                 self.main_menu.sensitive_menu_run()
                 self.Statusbar.push(self.StatusbarContext, "Emulation STARTED")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_PAUSED':
@@ -336,7 +334,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 self.main_menu.active_slot = value
                 self.main_menu.save_slot_items[value].set_active(True)
             print(context_dec, wrp_dt.m64p_core_param(param).name, "SLOT:", value)
-            #self.Statusbar.push(self.StatusbarContext, "Slot selected: " + str(value))
+            #self.Statusbar.push(self.StatusbarContext, "Slot selected: " + str(value)) # FIXME: It causes some strange errors at start of execution
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_FACTOR.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value, "%")
             self.Statusbar.push(self.StatusbarContext, "Emulation speed: " + str(value) + "%")

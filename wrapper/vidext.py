@@ -57,12 +57,12 @@ class Vidext():
 
     def video_quit(self):
         print("Vidext: video_quit()")
-        #sdl.SDL_DestroyRenderer(self.renderer)
         sdl.SDL_GL_DeleteContext(self.sdl_context)
         sdl.SDL_DestroyWindow(self.foreign_window)
         sdl.SDL_Quit()
         if self.title != None:
             self.window.set_title(self.title)
+        self.window.set_resizable(True)
         self.window.canvas.set_size_request(1, 1) # First we must lift the restriction on the minimum size of the widget
         self.window.resize(self.former_size[0], self.former_size[1])
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
@@ -98,13 +98,7 @@ class Vidext():
 
         self.sdl_context = sdl.SDL_GL_CreateContext(self.foreign_window)
         #print(sdl.SDL_GetError())
-        #self.renderer = sdl.SDL_CreateRenderer(self.foreign_window, -1, sdl.SDL_RENDERER_ACCELERATED)
-        #sdl.SDL_SetRenderDrawColor(self.renderer, 0, 0, 255, 255)
-        #sdl.SDL_RenderClear(self.renderer)
-        #sdl.SDL_RenderPresent(self.renderer)
-        #sdl.SDL_GL_SetAttribute(sdl.SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1)
         sdl.SDL_GL_MakeCurrent(self.foreign_window, self.sdl_context)
-        self.window.canvas.grab_focus()
 
         print("video_set_mode context:", self.sdl_context)
         if self.sdl_context != None:
@@ -220,9 +214,6 @@ class Vidext():
         #XXX: It can spam this message in the output, better turn off it.
         #print("Vidext: gl_swap_buffer()")
         sdl.SDL_GL_SwapWindow(self.foreign_window)
-        #if self.profile_mask == 0:
-        #    # FIXME: I don't know why glide64mk2 wants this. However, even in this case it still has issue.
-        #    sdl.SDL_GL_MakeCurrent(self.sdl_window, self.sdl_context)
 
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
