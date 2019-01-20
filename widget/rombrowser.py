@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk, Gdk, GObject, GLib
 import sys, os, os.path, threading, ast, hashlib
 
 import global_module as g
@@ -173,7 +173,7 @@ class List:
                 thread.start()
                 return thread
             except:
-                print("The emulation has encountered an unexpected error")
+                print("The emulation thread has encountered an unexpected error")
                 threading.main_thread()
 
     def on_playitem_activated(self, widget):
@@ -186,7 +186,7 @@ class List:
                     thread.start()
                     return thread
                 except:
-                    print("The emulation has encountered an unexpected error")
+                    print("The emulation thread has encountered an unexpected error")
                     threading.main_thread()
             else:
                 self.rom_startup()
@@ -218,7 +218,7 @@ class List:
                 self.treeview_menu.popup_at_pointer(event)
 
     def rom_startup(self):
-        GObject.idle_add(self.parent.add_video_tab)
+        GLib.idle_add(self.parent.add_video_tab)
         g.running = True
         g.frontend_conf.open_section("Frontend")
         #print("Rombrowser:", g.frontend_conf.get_bool("Vidext"))
@@ -229,7 +229,7 @@ class List:
         g.m64p_wrapper.run(self.rom)
 
         # Clean everything
-        GObject.idle_add(self.parent.remove_video_tab)
+        GLib.idle_add(self.parent.remove_video_tab)
         g.running = False
 
     #UNUSED

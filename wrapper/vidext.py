@@ -8,7 +8,8 @@
 ## MODULES ##
 #############
 import ctypes as c
-from gi.repository import Gdk
+from gi.repository import Gtk, GdkX11
+import sys
 from OpenGL.GL import *
 
 import external.sdl2 as sdl
@@ -28,6 +29,7 @@ class Vidext():
         self.window = None
         self.foreign_window = None
         self.sdl_window = None
+        self.title = None
 
         self.modes = []
         self.renderer = None
@@ -54,11 +56,12 @@ class Vidext():
 
     def video_quit(self):
         print("Vidext: video_quit()")
-        #sdl.SDL_FreeSurface()
-        sdl.SDL_DestroyRenderer(self.renderer)
+        #sdl.SDL_DestroyRenderer(self.renderer)
         sdl.SDL_GL_DeleteContext(self.sdl_context)
-        sdl.SDL_DestroyWindow(self.sdl_window)
-        sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
+        sdl.SDL_DestroyWindow(self.foreign_window)
+        sdl.SDL_Quit()
+        if self.title != None:
+            self.window.set_title(self.title)
         self.window.canvas.set_size_request(1, 1) # First we must lift the restriction on the minimum size of the widget
         self.window.resize(self.former_size[0], self.former_size[1])
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
@@ -77,35 +80,35 @@ class Vidext():
         print("Vidext: video_set_mode(width:" + str(width) + ", height:" + str(height) + ", bits:" + str(bits) +
                ", screenmode:" + wrp_dt.m64p_video_mode(screenmode).name + ", flags:" + wrp_dt.m64p_video_flags(flags).name + ")")
 
-        if wrp_dt.m64p_video_flags(flags).name == 'M64VIDEOFLAG_SUPPORT_RESIZING':
-            self.sdl_window = sdl.SDL_CreateWindow(b"gom64p", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED,
-                width, height, sdl.SDL_WINDOW_OPENGL |sdl.SDL_WINDOW_RESIZABLE) # | sdl.SDL_WINDOW_HIDDEN)
-        else:
-            self.sdl_window = sdl.SDL_CreateWindow(b"gom64p", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED,
-                width, height, sdl.SDL_WINDOW_OPENGL) # | sdl.SDL_WINDOW_HIDDEN)
+        self.former_size = self.window.get_size()
+        self.window.set_resizable(False) # Needed for get_preferred_size() to work
+        self.window.canvas.set_size_request(width, height) # Necessary so that we tell the GUI to not shrink the window further than the size of the widget set by mupen64plus
+        self.window.canvas.get_preferred_size() # It doesn't just get the preferred size, it DOES resize the window too
 
-        self.sdl_context = sdl.SDL_GL_CreateContext(self.sdl_window)
-        self.renderer = sdl.SDL_CreateRenderer(self.sdl_window, -1, sdl.SDL_RENDERER_ACCELERATED)
-        sdl.SDL_SetRenderDrawColor(self.renderer, 0, 0, 255, 255)
-        sdl.SDL_RenderClear(self.renderer)
-        sdl.SDL_RenderPresent(self.renderer)
+        if sys.platform.startswith('linux') or sys.platform.startswith('freebsd') :
+            # Hack to embed sdl window into the frontend. It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
+            self.foreign_window = sdl.SDL_CreateWindowFrom(self.window.canvas.get_property('window').get_xid())
+        elif sys.platform == 'cygwin':
+            #sdl.SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT(x)
+            #self.foreign_window = sdl.SDL_CreateWindowFrom(self.window.canvas.get_property('window').get_xid())
+            pass
+        elif sys.platform == 'darwin':
+            pass
+
+        self.sdl_context = sdl.SDL_GL_CreateContext(self.foreign_window)
+        #print(sdl.SDL_GetError())
+        #self.renderer = sdl.SDL_CreateRenderer(self.foreign_window, -1, sdl.SDL_RENDERER_ACCELERATED)
+        #sdl.SDL_SetRenderDrawColor(self.renderer, 0, 0, 255, 255)
+        #sdl.SDL_RenderClear(self.renderer)
+        #sdl.SDL_RenderPresent(self.renderer)
         #sdl.SDL_GL_SetAttribute(sdl.SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1)
-        sdl.SDL_GL_MakeCurrent(self.sdl_window, self.sdl_context)
-        #Gdk.cairo_draw_from_gl(cr, self.window, 0, )
-        #self.window.canvas.make_current()
+        sdl.SDL_GL_MakeCurrent(self.foreign_window, self.sdl_context)
 
         print("video_set_mode context:", self.sdl_context)
         if self.sdl_context != None:
             self.sdl_context2 = sdl.SDL_GL_GetCurrentContext()
             print("Context SDL:", self.sdl_context, self.sdl_context2)
-            #print(sdl.SDL_GetWindowID(self.sdl_window))
-            self.former_size = self.window.get_size()
-            self.window.set_resizable(False) # Needed for get_preferred_size() to work
-            self.window.canvas.set_size_request(width, height) # Necessary so that we tell the GUI to not shrink the window further than the size of the widget set by mupen64plus
-            self.window.canvas.get_preferred_size() # It doesn't just get the preferred size, it DOES resize the window too
-            #sdl.SDL_SetWindowSize(self.sdl_window, width, height)
 
-            #sdl.SDL_GL_SwapWindow(self.sdl_window)
             self.info = sdl.SDL_SysWMinfo()
             #version = sdl.SDL_VERSION(c.byref(info.version))
             version = sdl.SDL_GetVersion(c.byref(self.info.version))
@@ -214,12 +217,17 @@ class Vidext():
     def gl_swap_buffer(self):
         #XXX: It can spam this message in the output, better turn off it.
         #print("Vidext: gl_swap_buffer()")
-        sdl.SDL_GL_SwapWindow(self.sdl_window)
+        sdl.SDL_GL_SwapWindow(self.foreign_window)
+        if self.profile_mask == 0:
+            # FIXME: I don't know why glide64mk2 wants this. However, even in this case it still has issue.
+            sdl.SDL_GL_MakeCurrent(self.sdl_window, self.sdl_context)
 
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_set_caption(self, title):
-        print("Vidext: video_set_caption(" + title.decode() + ")")
+        print("Vidext: video_set_caption(" + title.decode("utf-8") + ")")
+        self.title = self.window.get_title()
+        self.window.set_title(title.decode("utf-8"))
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_toggle_fs(self):

@@ -56,6 +56,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             g.parameters['datadir'] = args_m64p_data
 
         #self.set_application_name("mupen64plus")
+        self.set_title("Good Old Mupen64+")
         self.set_position(1)
         self.set_default_size(800, 640)
         self.set_size_request(640, 560) # TODO: What's the good looking minimum size for the main window?
@@ -211,11 +212,12 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         if n_pages == 1:
             g.frontend_conf.open_section("Frontend")
             if g.frontend_conf.get_bool("Vidext") == True:
-                self.canvas = Gtk.GLArea()
-                self.canvas.set_has_depth_buffer(True)
+                #self.canvas = Gtk.GLArea()
+                #self.canvas.set_has_depth_buffer(True)
                 #self.canvas.set_has_alpha(True)
                 #self.canvas.set_has_stencil_buffer(True)
-                self.canvas.set_auto_render(False)
+                #self.canvas.set_auto_render(False)
+                self.canvas = Gtk.DrawingArea()
                 import wrapper.vidext as wrp_vext
                 wrp_vext.m64p_video.set_window(self.m64p_window)
                 self.video_box.add(self.canvas)

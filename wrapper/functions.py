@@ -1137,7 +1137,7 @@ class API():
         if status != None:
             return status
         else:
-            print("ConfigGetParamString error" + name)
+            print("ConfigGetParamString error:" + name)
 
     ## OS-Abstraction Functions
     def ConfigGetSharedDataFilepath(self, string):
@@ -1148,7 +1148,7 @@ class API():
         filename = function()
 
         if type(filename) == bytes:
-            return filename.decode()
+            return filename.decode("utf-8")
         else:
             return filename
 
@@ -1157,7 +1157,7 @@ class API():
         function = wrp_dt.cfunc("ConfigGetUserConfigPath", self.m64p_lib_core, c.c_char_p)
         filename = function()
 
-        return filename.decode()
+        return filename.decode("utf-8")
 
     def ConfigGetUserDataPath(self):
         #const char * ConfigGetUserDataPath(void)
@@ -1165,7 +1165,7 @@ class API():
         function = wrp_dt.cfunc("ConfigGetUserDataPath", self.m64p_lib_core, c.c_char_p)
         filename = function()
 
-        return filename.decode()
+        return filename.decode("utf-8")
 
     def ConfigGetUserCachePath(self):
         #const char * ConfigGetUserCachePath(void)
@@ -1173,7 +1173,7 @@ class API():
         function = wrp_dt.cfunc("ConfigGetUserCachePath", self.m64p_lib_core, c.c_char_p)
         filename = function()
 
-        return filename.decode()
+        return filename.decode("utf-8")
 
     def PluginStartup(self, plugin, context):
         #m64p_error PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Context, void (*DebugCallback)(void *Context, int level, const char *Message))
