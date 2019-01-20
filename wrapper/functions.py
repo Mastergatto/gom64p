@@ -1389,18 +1389,16 @@ class API():
             print("CoreDoCommand: Unable to change the state save slot")
         return status
 
-    def send_sdl_keydown(self):
+    def send_sdl_keydown(self, key):
         #M64CMD_SEND_SDL_KEYDOWN = 13
-        #TODO: UNTESTED
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYDOWN.value, c.c_int(), c.c_void_p())
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYDOWN.value, c.c_int(key), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             print("CoreDoCommand: Unable to send SDL key down signal")
         return status
 
-    def send_sdl_keyup(self):
+    def send_sdl_keyup(self, key):
         #M64CMD_SEND_SDL_KEYUP = 14
-        #TODO: UNTESTED
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYUP.value, c.c_int(), c.c_void_p())
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYUP.value, c.c_int(key), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             print("CoreDoCommand: Unable to send SDL key up signal")
         return status

@@ -45,6 +45,7 @@ class Vidext():
         print("Vidext: video_init()")
         #source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L34
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO)
+        sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK) #TODO: Is it really necessary?
         display = sdl.SDL_DisplayMode()
         for mode in range(sdl.SDL_GetNumDisplayModes(0)):
             ret = sdl.SDL_GetDisplayMode(0, mode, c.byref(display))
@@ -103,6 +104,7 @@ class Vidext():
         #sdl.SDL_RenderPresent(self.renderer)
         #sdl.SDL_GL_SetAttribute(sdl.SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1)
         sdl.SDL_GL_MakeCurrent(self.foreign_window, self.sdl_context)
+        self.window.canvas.grab_focus()
 
         print("video_set_mode context:", self.sdl_context)
         if self.sdl_context != None:

@@ -184,6 +184,7 @@ class MediaDialog(Gtk.Dialog):
                 if g.m64p_wrapper.ConfigHasUnsavedChanges("64DD") == True:
                     g.m64p_wrapper.ConfigSaveSection("64DD")
 
+                g.m64p_wrapper.set_media_loader()
                 self.media_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 if self.is_changed == True:

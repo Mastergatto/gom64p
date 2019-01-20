@@ -14,6 +14,7 @@ import global_module as g
 import utils.cache as u_cache
 import widget.menu as w_m
 import widget.rombrowser as w_brw
+import widget.keysym as w_key
 import wrapper.datatypes as wrp_dt
 
 ###############
@@ -217,6 +218,16 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 #self.canvas.set_has_stencil_buffer(True)
                 #self.canvas.set_auto_render(False)
                 self.canvas = Gtk.DrawingArea()
+                self.canvas.set_can_focus(True)
+                #self.canvas.grab_add()
+                #self.canvas.add_device_events()
+                #self.canvas.add_events(1024) #KEY_PRESS_MASK, seems already enabled by default
+                self.canvas.connect("key_press_event", self.on_key_press)
+                #self.canvas.add_events(2048) #KEY_RELEASE_MASK, seems already enabled by default
+                self.canvas.connect("key_release_event", self.on_key_release)
+                #self.canvas.add_events(4) #POINTER_MOTION_MASK
+                #self.canvas.add_events(16) #BUTTON_MOTION_MASK
+                #self.canvas.add_events(256) # BUTTON_PRESS_MASK
                 import wrapper.vidext as wrp_vext
                 wrp_vext.m64p_video.set_window(self.m64p_window)
                 self.video_box.add(self.canvas)
@@ -290,6 +301,13 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.browser_list.cache_update()
         self.browser_list.generate_liststore()
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...DONE")
+
+    def on_key_press(self, widget, key):
+        #print(key.hardware_keycode)
+        g.m64p_wrapper.send_sdl_keydown(w_key.keysym_map(key.hardware_keycode))
+
+    def on_key_release(self, widget, key):
+        g.m64p_wrapper.send_sdl_keyup(w_key.keysym_map(key.hardware_keycode))
 
 
     def state_callback(self, context, param, value):
