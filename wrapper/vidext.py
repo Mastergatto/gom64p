@@ -218,9 +218,9 @@ class Vidext():
         #XXX: It can spam this message in the output, better turn off it.
         #print("Vidext: gl_swap_buffer()")
         sdl.SDL_GL_SwapWindow(self.foreign_window)
-        if self.profile_mask == 0:
-            # FIXME: I don't know why glide64mk2 wants this. However, even in this case it still has issue.
-            sdl.SDL_GL_MakeCurrent(self.sdl_window, self.sdl_context)
+        #if self.profile_mask == 0:
+        #    # FIXME: I don't know why glide64mk2 wants this. However, even in this case it still has issue.
+        #    sdl.SDL_GL_MakeCurrent(self.sdl_window, self.sdl_context)
 
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 

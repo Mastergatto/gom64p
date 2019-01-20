@@ -167,8 +167,7 @@ class List:
         treeiter = model.get_iter(treepath)
         self.rom = model.get_value(treeiter, 3)
         if self.rom != None and g.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation",target=self.rom_startup)
-            thread.daemon = True
+            thread = threading.Thread(name="Emulation", target=self.rom_startup)
             try:
                 thread.start()
                 return thread
@@ -179,17 +178,13 @@ class List:
     def on_playitem_activated(self, widget):
         self.rom = self.selected_game
         if self.rom != None and g.m64p_wrapper.compatible == True:
-            if g.m64p_wrapper.vext_override == False:
-                thread = threading.Thread(name="Emulation", target=self.rom_startup)
-                thread.daemon = True
-                try:
-                    thread.start()
-                    return thread
-                except:
-                    print("The emulation thread has encountered an unexpected error")
-                    threading.main_thread()
-            else:
-                self.rom_startup()
+            thread = threading.Thread(name="Emulation", target=self.rom_startup)
+            try:
+                thread.start()
+                return thread
+            except:
+                print("The emulation thread has encountered an unexpected error")
+                threading.main_thread()
 
     def menu(self):
         # Context menu

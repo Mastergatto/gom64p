@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, GLib
 import threading
 
 import global_module as g
@@ -308,35 +308,36 @@ class Menu:
         dialog.add_filter(filter_any)
 
     def rom_startup(self):
-        #TEST
+        GLib.idle_add(self.m64p_window.add_video_tab)
         g.running = True
-        if g.m64p_wrapper.vext_override == False:
-            GObject.idle_add(self.parent.add_video_tab)
+        g.frontend_conf.open_section("Frontend")
+        #print("Rombrowser:", g.frontend_conf.get_bool("Vidext"))
+        if g.frontend_conf.get_bool("Vidext") == True:
+            g.m64p_wrapper.vext_override = True
+        else:
+            g.m64p_wrapper.vext_override = False
         g.m64p_wrapper.run(self.rom)
-        #GLib.idle_add(self.run, priority=GLib.PRIORITY_LOW)
+
+        # Clean everything
+        GLib.idle_add(self.m64p_window.remove_video_tab)
+        g.running = False
 
     def on_ChoosingRom(self, *args):
         dialog = w_dialog.RomChooserDialog(self.m64p_window)
         self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "Selecting the ROM...")
         self.rom = dialog.path
         if self.rom != None and g.m64p_wrapper.compatible == True:
-            if g.m64p_wrapper.vext_override == False:
-                thread = threading.Thread(name="Emulation",target=self.rom_startup)
-                thread.daemon = True
-                try:
-                    thread.start()
-                    return thread
+            thread = threading.Thread(name="Emulation", target=self.rom_startup)
+            try:
+                thread.start()
+                return thread
+            except:
+                print("The emulation thread has encountered an unexpected error")
+                threading.main_thread()
             #except (KeyboardInterrupt, SystemExit):
             #    #https://docs.python.org/3/library/signal.html
             #    thread.stop()
             #    sys.exit()
-
-                except:
-                    print("The emulation has encountered an unexpected error")
-                    threading.main_thread()
-                    #pass
-            else:
-                self.rom_startup()
 
     def on_action_stop(self, *args):
         g.m64p_wrapper.stop()

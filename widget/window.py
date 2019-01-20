@@ -14,7 +14,6 @@ import global_module as g
 import utils.cache as u_cache
 import widget.menu as w_m
 import widget.rombrowser as w_brw
-import widget.glwidget as w_gl
 import wrapper.datatypes as wrp_dt
 
 ###############

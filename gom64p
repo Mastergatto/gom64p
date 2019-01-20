@@ -7,12 +7,17 @@
 ###############
 ## VARIABLES ##
 ###############
-import argparse, os, sys
+import argparse, os, sys, ctypes
 # Before importing or do anything, we must set those env variable so that this program can work correctly on Linux
 #Gdk.set_allowed_backends("x11, win32, quartz")
 if sys.platform.startswith('linux') or sys.platform.startswith('freebsd') :
     os.environ['GDK_BACKEND'] = 'x11'
     os.environ['PYSDL2_DLL_PATH'] = './lib/'
+    try:
+        x11 = ctypes.cdll.LoadLibrary('libX11.so')
+        x11.XInitThreads()
+    except:
+        print("Warning: failed to XInitThreads()")
 elif sys.platform == 'cygwin':
     pass
 elif sys.platform == 'darwin':
@@ -130,4 +135,5 @@ if __name__ == "__main__":
     application = GoodOldM64pApp()
     exit_status = application.run(sys.argv)
     sys.exit(exit_status)
+
 
