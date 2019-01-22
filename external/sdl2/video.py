@@ -103,6 +103,16 @@ __all__ = ["SDL_DisplayMode", "SDL_Window", "SDL_WindowFlags",
           ]
 
 
+class SDL_WindowUserData(Structure):
+    pass
+
+SDL_WindowUserData.__fields__ = [
+        ("name", c_char_p),
+        ("data", c_void_p),
+        ("next", POINTER(SDL_WindowUserData))
+    ]
+
+
 class SDL_DisplayMode(Structure):
     _fields_ = [("format", Uint32),
                 ("w", c_int),
@@ -131,6 +141,17 @@ class SDL_DisplayMode(Structure):
 
 class SDL_Window(Structure):
     pass
+
+class SDL_WindowShaper(Structure):
+    from .shape import SDL_WindowShapeMode
+    __fields__ = [
+        ("window", POINTER(SDL_Window)),
+        ("userx", Uint32),
+        ("usery", Uint32),
+        ("mode", SDL_WindowShapeMode),
+        ("hasshape", SDL_bool),
+        ("driverdata", c_void_p)
+    ]
 
 SDL_WindowFlags = c_int
 SDL_WINDOW_FULLSCREEN = 0x00000001
@@ -248,6 +269,39 @@ SDL_HITTEST_RESIZE_BOTTOMLEFT = 8
 SDL_HITTEST_RESIZE_LEFT = 9
 SDL_HitTest = CFUNCTYPE(SDL_HitTestResult, POINTER(SDL_Window), POINTER(SDL_Point), c_void_p)
 
+SDL_Window._fields_ = [
+         ("magic", c_void_p), #const void *magic;
+         ("id", Uint32),
+         ("title", c_char_p),
+         ("icon", POINTER(SDL_Surface)),
+         ("x", c_int),
+         ("y", c_int),
+         ("w", c_int),
+         ("h", c_int),
+         ("min_w", c_int),
+         ("min_h", c_int),
+         ("max_w", c_int),
+         ("max_h", c_int),
+         ("flags", Uint32),
+         ("last_fullscreen_flags", Uint32),
+         ("windowed", SDL_Rect),
+         ("fullscreen_mode", SDL_DisplayMode),
+         ("brightness", c_float),
+         ("gamma", POINTER(Uint16)),
+         ("saved_gamma", POINTER(Uint16)),
+         ("surface", POINTER(SDL_Surface)),
+         ("surface_valid", SDL_bool),
+         ("is_hiding", SDL_bool),
+         ("is_destroying", SDL_bool),
+         ("shaper", POINTER(SDL_WindowShaper)),
+         ("hit_test", SDL_HitTest),
+         ("hit_test_data", c_void_p),
+         ("data", SDL_WindowUserData),
+         ("driverdata", c_void_p),
+         ("prev", POINTER(SDL_Window)),
+         ("next", POINTER(SDL_Window))
+     ]
+
 SDL_GetNumVideoDrivers = _bind("SDL_GetNumVideoDrivers", None, c_int)
 SDL_GetVideoDriver = _bind("SDL_GetVideoDriver", [c_int], c_char_p)
 SDL_VideoInit = _bind("SDL_VideoInit", [c_char_p], c_int)
@@ -331,3 +385,4 @@ SDL_GL_SwapWindow = _bind("SDL_GL_SwapWindow", [POINTER(SDL_Window)])
 SDL_GL_DeleteContext = _bind("SDL_GL_DeleteContext", [SDL_GLContext])
 SDL_GL_GetDrawableSize = _bind("SDL_GL_GetDrawableSize", [POINTER(SDL_Window), POINTER(c_int), POINTER(c_int)], optfunc=nullfunc)
 SDL_GL_ResetAttributes = _bind("SDL_GL_ResetAttributes", optfunc=nullfunc)
+

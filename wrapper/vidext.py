@@ -28,7 +28,6 @@ class Vidext():
         self.sdl_context = None
         self.window = None
         self.foreign_window = None
-        self.sdl_window = None
         self.title = None
 
         self.modes = []
@@ -82,23 +81,41 @@ class Vidext():
                ", screenmode:" + wrp_dt.m64p_video_mode(screenmode).name + ", flags:" + wrp_dt.m64p_video_flags(flags).name + ")")
 
         self.former_size = self.window.get_size()
-        self.window.set_resizable(False) # Needed for get_preferred_size() to work
-        self.window.canvas.set_size_request(width, height) # Necessary so that we tell the GUI to not shrink the window further than the size of the widget set by mupen64plus
-        self.window.canvas.get_preferred_size() # It doesn't just get the preferred size, it DOES resize the window too
+        # Needed for get_preferred_size() to work
+        self.window.set_resizable(False)
+        # Necessary so that we tell the GUI to not shrink the window further than the size of the widget set by mupen64plus
+        self.window.canvas.set_size_request(width, height)
+        # It doesn't just get the preferred size, it DOES resize the window too
+        self.window.canvas.get_preferred_size()
+        # Mandatory since we're doing the hack for embedding SDL into GTK+, otherwise gamepads won't work here since GTK+ doesn't handle those inputs.
+        sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
 
         if sys.platform.startswith('linux') or sys.platform.startswith('freebsd') :
-            # Hack to embed sdl window into the frontend. It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
+            # Hack to embed sdl window into the frontend.
+            # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
             self.foreign_window = sdl.SDL_CreateWindowFrom(self.window.canvas.get_property('window').get_xid())
         elif sys.platform == 'cygwin':
-            #sdl.SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT(x)
+            #sdl.SDL_SetHint(sdl.SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT, x)
+            #sdl.SDL_SetHint(sdl.SDL_HINT_RENDER_DRIVER, "opengl")
             #self.foreign_window = sdl.SDL_CreateWindowFrom(self.window.canvas.get_property('window').get_xid())
             pass
         elif sys.platform == 'darwin':
+            #self.foreign_window = sdl.SDL_CreateWindowFrom(self.window.canvas.get_property('window').get_xid())
             pass
 
+        # XXX: since SDL_window is a pointer, we can't set flags normally with Python, so we use the special function pointer() so that we can modify directly it.
+        ### HACK: we have to wrapper SDL_Window struct so that we can make it expose its fields to be modified. Thus we add the SDL_WINDOW_OPENGL flag to it.
+        # Lastly, we unload GL library. Why? WILD GUESS: without SDL_WINDOW_OPENGL flag, SDL creates the window with only OpenGL 1.x, which isn't what we need to render anything,
+        # we need at least OpenGL 3.x. So by unloading GL library, it forces SDL to reload, but this time with the right version of OpenGL. ###
+        old_flags = c.pointer(self.foreign_window)[0] #Dereference it
+        self.foreign_window.contents.flags = sdl.SDL_WINDOW_FOREIGN | sdl.SDL_WINDOW_OPENGL # It should return 2054 instead of 2050, but regardless it works.
+        new_flags = c.pointer(self.foreign_window) #Re-reference it
+        sdl.SDL_GL_LoadLibrary(None) #XXX Necessary to make the hack work.
+        ### End hack ###
+
         self.sdl_context = sdl.SDL_GL_CreateContext(self.foreign_window)
-        #print(sdl.SDL_GetError())
         sdl.SDL_GL_MakeCurrent(self.foreign_window, self.sdl_context)
+        #print(sdl.SDL_GetError())
 
         print("video_set_mode context:", self.sdl_context)
         if self.sdl_context != None:
@@ -108,7 +125,7 @@ class Vidext():
             self.info = sdl.SDL_SysWMinfo()
             #version = sdl.SDL_VERSION(c.byref(info.version))
             version = sdl.SDL_GetVersion(c.byref(self.info.version))
-            self.window_info = sdl.SDL_GetWindowWMInfo(self.sdl_window, c.byref(self.info))
+            self.window_info = sdl.SDL_GetWindowWMInfo(self.foreign_window, c.byref(self.info))
             #print(self.info.subsystem)
             if self.info.subsystem == sdl.SDL_SYSWM_X11:
                 print("The OS is Linux, using X11")
