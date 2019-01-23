@@ -304,11 +304,11 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
     def on_key_press(self, widget, key):
         #print(key.hardware_keycode)
-        g.m64p_wrapper.send_sdl_keydown(w_key.keysym_map(key.hardware_keycode))
+        g.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(key.hardware_keycode).value)
         return True
 
     def on_key_release(self, widget, key):
-        g.m64p_wrapper.send_sdl_keyup(w_key.keysym_map(key.hardware_keycode))
+        g.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(key.hardware_keycode).value)
         return True
 
 
