@@ -83,14 +83,22 @@ class Menu:
         self.file_menu_reload.set_sensitive(self.return_state_lock())
         #self.file_menu_reload.connect("activate", self.on_UnloadRom)
 
-        self.recent_chooser_cb = Gtk.RecentChooser
+        #self.recent_chooser_cb = Gtk.RecentChooser
         #self.recent_chooser_cb.set_limit(10)
+        self.recent_manager = Gtk.RecentManager.new()
+        self.recent_filter = Gtk.RecentFilter()
+        self.recent_filter.add_pattern('*.z64')
+        self.recent_filter.add_pattern('*.v64')
+        self.recent_filter.add_pattern('*.n64')
 
         self.file_menu_recents = Gtk.MenuItem(label="Recents")
-        self.file_menu_recents.set_sensitive(False) #self.return_state_lock()
-        self.file_menu_recents_submenu = Gtk.RecentChooserMenu()
+        self.file_menu_recents.set_sensitive(self.return_state_lock())
+        self.file_menu_recents_submenu = Gtk.RecentChooserMenu.new_for_manager(self.recent_manager)
         self.file_menu_recents_submenu.set_show_numbers(False)
-        self.file_menu_recents_submenu.connect("item-activated", self.item_activated)
+        self.file_menu_recents_submenu.add_filter(self.recent_filter)
+        self.file_menu_recents_submenu.connect("item-activated", self.on_recent_activated)
+        #self.file_menu_recents_clear_recents = Gtk.MenuItem(label="Clear history")
+        #self.file_menu_recents.append(self.file_menu_recents_clear_recents) # self.recent_manager.purge_items()
 
         self.file_menu_recents.set_submenu(self.file_menu_recents_submenu)
 
@@ -326,6 +334,10 @@ class Menu:
         dialog = w_dialog.RomChooserDialog(self.m64p_window)
         self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "Selecting the ROM...")
         self.rom = dialog.path
+        rom_uri = GLib.filename_to_uri(self.rom, None)
+        if self.recent_manager.has_item(rom_uri) == False:
+            self.recent_manager.add_item(rom_uri)
+
         if self.rom != None and g.m64p_wrapper.compatible == True:
             thread = threading.Thread(name="Emulation", target=self.rom_startup)
             try:
@@ -386,6 +398,9 @@ class Menu:
         g.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value, wrp_dt.m64p_video_mode.M64VIDEO_FULLSCREEN.value)
 
     def sensitive_menu_run(self, *args):
+        self.file_menu_loadrom.set_sensitive(False)
+        self.file_menu_reload.set_sensitive(False)
+        self.file_menu_recents.set_sensitive(False)
         self.emulation_menu_play.set_sensitive(False)
         self.emulation_menu_pause.set_sensitive(True)
         self.emulation_menu_stop.set_sensitive(True)
@@ -414,6 +429,9 @@ class Menu:
         self.toolbar_next.set_sensitive(False)
 
     def sensitive_menu_stop(self, *args):
+        self.file_menu_loadrom.set_sensitive(True)
+        self.file_menu_reload.set_sensitive(True)
+        self.file_menu_recents.set_sensitive(True)
         self.emulation_menu_play.set_sensitive(False)
         self.emulation_menu_pause.set_sensitive(False)
         self.emulation_menu_stop.set_sensitive(False)
@@ -489,3 +507,17 @@ class Menu:
             return False
         else:
             return True
+
+    def on_recent_activated(self, widget):
+        rom_uri = widget.get_current_uri()
+        raw_path = GLib.filename_from_uri(rom_uri)
+        self.rom = raw_path[0]
+
+        if self.rom != None and g.m64p_wrapper.compatible == True:
+            thread = threading.Thread(name="Emulation", target=self.rom_startup)
+            try:
+                thread.start()
+                return thread
+            except:
+                print("The emulation thread has encountered an unexpected error")
+                threading.main_thread()

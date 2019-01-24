@@ -349,7 +349,7 @@ def keysym2sdl(param):
         75: 'SDL_SCANCODE_F9', # F9
         76: 'SDL_SCANCODE_F10', #F10
         77: 'SDL_SCANCODE_NUMLOCKCLEAR', # Num lock
-        #78: 'SDL_SCANCODE_', #
+        78: 'SDL_SCANCODE_SCROLLLOCK', # Scroll lock
         79: 'SDL_SCANCODE_KP_7', # KP 7
         80: 'SDL_SCANCODE_KP_8', # KP 8
         81: 'SDL_SCANCODE_KP_9', # KP 9
@@ -367,13 +367,14 @@ def keysym2sdl(param):
         #93: 'SDL_SCANCODE_', #
         94: 'SDL_SCANCODE_NONUSBACKSLASH', # <> '<'
         95: 'SDL_SCANCODE_F11', #F11
-        #??: 'SDL_SCANCODE_F12', #F12
+        96: 'SDL_SCANCODE_F12', #F12
         #??: 'SDL_SCANCODE_F13', #F13
         #??: 'SDL_SCANCODE_F14', #F14
         #??: 'SDL_SCANCODE_F15', #F15
         104: 'SDL_SCANCODE_KP_ENTER', # KP Enter
         105: 'SDL_SCANCODE_RCTRL', # R-ctrl
         106: 'SDL_SCANCODE_KP_DIVIDE', # <KP / (divide)>
+        107: 'SDL_SCANCODE_PRINTSCREEN', # Print Screen
         108: 'SDL_SCANCODE_RALT', # Alt gr/Ralt
         110: 'SDL_SCANCODE_HOME', # Start?
         111: 'SDL_SCANCODE_UP', # Up
@@ -383,13 +384,35 @@ def keysym2sdl(param):
         115: 'SDL_SCANCODE_END', # End
         116: 'SDL_SCANCODE_DOWN', # Down
         117: 'SDL_SCANCODE_PAGEDOWN', #Pag down
-        118: 'SDL_SCANCODE_INSERT', # Insert, FIXME SDL_SCANCODE_SCROLLLOCK?
-        119: 'SDL_SCANCODE_DELETE', # Canc?
-        #??: 'SDL_SCANCODE_PRINTSCREEN', # Print Screen
+        118: 'SDL_SCANCODE_INSERT', # Insert
+        119: 'SDL_SCANCODE_DELETE', # Del
+
+        121: 'SDL_SCANCODE_AUDIOMUTE', # Mute, or it was SDL_SCANCODE_MUTE?
+        122: 'SDL_SCANCODE_VOLUMEDOWN', # Vol -
+        123: 'SDL_SCANCODE_VOLUMEUP', # Vol +
         127: 'SDL_SCANCODE_PAUSE', # Pause/interrupt?
+        133: 'SDL_SCANCODE_LGUI', #Super to the left
         135: 'SDL_SCANCODE_RGUI', # Super/menu? to the right
 
-        #??: 'SDL_SCANCODE_LGUI', #Super to the left
+        148: 'SDL_SCANCODE_CALCULATOR', # Calculator
+
+        163: 'SDL_SCANCODE_MAIL', # Email
+        164: 'SDL_SCANCODE_AC_BOOKMARKS', # Bookmark
+        166: 'SDL_SCANCODE_AC_BACK', # Back
+        167: 'SDL_SCANCODE_AC_FORWARD', # Forward
+
+        171: 'SDL_SCANCODE_AUDIONEXT', # Next, or it was SDL_SCANCODE_AUDIOFASTFORWARD?
+        172: 'SDL_SCANCODE_AUDIOPLAY', # Play
+        173: 'SDL_SCANCODE_AUDIOPREV', # Previous, or it was SDL_SCANCODE_AUDIOREWIND?
+        174: 'SDL_SCANCODE_AUDIOSTOP', # Stop
+
+
+        180: 'SDL_SCANCODE_AC_HOME', # Home
+
+        225: 'SDL_SCANCODE_AC_SEARCH', # Search
+        234: 'SDL_SCANCODE_MEDIASELECT', # Media
+
+        # messenger, suspend
     }
 
     return Scancodes[switch.get(param, 'SDL_SCANCODE_UNKNOWN')]

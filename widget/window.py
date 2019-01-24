@@ -63,7 +63,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.set_default_icon_from_file("ui/mupen64plus.svg")
 
         ##If detected, it will close the application ##
-        #self.connect("delete-event", self.quit_cb)
+        self.connect("delete-event", self.quit_cb)
 
         # NOTE: This callback code has to be declared before launching the wrapper
         STATEPROTO = c.CFUNCTYPE(None, c.POINTER(c.c_void_p), c.c_int, c.c_int)
@@ -89,17 +89,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.browser_box = Gtk.VBox()
         self.video_box = Gtk.VBox()
         self.filter_box = Gtk.HBox()
-
-        #self.browser_box.set_size_request(320,240)
-
-        if args_debug == True:
-            print("Debug mode: Enabled")
-            DebugBox = Gtk.HBox()
-            self.FakeEmulation = Gtk.ToggleButton(label="Fake emulation")
-            self.FakeEmulation.connect("toggled", self.on_FakeEmulation_toggled)
-            DebugBox.pack_start(self.FakeEmulation, False, False, 0)
-            self.main_box.pack_start(DebugBox, False, False,0)
-            DebugBox.show_all()
 
         if args_csd == 1:
             self.csd()
@@ -212,11 +201,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         if n_pages == 1:
             g.frontend_conf.open_section("Frontend")
             if g.frontend_conf.get_bool("Vidext") == True:
-                #self.canvas = Gtk.GLArea()
-                #self.canvas.set_has_depth_buffer(True)
-                #self.canvas.set_has_alpha(True)
-                #self.canvas.set_has_stencil_buffer(True)
-                #self.canvas.set_auto_render(False)
                 self.canvas = Gtk.DrawingArea()
                 self.canvas.set_can_focus(True)
                 #self.canvas.grab_add()
@@ -251,7 +235,12 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     ### SIGNALS (clicked for button, activate for menu)
 
     def quit_cb(self, *args):
-        self.application.quit()
+        if g.running == True:
+            #TODO: There should be a dialog asking if the user wants to stop emulation first
+            self.main_menu.on_action_stop()
+            return True
+        else:
+            self.application.quit()
 
     def on_text_change(self, entry):
         self.browser_list.game_search_current = entry.get_text()
@@ -276,24 +265,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         else:
             m64p_statusbar.hide()
             g.frontend_conf.set('StatusConfig', 'False')
-
-
-    def on_FakeEmulation_toggled(self, *args):
-        if self.FakeEmulation.get_active() == 1:
-            print("DEBUG: Fake emulation has now started!")
-            self.notebook.set_current_page(1)
-            #window_size = self.m64p_window.get_size()
-            #print(window_size)
-            self.m64p_window.resize(640,480)
-            self.m64p_window.set_resizable(False)
-            self.Statusbar.push(self.StatusbarContext,"Emulation STARTED")
-        else:
-            print("DEBUG: Fake emulation has stopped!")
-            self.notebook.set_current_page(0)
-            #print(window_size)
-            #self.m64p_window.resize(window_size[0],window_size[1])
-            self.m64p_window.set_resizable(True)
-            self.Statusbar.push(self.StatusbarContext,"Emulation STOPPED")
 
     def on_reload(self, widget):
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...")
