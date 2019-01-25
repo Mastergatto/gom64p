@@ -23,6 +23,7 @@ import global_module as g
 class List:
     def __init__(self, parent):
         self.parent = parent
+        self.recent_manager = Gtk.RecentManager.get_default()
         self.selected_game = None
         self.rom_list = None
         self.cache_validated = False
@@ -166,6 +167,10 @@ class List:
         model = treeview.get_model()
         treeiter = model.get_iter(treepath)
         self.rom = model.get_value(treeiter, 3)
+        rom_uri = GLib.filename_to_uri(self.rom, None)
+        if self.recent_manager.has_item(rom_uri) == False:
+            self.recent_manager.add_item(rom_uri)
+
         if self.rom != None and g.m64p_wrapper.compatible == True:
             thread = threading.Thread(name="Emulation", target=self.rom_startup)
             try:
@@ -177,6 +182,10 @@ class List:
 
     def on_playitem_activated(self, widget):
         self.rom = self.selected_game
+        rom_uri = GLib.filename_to_uri(self.rom, None)
+        if self.recent_manager.has_item(rom_uri) == False:
+            self.recent_manager.add_item(rom_uri)
+
         if self.rom != None and g.m64p_wrapper.compatible == True:
             thread = threading.Thread(name="Emulation", target=self.rom_startup)
             try:

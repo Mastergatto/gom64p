@@ -278,6 +278,7 @@ class Scancodes(Enum):
 
 def keysym2sdl(param):
     switch = {
+        ### https://github.com/xkbcommon/libxkbcommon/blob/master/test/evdev-scancodes.h
         ### <gtk keycode value>: <sdl scancode value>, #<character present on US keyboard>
         0: 'SDL_SCANCODE_UNKNOWN',
         9: 'SDL_SCANCODE_ESCAPE', # Escape
@@ -363,20 +364,25 @@ def keysym2sdl(param):
         89: 'SDL_SCANCODE_KP_3', # KP 3
         90: 'SDL_SCANCODE_KP_0', # KP 0
         91: 'SDL_SCANCODE_KP_PERIOD', # <KP . (period)>
-        #92: 'SDL_SCANCODE_', #
-        #93: 'SDL_SCANCODE_', #
+        92: 'SDL_SCANCODE_UNKNOWN',
+        #93: '', # ZENKAKUHANKAKU
         94: 'SDL_SCANCODE_NONUSBACKSLASH', # <> '<'
         95: 'SDL_SCANCODE_F11', #F11
         96: 'SDL_SCANCODE_F12', #F12
-        #??: 'SDL_SCANCODE_F13', #F13
-        #??: 'SDL_SCANCODE_F14', #F14
-        #??: 'SDL_SCANCODE_F15', #F15
+        #97: '', # RO
+        #98: '', # Katakana
+        #99: '', # Hiragana
+        #100: '', # Henkan
+        #101: '', # Katakana/Hiragana
+        #102: '', # MUHENKAN
+        #103: '', # KP JP Comma
         104: 'SDL_SCANCODE_KP_ENTER', # KP Enter
         105: 'SDL_SCANCODE_RCTRL', # R-ctrl
         106: 'SDL_SCANCODE_KP_DIVIDE', # <KP / (divide)>
         107: 'SDL_SCANCODE_PRINTSCREEN', # Print Screen
         108: 'SDL_SCANCODE_RALT', # Alt gr/Ralt
-        110: 'SDL_SCANCODE_HOME', # Start?
+        #109: '', # Linefeed
+        110: 'SDL_SCANCODE_HOME', # Start
         111: 'SDL_SCANCODE_UP', # Up
         112: 'SDL_SCANCODE_PAGEUP', # Pag up
         113: 'SDL_SCANCODE_LEFT', # Left
@@ -386,14 +392,33 @@ def keysym2sdl(param):
         117: 'SDL_SCANCODE_PAGEDOWN', #Pag down
         118: 'SDL_SCANCODE_INSERT', # Insert
         119: 'SDL_SCANCODE_DELETE', # Del
-
+        #120: # Macro
         121: 'SDL_SCANCODE_AUDIOMUTE', # Mute, or it was SDL_SCANCODE_MUTE?
         122: 'SDL_SCANCODE_VOLUMEDOWN', # Vol -
         123: 'SDL_SCANCODE_VOLUMEUP', # Vol +
+        #124: '', # SC System Power Down
+        #125: '', # KP Equal
+        #126: '', # KP Plus Minus
         127: 'SDL_SCANCODE_PAUSE', # Pause/interrupt?
-        133: 'SDL_SCANCODE_LGUI', #Super to the left
+        #128: '', # SCALE? AL Compiz Scale (Expose)
+        129: 'SDL_SCANCODE_KP_COMMA', # KP COMMA
+        #130: '', # HANGEUL
+        #131: '', # HANJA
+        #132: '', # YEN
+        133: 'SDL_SCANCODE_LGUI', # Super to the left
         135: 'SDL_SCANCODE_RGUI', # Super/menu? to the right
-
+        #136: '', # COMPOSE
+        #137: '', # AC Stop
+        #138: '', # AC Properties
+        #139: '', # AC Undo
+        #140: '', # Front
+        #141: '', # AC Copy
+        #142: '', # AC Open
+        #143: '', # AC Paste
+        #144: '', # AC Search
+        #145: '', # AC Cut
+        #146: '', # AL Integrated Help Center
+        #147: '', # Menu (show menu)
         148: 'SDL_SCANCODE_CALCULATOR', # Calculator
 
         163: 'SDL_SCANCODE_MAIL', # Email
@@ -409,10 +434,22 @@ def keysym2sdl(param):
 
         180: 'SDL_SCANCODE_AC_HOME', # Home
 
+        191: 'SDL_SCANCODE_F13', #F13
+        192: 'SDL_SCANCODE_F14', #F14
+        193: 'SDL_SCANCODE_F15', #F15
+        194: 'SDL_SCANCODE_F16', #F16
+        195: 'SDL_SCANCODE_F17', #F17
+        196: 'SDL_SCANCODE_F18', #F18
+        197: 'SDL_SCANCODE_F19', #F19
+        198: 'SDL_SCANCODE_F20', #F20
+        199: 'SDL_SCANCODE_F21', #F21
+        200: 'SDL_SCANCODE_F22', #F22
+        201: 'SDL_SCANCODE_F23', #F23
+        202: 'SDL_SCANCODE_F24', #F24
+
+        #213: 'SDL_SCANCODE_SLEEP', # Sleep
         225: 'SDL_SCANCODE_AC_SEARCH', # Search
         234: 'SDL_SCANCODE_MEDIASELECT', # Media
-
-        # messenger, suspend
     }
 
     return Scancodes[switch.get(param, 'SDL_SCANCODE_UNKNOWN')]

@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 import ctypes as c
 
 import global_module as g
@@ -57,7 +57,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         #self.set_application_name("mupen64plus")
         self.set_title("Good Old Mupen64+")
-        self.set_position(1)
+        self.set_position(Gtk.WindowPosition.CENTER)
         self.set_default_size(800, 640)
         self.set_size_request(640, 560) # TODO: What's the good looking minimum size for the main window?
         self.set_default_icon_from_file("ui/mupen64plus.svg")
@@ -120,6 +120,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.notebook.set_vexpand(True)
         self.notebook.set_show_tabs(False)
         self.notebook.set_show_border(False)
+        self.notebook.set_margin_start(1)
+        self.notebook.set_margin_end(1)
 
         browser_tab = Gtk.Label(label="browser")
 
@@ -206,12 +208,16 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 #self.canvas.grab_add()
                 #self.canvas.add_device_events()
                 #self.canvas.add_events(1024) #KEY_PRESS_MASK, seems already enabled by default
-                self.canvas.connect("key_press_event", self.on_key_press)
+                self.canvas.connect("key-press-event", self.on_key_events)
                 #self.canvas.add_events(2048) #KEY_RELEASE_MASK, seems already enabled by default
-                self.canvas.connect("key_release_event", self.on_key_release)
+                self.canvas.connect("key-release-event", self.on_key_events)
                 #self.canvas.add_events(4) #POINTER_MOTION_MASK
                 #self.canvas.add_events(16) #BUTTON_MOTION_MASK
-                #self.canvas.add_events(256) # BUTTON_PRESS_MASK
+                # Mouse related events
+                self.canvas.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK | Gdk.EventMask.BUTTON_PRESS_MASK)
+                self.canvas.connect("enter-notify-event", self.on_mouse_events)
+                self.canvas.connect("leave-notify-event", self.on_mouse_events)
+                self.canvas.connect("button-press-event", self.on_mouse_events)
                 import wrapper.vidext as wrp_vext
                 wrp_vext.m64p_video.set_window(self.m64p_window)
                 self.video_box.add(self.canvas)
@@ -273,15 +279,29 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.browser_list.generate_liststore()
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...DONE")
 
-    def on_key_press(self, widget, key):
-        #print(key.hardware_keycode)
-        g.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(key.hardware_keycode).value)
+    def on_key_events(self, widget, event):
+        #https://lazka.github.io/pgi-docs/Gdk-3.0/mapping.html
+        #print(event.hardware_keycode)
+        if event.get_event_type() == Gdk.EventType.KEY_PRESS:
+            g.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
+        elif event.get_event_type() == Gdk.EventType.KEY_RELEASE:
+            g.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(event.hardware_keycode).value)
+
         return True
 
-    def on_key_release(self, widget, key):
-        g.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(key.hardware_keycode).value)
-        return True
-
+    def on_mouse_events(self, widget, event):
+        #https://stackoverflow.com/questions/44453139/how-to-hide-mouse-pointer-in-gtk-c
+        # In case of Enter/leave notify we make sure that the cursor stays invisibile but only inside the canvas.
+        if event.get_event_type() == Gdk.EventType.ENTER_NOTIFY:
+            display = self.m64p_window.get_display()
+            cursor = Gdk.Cursor.new_for_display(display, Gdk.CursorType.BLANK_CURSOR)
+            display.get_default_seat().grab(self.m64p_window.canvas.get_property('window'), Gdk.SeatCapabilities.ALL, True, cursor)
+        elif event.get_event_type() == Gdk.EventType.LEAVE_NOTIFY:
+            self.m64p_window.get_display().get_default_seat().ungrab()
+        elif event.get_event_type() == Gdk.EventType.BUTTON_PRESS:
+            print("mouse has clicked")
+        else:
+            print(event.get_event_type())
 
     def state_callback(self, context, param, value):
         context_dec = c.cast(context, c.c_char_p).value.decode("utf-8")
@@ -289,23 +309,25 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             print(wrp_dt.m64p_core_param(param).name, wrp_dt.m64p_emu_state(value).name)
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
                 self.main_menu.sensitive_menu_stop()
-                self.Statusbar.push(self.StatusbarContext, "Emulation STOPPED")
+                self.Statusbar.push(self.StatusbarContext, "*** Emulation STOPPED ***")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_RUNNING':
-                self.m64p_window.canvas.grab_focus()
                 self.main_menu.sensitive_menu_run()
-                self.Statusbar.push(self.StatusbarContext, "Emulation STARTED")
+                self.Statusbar.push(self.StatusbarContext, "*** Emulation STARTED ***")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_PAUSED':
                 self.main_menu.sensitive_menu_pause()
-                self.Statusbar.push(self.StatusbarContext, "Emulation PAUSED")
+                self.Statusbar.push(self.StatusbarContext, "*** Emulation PAUSED ***")
 
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, wrp_dt.m64p_video_mode(value).name)
         elif param == wrp_dt.m64p_core_param.M64CORE_SAVESTATE_SLOT.value:
             if self.main_menu.active_slot != value:
                 self.main_menu.active_slot = value
+                #with self.main_menu.save_slot_items[value].handler_block(self.main_menu.save_slot_items_id[value]):
                 self.main_menu.save_slot_items[value].set_active(True)
             print(context_dec, wrp_dt.m64p_core_param(param).name, "SLOT:", value)
-            #self.Statusbar.push(self.StatusbarContext, "Slot selected: " + str(value)) # FIXME: It causes some strange errors at start of execution
+            self.Statusbar.push(self.StatusbarContext, "Slot selected: " + str(value))
+            import time
+            time.sleep(0.1) # FIXME: Workaround due to m64+ bug
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_FACTOR.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value, "%")
             self.Statusbar.push(self.StatusbarContext, "Emulation speed: " + str(value) + "%")
@@ -319,16 +341,26 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             self.Statusbar.push(self.StatusbarContext, "Audio volume: " + str(value) + "%")
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_MUTE.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value)
+            if value == 1:
+                self.Statusbar.push(self.StatusbarContext, "Audio has been muted!")
+            else:
+                self.Statusbar.push(self.StatusbarContext, "Audio has been unmuted.")
         elif param == wrp_dt.m64p_core_param.M64CORE_INPUT_GAMESHARK.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value)
+            if value == 1:
+                self.Statusbar.push(self.StatusbarContext, "Gameshark button has been pressed!")
         elif param == wrp_dt.m64p_core_param.M64CORE_STATE_LOADCOMPLETE.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value)
             if value == 1:
-                self.Statusbar.push(self.StatusbarContext, "Save state is loaded successfully")
+                self.Statusbar.push(self.StatusbarContext, "Save state is loaded successfully.")
+            else:
+                self.Statusbar.push(self.StatusbarContext, "WARNING: Save state has failed to load!")
         elif param == wrp_dt.m64p_core_param.M64CORE_STATE_SAVECOMPLETE.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value)
             if value == 1:
-                self.Statusbar.push(self.StatusbarContext, "Save state is done successfully")
+                self.Statusbar.push(self.StatusbarContext, "Save state is done successfully.")
+            else:
+                self.Statusbar.push(self.StatusbarContext, "WARNING: Unable to create a save state!")
         else:
             # Unmapped params go here.
             print(context_dec, param, value)

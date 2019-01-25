@@ -85,7 +85,7 @@ class Menu:
 
         #self.recent_chooser_cb = Gtk.RecentChooser
         #self.recent_chooser_cb.set_limit(10)
-        self.recent_manager = Gtk.RecentManager.new()
+        self.recent_manager = Gtk.RecentManager.get_default()
         self.recent_filter = Gtk.RecentFilter()
         self.recent_filter.add_pattern('*.z64')
         self.recent_filter.add_pattern('*.v64')
