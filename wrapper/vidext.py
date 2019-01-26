@@ -29,13 +29,13 @@ class Vidext():
         self.window = None
         self.foreign_window = None
         self.title = None
+        self.fullscreen_window = None
 
         self.modes = []
-        self.renderer = None
-        self.framebuffer = 0
         self.fullscreen = 0
+        self.width = 0
+        self.height = 0
         self.former_size = None
-        self.profile_mask = None
 
     def set_window(self, window):
         self.window = window
@@ -80,6 +80,8 @@ class Vidext():
         print("Vidext: video_set_mode(width:" + str(width) + ", height:" + str(height) + ", bits:" + str(bits) +
                ", screenmode:" + wrp_dt.m64p_video_mode(screenmode).name + ", flags:" + wrp_dt.m64p_video_flags(flags).name + ")")
 
+        self.width = width
+        self.height = height
         self.former_size = self.window.get_size()
         # Needed for get_preferred_size() to work
         self.window.set_resizable(False)
@@ -203,7 +205,6 @@ class Vidext():
         elif attr == 'M64P_GL_CONTEXT_MINOR_VERSION':
             value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_CONTEXT_MINOR_VERSION, pvalue)
         elif attr == 'M64P_GL_CONTEXT_PROFILE_MASK':
-            self.profile_mask = pvalue.contents.value
             value = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_CONTEXT_PROFILE_MASK, pvalue)
         else:
             pass
@@ -252,7 +253,10 @@ class Vidext():
     def gl_swap_buffer(self):
         #XXX: It can spam this message in the output, better turn off it.
         #print("Vidext: gl_swap_buffer()")
-        sdl.SDL_GL_SwapWindow(self.foreign_window)
+        if self.fullscreen == 1:
+            sdl.SDL_GL_SwapWindow(self.fullscreen_window)
+        else:
+            sdl.SDL_GL_SwapWindow(self.foreign_window)
 
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
@@ -267,23 +271,28 @@ class Vidext():
         if self.fullscreen == 0:
             self.fullscreen = 1
             # XXX: SDL_WINDOW_FULLSCREEN is a bit overkill, because it changes the desktop's resolution too.
-            sdl.SDL_SetWindowFullscreen(self.sdl_window, sdl.SDL_WINDOW_FULLSCREEN_DESKTOP)
+            self.fullscreen_window = sdl.SDL_CreateWindow(b"Fullscreen", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED, self.width, self.height, sdl.SDL_WINDOW_OPENGL)
+            sdl.SDL_SetWindowFullscreen(self.fullscreen_window, sdl.SDL_WINDOW_FULLSCREEN_DESKTOP)
+            sdl.SDL_GL_MakeCurrent(self.fullscreen_window, self.sdl_context)
         else:
+            # FIXME: Investigate why it doesn't set back the resolution
             self.fullscreen = 0
-            sdl.SDL_SetWindowFullscreen(self.sdl_window, 0)
+            #sdl.SDL_SetWindowSize(self.fullscreen_window, 1920, 1080)
+            sdl.SDL_SetWindowFullscreen(self.fullscreen_window, 0)
+            sdl.SDL_GL_MakeCurrent(self.foreign_window, self.sdl_context)
+            sdl.SDL_DestroyWindow(self.fullscreen_window)
+            #sdl.SDL_SetWindowSize(self.foreign_window, 400, 200)
 
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_resize_window(self, width, height):
         #This reacts to the resizing of the window with the cursor
-        print("Vidext: video_resize_window(width:" + str(width) + "height:" + str(height) + ")")
+        print("Vidext: video_resize_window(width:" + str(width) + " height:" + str(height) + ")")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_get_fb_name(self):
         print("Vidext: video_get_fb_name()")
-        self.framebuffer = glGetIntegerv(GL_FRAMEBUFFER_BINDING)
-        print("SDL framebuffer is:", self.framebuffer)
-        return self.framebuffer
+        return 0
 
 
 m64p_video = Vidext()

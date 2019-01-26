@@ -288,7 +288,7 @@ class API():
             self.CoreErrorMessage(status, b"CoreCheatEnabled")
 
     ### Video Extension
-    ### XXX: Those functions aren't intented to be used by frontend, but rather to help with vidext implementation
+    ### XXX: Those functions aren't intended to be used by frontend, but rather to help with vidext implementation
 
     ## Startup/Shutdown
     def VidExt_Init(self):
@@ -399,7 +399,6 @@ class API():
     ## OpenGL
     def VidExt_GL_GetProcAddress(self, proc):
         #void * VidExt_GL_GetProcAddress(const char* Proc)
-        #TODO: Untested
         function = wrp_dt.cfunc("VidExt_GL_GetProcAddress", self.m64p_lib_core, wrp_dt.m64p_function,
                         ("Proc", c.c_char_p, 1, proc.encode("utf-8")))
 
@@ -413,7 +412,6 @@ class API():
 
     def VidExt_GL_SetAttribute(self, attr, value):
         #m64p_error VidExt_GL_SetAttribute(m64p_GLattr Attr, int Value)
-        #TODO: Untested
         function = wrp_dt.cfunc("VidExt_GL_SetAttribute", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("Attr", c.c_int, c.c_int(wrp_dt.m64p_GLattr(attr))),
                         ("Value", c.c_int, 1, c.c_int(value)))
@@ -428,10 +426,9 @@ class API():
 
     def VidExt_GL_GetAttribute(self, attr, pvalue):
         #m64p_error VidExt_GL_GetAttribute(m64p_GLattr Attr, int *pValue)
-        #TODO: Untested
         function = wrp_dt.cfunc("VidExt_GL_GetAttribute", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("Attr", c.c_int, c.c_int(wrp_dt.m64p_GLattr(attr))),
-                        ("pValue", c.POINTER(c.c_int), 1, c.c_int(pvalue)))
+                        ("pValue", c.POINTER(c.c_int), 1, c.byref(c.c_int(pvalue))))
 
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
@@ -443,7 +440,6 @@ class API():
 
     def VidExt_GL_SwapBuffers(self):
         #m64p_error VidExt_GL_SwapBuffers(void)
-        #TODO: Untested
         function = wrp_dt.cfunc("VidExt_GL_SwapBuffers", self.m64p_lib_core, wrp_dt.m64p_error)
 
 
