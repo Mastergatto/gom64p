@@ -320,21 +320,19 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, wrp_dt.m64p_video_mode(value).name)
         elif param == wrp_dt.m64p_core_param.M64CORE_SAVESTATE_SLOT.value:
-            if self.main_menu.active_slot != value:
-                self.main_menu.active_slot = value
-                #with self.main_menu.save_slot_items[value].handler_block(self.main_menu.save_slot_items_id[value]):
+            if g.m64p_wrapper.current_slot != value:
+                g.m64p_wrapper.current_slot = value
                 self.main_menu.save_slot_items[value].set_active(True)
             print(context_dec, wrp_dt.m64p_core_param(param).name, "SLOT:", value)
             self.Statusbar.push(self.StatusbarContext, "Slot selected: " + str(value))
-            import time
-            time.sleep(0.1) # FIXME: Workaround due to m64+ bug
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_FACTOR.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value, "%")
             self.Statusbar.push(self.StatusbarContext, "Emulation speed: " + str(value) + "%")
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_LIMITER.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value)
             self.Statusbar.push(self.StatusbarContext, "Speed limit: " + str(value))
-        elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value: #TODO:Not implemented
+        elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value:
+            #TODO:Not yet mapped
             print(context_dec, wrp_dt.m64p_core_param(param), str(value).encode("utf-8"))
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_VOLUME.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value, "%")

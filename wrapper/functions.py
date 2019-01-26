@@ -23,6 +23,7 @@ class API():
         self.frontend_api_version = params['api_version']
         self.compatible = False
         self.vext_override = False
+        self.current_slot = 0
 
         configpath = params['configdir'].encode('utf-8')
         if configpath != b'':
@@ -1383,6 +1384,8 @@ class API():
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_SET_SLOT.value, c.c_int(slot), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             print("CoreDoCommand: Unable to change the state save slot")
+        else:
+            self.current_slot = slot
         return status
 
     def send_sdl_keydown(self, key):

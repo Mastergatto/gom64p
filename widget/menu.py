@@ -30,7 +30,7 @@ import wrapper.datatypes as wrp_dt
 class Menu:
     def __init__(self, parent):
         self.rom = None
-        self.active_slot = 0 # Don't ever remove it!
+        self.active_slot = g.m64p_wrapper.current_slot # Don't ever remove it!
         self.m64p_window = parent
         self.toolbar_call()
         self.menubar_call()
