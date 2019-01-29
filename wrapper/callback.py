@@ -100,8 +100,8 @@ CB_PARAMETERS = PARAMETERSPROTO(list_param_callback)
 
 
 
-#FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend (segfault, double free or corruption(out))
-class Callback(object):
+#FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend (segfault, double free or corruption(out), invalid pointer)
+class Media_callback(object):
     cart_rom_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)
     cart_ram_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)
     dd_rom_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p)
@@ -109,8 +109,6 @@ class Callback(object):
 
     @cart_rom_cb
     def get_gb_cart_rom(cb_data, controller_id):
-        filename = None
-        value = None
         g.m64p_wrapper.ConfigOpenSection("Transferpak")
         if controller_id == 0:
             filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-1")
@@ -123,15 +121,12 @@ class Callback(object):
         else:
             print("Unknown controller")
         if filename != '':
-            value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
+            return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
         else:
-            value = None
-        return value
+            return None
 
     @cart_ram_cb
     def get_gb_cart_ram(cb_data, controller_id):
-        filename = None
-        value = None
         g.m64p_wrapper.ConfigOpenSection("Transferpak")
         if controller_id == 0:
             filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-1")
@@ -142,25 +137,21 @@ class Callback(object):
         elif controller_id == 3:
             filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-4")
         else:
-            print("unknown controller")
+            print("Unknown controller")
         if filename != '':
-            value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
+            return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
         else:
-            value = None
-        return value
+            return None
 
     @dd_rom_cb
     def get_dd_rom(cb_data):
-        filename = None
-        value = None
         g.m64p_wrapper.ConfigOpenSection("64DD")
         try:
             filename = g.m64p_wrapper.ConfigGetParameter("IPL-ROM")
             if filename != '':
-                value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
+                return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
             else:
-                value = None
-            return value
+                return None
         except:
             print("IPL-ROM parameter not found. Creating it.")
             g.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
@@ -168,22 +159,19 @@ class Callback(object):
 
     @dd_disk_cb
     def get_dd_disk(cb_data):
-        filename = None
-        value = None
         g.m64p_wrapper.ConfigOpenSection("64DD")
         try:
             filename = g.m64p_wrapper.ConfigGetParameter("Disk")
             if filename != '':
-                value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
+                return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
             else:
-                value = None
-            return value
+                return None
         except:
             print("Disk image parameter not found. Creating it.")
             g.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
             return None
 
-cb = Callback()
+cb = Media_callback()
 class m64p_media_loader(c.Structure):
     _fields_ = [
         ("cb_data", c.c_void_p),
@@ -192,6 +180,5 @@ class m64p_media_loader(c.Structure):
         ("get_dd_rom", cb.dd_rom_cb),      #char* (*get_dd_rom)(void* cb_data)
         ("get_dd_disk", cb.dd_disk_cb)     #char* (*get_dd_disk)(void* cb_data);
     ]
-
 
 MEDIA_LOADER = m64p_media_loader(None, cb.get_gb_cart_rom, cb.get_gb_cart_ram, cb.get_dd_rom, cb.get_dd_disk)
