@@ -332,7 +332,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             print(context_dec, wrp_dt.m64p_core_param(param).name, value)
             self.Statusbar.push(self.StatusbarContext, "Speed limit: " + str(value))
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value:
-            #TODO:Not yet mapped
+            #TODO:Not yet mapped, (ScreenWidth << 16) + ScreenHeight
             print(context_dec, wrp_dt.m64p_core_param(param), str(value).encode("utf-8"))
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_VOLUME.value:
             print(context_dec, wrp_dt.m64p_core_param(param).name, value, "%")

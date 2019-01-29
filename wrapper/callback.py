@@ -98,101 +98,100 @@ def list_param_callback(context, param_name, param_type):
 
 CB_PARAMETERS = PARAMETERSPROTO(list_param_callback)
 
-cb_data = c.c_void_p
-cart_rom_cb = c.CFUNCTYPE(c.c_void_p, cb_data, c.c_int)
-cart_ram_cb = c.CFUNCTYPE(c.c_void_p, cb_data, c.c_int)
-dd_rom_cb = c.CFUNCTYPE(c.c_void_p, cb_data)
-dd_disk_cb = c.CFUNCTYPE(c.c_void_p, cb_data)
 
+
+#FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend (segfault, double free or corruption(out))
+class Callback(object):
+    cart_rom_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)
+    cart_ram_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)
+    dd_rom_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p)
+    dd_disk_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p)
+
+    @cart_rom_cb
+    def get_gb_cart_rom(cb_data, controller_id):
+        filename = None
+        value = None
+        g.m64p_wrapper.ConfigOpenSection("Transferpak")
+        if controller_id == 0:
+            filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-1")
+        elif controller_id == 1:
+            filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-2")
+        elif controller_id == 2:
+            filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-3")
+        elif controller_id == 3:
+            filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-4")
+        else:
+            print("Unknown controller")
+        if filename != '':
+            value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
+        else:
+            value = None
+        return value
+
+    @cart_ram_cb
+    def get_gb_cart_ram(cb_data, controller_id):
+        filename = None
+        value = None
+        g.m64p_wrapper.ConfigOpenSection("Transferpak")
+        if controller_id == 0:
+            filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-1")
+        elif controller_id == 1:
+            filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-2")
+        elif controller_id == 2:
+            filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-3")
+        elif controller_id == 3:
+            filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-4")
+        else:
+            print("unknown controller")
+        if filename != '':
+            value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
+        else:
+            value = None
+        return value
+
+    @dd_rom_cb
+    def get_dd_rom(cb_data):
+        filename = None
+        value = None
+        g.m64p_wrapper.ConfigOpenSection("64DD")
+        try:
+            filename = g.m64p_wrapper.ConfigGetParameter("IPL-ROM")
+            if filename != '':
+                value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
+            else:
+                value = None
+            return value
+        except:
+            print("IPL-ROM parameter not found. Creating it.")
+            g.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
+            return None
+
+    @dd_disk_cb
+    def get_dd_disk(cb_data):
+        filename = None
+        value = None
+        g.m64p_wrapper.ConfigOpenSection("64DD")
+        try:
+            filename = g.m64p_wrapper.ConfigGetParameter("Disk")
+            if filename != '':
+                value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
+            else:
+                value = None
+            return value
+        except:
+            print("Disk image parameter not found. Creating it.")
+            g.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
+            return None
+
+cb = Callback()
 class m64p_media_loader(c.Structure):
     _fields_ = [
-        ("cb_data", cb_data),
-        ("get_gb_cart_rom", cart_rom_cb), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
-        ("get_gb_cart_ram", cart_ram_cb), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
-        ("get_dd_rom", dd_rom_cb),      #char* (*get_dd_rom)(void* cb_data)
-        ("get_dd_disk", dd_disk_cb)     #char* (*get_dd_disk)(void* cb_data);
+        ("cb_data", c.c_void_p),
+        ("get_gb_cart_rom", cb.cart_rom_cb), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
+        ("get_gb_cart_ram", cb.cart_ram_cb), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
+        ("get_dd_rom", cb.dd_rom_cb),      #char* (*get_dd_rom)(void* cb_data)
+        ("get_dd_disk", cb.dd_disk_cb)     #char* (*get_dd_disk)(void* cb_data);
     ]
 
 
-
-#FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend
-#value = c.cast(c.create_string_buffer(4096),c.c_void_p).value
-#filename = c.create_string_buffer(4096)
-
-
-@cart_rom_cb
-def get_gb_cart_rom(cb_data, controller_id):
-    #print(cb_data, controller_id)
-    #filename = None
-    value = None
-    g.m64p_wrapper.ConfigOpenSection("Transferpak")
-    if controller_id == 0:
-        filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-1")
-    elif controller_id == 1:
-        filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-2")
-    elif controller_id == 2:
-        filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-3")
-    elif controller_id == 3:
-        filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-4")
-    if filename != '':
-        value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
-        return value
-    else:
-        return None
-
-@cart_ram_cb
-def get_gb_cart_ram(cb_data, controller_id):
-    #filename = None
-    value = None
-    g.m64p_wrapper.ConfigOpenSection("Transferpak")
-    if controller_id == 0:
-        filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-1")
-    elif controller_id == 1:
-        filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-2")
-    elif controller_id == 2:
-        filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-3")
-    elif controller_id == 3:
-        filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-4")
-    if filename != '':
-        value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
-        return value
-    else:
-        return None
-
-@dd_rom_cb
-def get_dd_rom(cb_data):
-    #filename = None
-    value = None
-    g.m64p_wrapper.ConfigOpenSection("64DD")
-    try:
-        filename = g.m64p_wrapper.ConfigGetParameter("IPL-ROM")
-        if filename != '':
-            #media_array = media_buffer(filename, 4096)
-            media_value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
-            return media_value
-        else:
-            return None
-    except:
-        print("IPL-ROM parameter not found. Creating it.")
-        g.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
-        return None
-
-@dd_disk_cb
-def get_dd_disk(cb_data):
-    #filename = None
-    value = None
-    g.m64p_wrapper.ConfigOpenSection("64DD")
-    try:
-        filename = g.m64p_wrapper.ConfigGetParameter("Disk")
-        if filename != '':
-            #media_array = media_buffer(filename, 4096)
-            media_value = c.cast(c.create_string_buffer(filename.encode('utf-8'), 4096), c.c_void_p).value
-            return media_value
-        else:
-            return None
-    except:
-        print("Disk image parameter not found. Creating it.")
-        g.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
-        return None
-
-MEDIA_LOADER = m64p_media_loader(None, get_gb_cart_rom, get_gb_cart_ram, get_dd_rom, get_dd_disk)
+MEDIA_LOADER = m64p_media_loader(None, cb.get_gb_cart_rom, cb.get_gb_cart_ram, cb.get_dd_rom, cb.get_dd_disk)

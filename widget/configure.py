@@ -352,7 +352,9 @@ class ConfigDialog(Gtk.Dialog):
 
         paths_box = Gtk.VBox()
         m64p_paths_grid2 = Gtk.Grid()
-        gamedir_box = Gtk.HBox()
+        gamedir_box = Gtk.VBox()
+        gamedir1_box = Gtk.HBox()
+        gamedir2_box = Gtk.HBox()
 
         m64p_frame = Gtk.Frame(label="mupen64plus directories", shadow_type=1)
         gamedir_frame = Gtk.Frame(label="game image directories", shadow_type=1)
@@ -394,8 +396,16 @@ class ConfigDialog(Gtk.Dialog):
         gamedir_button = Gtk.Button.new_with_label("Open")
         gamedir_button.connect("clicked", self.on_search_path_dir, gamedir_entry)
 
-        gamedir_box.pack_start(gamedir_entry, True, True, 5)
-        gamedir_box.pack_start(gamedir_button, False, False, 0)
+        gamedir2_entry = self.insert_entry('path2', 'GameDirs', 'frontend', "Choose the dir where game images are found", None)
+        gamedir2_button = Gtk.Button.new_with_label("Open")
+        gamedir2_button.connect("clicked", self.on_search_path_dir, gamedir2_entry)
+
+        gamedir1_box.pack_start(gamedir_entry, True, True, 5)
+        gamedir1_box.pack_start(gamedir_button, False, False, 0)
+        gamedir2_box.pack_start(gamedir2_entry, True, True, 5)
+        gamedir2_box.pack_start(gamedir2_button, False, False, 0)
+        gamedir_box.pack_start(gamedir1_box, False, False, 0)
+        gamedir_box.pack_start(gamedir2_box, False, False, 0)
         gamedir_frame.add(gamedir_box)
 
         paths_box.pack_start(m64p_frame, False, False, 0)

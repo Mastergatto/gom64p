@@ -24,6 +24,7 @@ class API():
         self.compatible = False
         self.vext_override = False
         self.current_slot = 0
+        self.media_loader = wrp_cb.MEDIA_LOADER
 
         configpath = params['configdir'].encode('utf-8')
         if configpath != b'':
@@ -1455,7 +1456,7 @@ class API():
     def set_media_loader(self):
         #M64CMD_SET_MEDIA_LOADER = 21
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SET_MEDIA_LOADER.value, c.c_int(c.sizeof(wrp_cb.MEDIA_LOADER)), c.byref(wrp_cb.MEDIA_LOADER))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SET_MEDIA_LOADER.value, c.c_int(c.sizeof(self.media_loader)), c.byref(self.media_loader))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             print("CoreDoCommand: Unable to set the media loader. This means that the Transfer Pak or the 64DD won't work.")
         return status
