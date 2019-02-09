@@ -71,7 +71,7 @@ class PluginDialog(Gtk.Dialog):
             elif response == Gtk.ResponseType.APPLY:
                 pass
             else:
-                if self.section == 'SDL_input':
+                if self.section == 'SDL_input' or self.section == 'input-sdl':
                     if g.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control1") == 1:
                         g.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control1")
                     if g.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control2") == 1:
@@ -200,17 +200,17 @@ class PluginDialog(Gtk.Dialog):
         parameters = cb.parameters[section]
 
         mode_label = Gtk.Label("Mode:")
-        mode_combo = Gtk.ComboBoxText()
-        mode_combo.set_hexpand(True)
-        mode_combo.set_halign(Gtk.Align.FILL)
-        mode_combo.append('0',"Fully manual")
-        mode_combo.append('1',"Auto with named SDL Device")
-        mode_combo.append('2',"Fully automatic")
+        self.mode_combo = Gtk.ComboBoxText()
+        self.mode_combo.set_hexpand(True)
+        self.mode_combo.set_halign(Gtk.Align.FILL)
+        self.mode_combo.append('0',"Fully manual")
+        self.mode_combo.append('1',"Auto with named SDL Device")
+        self.mode_combo.append('2',"Fully automatic")
 
         if g.m64p_wrapper.ConfigGetParameter('mode') != None:
-            mode_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('mode')))
-            mode_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('mode'))
-        mode_combo.connect('changed', self.on_combobox_changed, section, 'mode')
+            self.mode_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('mode')))
+            self.mode_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('mode'))
+        self.mode_combo.connect('changed', self.on_combobox_changed, section, 'mode')
 
         plugged = Gtk.ToggleButton()
         plugged.set_label("Unplugged")
@@ -228,24 +228,23 @@ class PluginDialog(Gtk.Dialog):
         pak_combo.connect('changed', self.on_combobox_changed, section, 'plugin')
 
         device_label = Gtk.Label("Device:")
-        device_combo = Gtk.ComboBoxText()
-        device_combo.append('-1',"Keyboard")
-        if g.m64p_wrapper.ConfigGetParameter('name') != "Keyboard":
-            device_combo.append('0', g.m64p_wrapper.ConfigGetParameter('name'))
-        #device_combo.append('2',"")
+        self.device_combo = Gtk.ComboBoxText()
+        self.device_combo.append('-1',"Keyboard")
+        for i in range(len(self.active_gamepads)):
+            self.device_combo.append(str(i), self.active_gamepads[i].decode("utf-8"))
 
         if g.m64p_wrapper.ConfigGetParameter('device') != None:
-            device_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('device')))
-            device_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('device'))
-        device_combo.connect('changed', self.on_combobox_changed, section, 'device')
+            self.device_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('device')))
+            self.device_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('device'))
+        self.device_combo.connect('changed', self.on_combobox_changed, section, 'device')
 
 
         grid.attach(mode_label, 0, 0, 1, 1)
-        grid.attach(mode_combo, 1, 0, 5, 1) #Gtk.PositionType.RIGHT
+        grid.attach(self.mode_combo, 1, 0, 5, 1) #Gtk.PositionType.RIGHT
         grid.attach(plugged, 0, 1, 1, 1)
         grid.attach(pak_combo, 1, 1, 1, 1)
         grid.attach(device_label, 4, 1, 1, 1)
-        grid.attach(device_combo, 5, 1, 1, 1)
+        grid.attach(self.device_combo, 5, 1, 1, 1)
 
         buttons_frame = Gtk.Frame(label="Controller buttons")
 
@@ -254,81 +253,81 @@ class PluginDialog(Gtk.Dialog):
         #buttons_grid.set_vexpand(True)
 
         #empty = Gtk.Label.new("")
-        label_a = Gtk.Label("A") # key(304)
-        button_a = Gtk.Button()
+        label_a = Gtk.Label("A")
+        self.button_a = self.insert_bind_button('A Button')
         label_b = Gtk.Label("B")
-        button_b = Gtk.Button()
+        self.button_b = self.insert_bind_button('B Button')
         label_z = Gtk.Label("Z")
-        button_z = Gtk.Button()
+        self.button_z = self.insert_bind_button('Z Trig')
         label_l = Gtk.Label("L")
-        button_l = Gtk.Button()
+        self.button_l = self.insert_bind_button('L Trig')
         label_r = Gtk.Label("R")
-        button_r = Gtk.Button()
+        self.button_r = self.insert_bind_button('R Trig')
         label_start = Gtk.Label("START")
-        button_start = Gtk.Button()
+        self.button_start = self.insert_bind_button('Start')
         label_c_up = Gtk.Label("C-UP")
-        button_c_up = Gtk.Button()
+        self.button_c_up = self.insert_bind_button('C Button U')
         label_c_left = Gtk.Label("C-LEFT")
-        button_c_left = Gtk.Button()
+        self.button_c_left = self.insert_bind_button('C Button L')
         label_c_right = Gtk.Label("C-RIGHT")
-        button_c_right = Gtk.Button()
+        self.button_c_right = self.insert_bind_button('C Button R')
         label_c_down = Gtk.Label("C-DOWN")
-        button_c_down = Gtk.Button()
+        self.button_c_down = self.insert_bind_button('C Button D')
         label_mempak = Gtk.Label("Mempak")
-        button_mempak = Gtk.Button()
+        self.button_mempak = self.insert_bind_button('Mempak switch')
         label_rumble = Gtk.Label("Rumble")
-        button_rumble = Gtk.Button()
+        self.button_rumble = self.insert_bind_button('Rumblepak switch')
         label_d_up = Gtk.Label("D-UP")
-        button_d_up = Gtk.Button()
+        self.button_d_up = self.insert_bind_button('DPad U')
         label_d_left = Gtk.Label("D-LEFT")
-        button_d_left = Gtk.Button()
+        self.button_d_left = self.insert_bind_button('DPad L')
         label_d_right = Gtk.Label("D-RIGHT")
-        button_d_right = Gtk.Button()
+        self.button_d_right = self.insert_bind_button('DPad R')
         label_d_down = Gtk.Label("D-DOWN")
-        button_d_down = Gtk.Button()
+        self.button_d_down = self.insert_bind_button('DPad D')
         x_axis_label = Gtk.Label("X axis")
-        x_axis_button = Gtk.Button()
+        self.x_axis_button = Gtk.Button()
         y_axis_label = Gtk.Label("Y axis")
-        y_axis_button = Gtk.Button()
+        self.y_axis_button = Gtk.Button()
 
         buttons_grid.attach(label_a, 0, 0, 1, 1)
-        buttons_grid.attach(button_a, 1, 0, 1, 1)
+        buttons_grid.attach(self.button_a, 1, 0, 1, 1)
         buttons_grid.attach(label_b, 0, 1, 1, 1)
-        buttons_grid.attach(button_b, 1, 1, 1, 1)
+        buttons_grid.attach(self.button_b, 1, 1, 1, 1)
         buttons_grid.attach(label_z, 0, 2, 1, 1)
-        buttons_grid.attach(button_z, 1, 2, 1, 1)
+        buttons_grid.attach(self.button_z, 1, 2, 1, 1)
         buttons_grid.attach(label_l, 0, 3, 1, 1)
-        buttons_grid.attach(button_l, 1, 3, 1, 1)
+        buttons_grid.attach(self.button_l, 1, 3, 1, 1)
         buttons_grid.attach(label_r, 0, 4, 1, 1)
-        buttons_grid.attach(button_r, 1, 4, 1, 1)
+        buttons_grid.attach(self.button_r, 1, 4, 1, 1)
         buttons_grid.attach(label_start, 0, 5, 1, 1)
-        buttons_grid.attach(button_start, 1, 5, 1, 1)
+        buttons_grid.attach(self.button_start, 1, 5, 1, 1)
         buttons_grid.attach(Gtk.Label.new("          "), 2, 0, 1, 1) #TODO: There must be a better solution
         buttons_grid.attach(label_c_up, 3, 0, 1, 1)
-        buttons_grid.attach(button_c_up, 4, 0, 1, 1)
+        buttons_grid.attach(self.button_c_up, 4, 0, 1, 1)
         buttons_grid.attach(label_c_left, 3, 1, 1, 1)
-        buttons_grid.attach(button_c_left, 4, 1, 1, 1)
+        buttons_grid.attach(self.button_c_left, 4, 1, 1, 1)
         buttons_grid.attach(label_c_right, 3, 2, 1, 1)
-        buttons_grid.attach(button_c_right, 4, 2, 1, 1)
+        buttons_grid.attach(self.button_c_right, 4, 2, 1, 1)
         buttons_grid.attach(label_c_down, 3, 3, 1, 1)
-        buttons_grid.attach(button_c_down, 4, 3, 1, 1)
+        buttons_grid.attach(self.button_c_down, 4, 3, 1, 1)
         buttons_grid.attach(label_mempak, 3, 4, 1, 1)
-        buttons_grid.attach(button_mempak, 4, 4, 1, 1)
+        buttons_grid.attach(self.button_mempak, 4, 4, 1, 1)
         buttons_grid.attach(label_rumble, 3, 5, 1, 1)
-        buttons_grid.attach(button_rumble, 4, 5, 1, 1)
+        buttons_grid.attach(self.button_rumble, 4, 5, 1, 1)
         buttons_grid.attach(Gtk.Label.new("          "), 5, 0, 1, 1)
         buttons_grid.attach(label_d_up, 6, 0, 1, 1)
-        buttons_grid.attach(button_d_up, 7, 0, 1, 1)
+        buttons_grid.attach(self.button_d_up, 7, 0, 1, 1)
         buttons_grid.attach(label_d_left, 6, 1, 1, 1)
-        buttons_grid.attach(button_d_left, 7, 1, 1, 1)
+        buttons_grid.attach(self.button_d_left, 7, 1, 1, 1)
         buttons_grid.attach(label_d_right, 6, 2, 1, 1)
-        buttons_grid.attach(button_d_right, 7, 2, 1, 1)
+        buttons_grid.attach(self.button_d_right, 7, 2, 1, 1)
         buttons_grid.attach(label_d_down, 6, 3, 1, 1)
-        buttons_grid.attach(button_d_down, 7, 3, 1, 1)
+        buttons_grid.attach(self.button_d_down, 7, 3, 1, 1)
         buttons_grid.attach(x_axis_label, 6, 4, 1, 1)
-        buttons_grid.attach(x_axis_button, 7, 4, 1, 1)
+        buttons_grid.attach(self.x_axis_button, 7, 4, 1, 1)
         buttons_grid.attach(y_axis_label, 6, 5, 1, 1)
-        buttons_grid.attach(y_axis_button, 7, 5, 1, 1)
+        buttons_grid.attach(self.y_axis_button, 7, 5, 1, 1)
 
         buttons_frame.add(buttons_grid)
         grid.attach(buttons_frame, 0, 2, 5, 1)
@@ -359,6 +358,16 @@ class PluginDialog(Gtk.Dialog):
 
     def input_config(self):
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
+
+        self.num_gamepads = sdl.SDL_NumJoysticks()
+        self.active_gamepads = []
+        if self.num_gamepads > 0:
+            for i in range(self.num_gamepads):
+                gamepad = sdl.SDL_JoystickOpen(i)
+                self.active_gamepads.append(sdl.SDL_JoystickNameForIndex(i))
+                #if sdl.SDL_JoystickGetAttached(gamepad):
+                #    sdl.SDL_JoystickClose(gamepad)
+       # print(self.num_gamepads, self.active_gamepads)
 
         input_notebook = Gtk.Notebook()
         input_notebook.set_vexpand(True)
@@ -435,6 +444,8 @@ class PluginDialog(Gtk.Dialog):
 
         g.m64p_wrapper.ConfigOpenSection(section)
         g.m64p_wrapper.ConfigSetParameter(param, int(widget_id))
+        if param == "mode":
+            self.sensitive_mode(widget_id)
         #else:
         #    print("Config: Unknown parameter.")
 
@@ -474,3 +485,93 @@ class PluginDialog(Gtk.Dialog):
             #g.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(event.hardware_keycode).value)
             pass
         return True
+
+    def insert_bind_button(self, param):
+        button = Gtk.Button()
+        raw_value = g.m64p_wrapper.ConfigGetParameter(param)
+        if raw_value != '':
+            if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
+                #value = int(raw_value.lstrip('key(').rstrip(')'))
+                name = sdl.SDL_GetKeyName(int(''.join(filter(str.isdigit, raw_value))))
+                print(param, name.decode())
+                #scancode = sdl.SDL_GetScancodeFromKey(value)
+                #print("Scancode", scancode)
+                #button.set_label(str(w_key.Scancodes(scancode).name).lstrip('SDL_SCANCODE_'))
+                if name == b'\xc4\xb0':
+                    button.set_label("L-shift")
+                elif name == b'\xc4\xb2':
+                    button.set_label("L-ctrl")
+                else:
+                    button.set_label(name.decode('utf-8'))
+            else:
+                button.set_label(raw_value)
+        else:
+            button.set_label("(empty)")
+        button.connect("clicked", self.on_bind_key)
+
+        return button
+    #SDL_GetKeyFromScancode
+    def on_bind_key(self, widget, event):
+        pass
+
+    def sensitive_mode(self, mode):
+        if mode == '0': #Manual
+            self.device_combo.set_sensitive(True)
+            self.button_a.set_sensitive(True)
+            self.button_b.set_sensitive(True)
+            self.button_z.set_sensitive(True)
+            self.button_l.set_sensitive(True)
+            self.button_r.set_sensitive(True)
+            self.button_start.set_sensitive(True)
+            self.button_c_up.set_sensitive(True)
+            self.button_c_left.set_sensitive(True)
+            self.button_c_right.set_sensitive(True)
+            self.button_c_down.set_sensitive(True)
+            self.button_mempak.set_sensitive(True)
+            self.button_rumble.set_sensitive(True)
+            self.button_d_up.set_sensitive(True)
+            self.button_d_left.set_sensitive(True)
+            self.button_d_right.set_sensitive(True)
+            self.button_d_down.set_sensitive(True)
+            self.x_axis_button.set_sensitive(True)
+            self.y_axis_button.set_sensitive(True)
+        elif mode == '1': #Automatic with named device
+            self.device_combo.set_sensitive(True)
+            self.button_a.set_sensitive(False)
+            self.button_b.set_sensitive(False)
+            self.button_z.set_sensitive(False)
+            self.button_l.set_sensitive(False)
+            self.button_r.set_sensitive(False)
+            self.button_start.set_sensitive(False)
+            self.button_c_up.set_sensitive(False)
+            self.button_c_left.set_sensitive(False)
+            self.button_c_right.set_sensitive(False)
+            self.button_c_down.set_sensitive(False)
+            self.button_mempak.set_sensitive(False)
+            self.button_rumble.set_sensitive(False)
+            self.button_d_up.set_sensitive(False)
+            self.button_d_left.set_sensitive(False)
+            self.button_d_right.set_sensitive(False)
+            self.button_d_down.set_sensitive(False)
+            self.x_axis_button.set_sensitive(False)
+            self.y_axis_button.set_sensitive(False)
+        elif mode == '2': #fully automatic
+            self.device_combo.set_sensitive(False)
+            self.button_a.set_sensitive(False)
+            self.button_b.set_sensitive(False)
+            self.button_z.set_sensitive(False)
+            self.button_l.set_sensitive(False)
+            self.button_r.set_sensitive(False)
+            self.button_start.set_sensitive(False)
+            self.button_c_up.set_sensitive(False)
+            self.button_c_left.set_sensitive(False)
+            self.button_c_right.set_sensitive(False)
+            self.button_c_down.set_sensitive(False)
+            self.button_mempak.set_sensitive(False)
+            self.button_rumble.set_sensitive(False)
+            self.button_d_up.set_sensitive(False)
+            self.button_d_left.set_sensitive(False)
+            self.button_d_right.set_sensitive(False)
+            self.button_d_down.set_sensitive(False)
+            self.x_axis_button.set_sensitive(False)
+            self.y_axis_button.set_sensitive(False)
