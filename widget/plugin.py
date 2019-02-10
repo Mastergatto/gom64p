@@ -67,6 +67,7 @@ class PluginDialog(Gtk.Dialog):
             response = self.plugin_window.run()
             if response == Gtk.ResponseType.OK:
                 g.m64p_wrapper.ConfigSaveFile()
+                #sdl.SDL_JoystickUpdate()
                 self.plugin_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 pass
@@ -254,80 +255,80 @@ class PluginDialog(Gtk.Dialog):
 
         #empty = Gtk.Label.new("")
         label_a = Gtk.Label("A")
-        self.button_a = self.insert_bind_button('A Button')
+        button_a = self.insert_bind_button('A Button')
         label_b = Gtk.Label("B")
-        self.button_b = self.insert_bind_button('B Button')
+        button_b = self.insert_bind_button('B Button')
         label_z = Gtk.Label("Z")
-        self.button_z = self.insert_bind_button('Z Trig')
+        button_z = self.insert_bind_button('Z Trig')
         label_l = Gtk.Label("L")
-        self.button_l = self.insert_bind_button('L Trig')
+        button_l = self.insert_bind_button('L Trig')
         label_r = Gtk.Label("R")
-        self.button_r = self.insert_bind_button('R Trig')
+        button_r = self.insert_bind_button('R Trig')
         label_start = Gtk.Label("START")
-        self.button_start = self.insert_bind_button('Start')
+        button_start = self.insert_bind_button('Start')
         label_c_up = Gtk.Label("C-UP")
-        self.button_c_up = self.insert_bind_button('C Button U')
+        button_c_up = self.insert_bind_button('C Button U')
         label_c_left = Gtk.Label("C-LEFT")
-        self.button_c_left = self.insert_bind_button('C Button L')
+        button_c_left = self.insert_bind_button('C Button L')
         label_c_right = Gtk.Label("C-RIGHT")
-        self.button_c_right = self.insert_bind_button('C Button R')
+        button_c_right = self.insert_bind_button('C Button R')
         label_c_down = Gtk.Label("C-DOWN")
-        self.button_c_down = self.insert_bind_button('C Button D')
+        button_c_down = self.insert_bind_button('C Button D')
         label_mempak = Gtk.Label("Mempak")
-        self.button_mempak = self.insert_bind_button('Mempak switch')
+        button_mempak = self.insert_bind_button('Mempak switch')
         label_rumble = Gtk.Label("Rumble")
-        self.button_rumble = self.insert_bind_button('Rumblepak switch')
+        button_rumble = self.insert_bind_button('Rumblepak switch')
         label_d_up = Gtk.Label("D-UP")
-        self.button_d_up = self.insert_bind_button('DPad U')
+        button_d_up = self.insert_bind_button('DPad U')
         label_d_left = Gtk.Label("D-LEFT")
-        self.button_d_left = self.insert_bind_button('DPad L')
+        button_d_left = self.insert_bind_button('DPad L')
         label_d_right = Gtk.Label("D-RIGHT")
-        self.button_d_right = self.insert_bind_button('DPad R')
+        button_d_right = self.insert_bind_button('DPad R')
         label_d_down = Gtk.Label("D-DOWN")
-        self.button_d_down = self.insert_bind_button('DPad D')
+        button_d_down = self.insert_bind_button('DPad D')
         x_axis_label = Gtk.Label("X axis")
-        self.x_axis_button = Gtk.Button()
+        x_axis_button = Gtk.Button()
         y_axis_label = Gtk.Label("Y axis")
-        self.y_axis_button = Gtk.Button()
+        y_axis_button = Gtk.Button()
 
         buttons_grid.attach(label_a, 0, 0, 1, 1)
-        buttons_grid.attach(self.button_a, 1, 0, 1, 1)
+        buttons_grid.attach(button_a, 1, 0, 1, 1)
         buttons_grid.attach(label_b, 0, 1, 1, 1)
-        buttons_grid.attach(self.button_b, 1, 1, 1, 1)
+        buttons_grid.attach(button_b, 1, 1, 1, 1)
         buttons_grid.attach(label_z, 0, 2, 1, 1)
-        buttons_grid.attach(self.button_z, 1, 2, 1, 1)
+        buttons_grid.attach(button_z, 1, 2, 1, 1)
         buttons_grid.attach(label_l, 0, 3, 1, 1)
-        buttons_grid.attach(self.button_l, 1, 3, 1, 1)
+        buttons_grid.attach(button_l, 1, 3, 1, 1)
         buttons_grid.attach(label_r, 0, 4, 1, 1)
-        buttons_grid.attach(self.button_r, 1, 4, 1, 1)
+        buttons_grid.attach(button_r, 1, 4, 1, 1)
         buttons_grid.attach(label_start, 0, 5, 1, 1)
-        buttons_grid.attach(self.button_start, 1, 5, 1, 1)
+        buttons_grid.attach(button_start, 1, 5, 1, 1)
         buttons_grid.attach(Gtk.Label.new("          "), 2, 0, 1, 1) #TODO: There must be a better solution
         buttons_grid.attach(label_c_up, 3, 0, 1, 1)
-        buttons_grid.attach(self.button_c_up, 4, 0, 1, 1)
+        buttons_grid.attach(button_c_up, 4, 0, 1, 1)
         buttons_grid.attach(label_c_left, 3, 1, 1, 1)
-        buttons_grid.attach(self.button_c_left, 4, 1, 1, 1)
+        buttons_grid.attach(button_c_left, 4, 1, 1, 1)
         buttons_grid.attach(label_c_right, 3, 2, 1, 1)
-        buttons_grid.attach(self.button_c_right, 4, 2, 1, 1)
+        buttons_grid.attach(button_c_right, 4, 2, 1, 1)
         buttons_grid.attach(label_c_down, 3, 3, 1, 1)
-        buttons_grid.attach(self.button_c_down, 4, 3, 1, 1)
+        buttons_grid.attach(button_c_down, 4, 3, 1, 1)
         buttons_grid.attach(label_mempak, 3, 4, 1, 1)
-        buttons_grid.attach(self.button_mempak, 4, 4, 1, 1)
+        buttons_grid.attach(button_mempak, 4, 4, 1, 1)
         buttons_grid.attach(label_rumble, 3, 5, 1, 1)
-        buttons_grid.attach(self.button_rumble, 4, 5, 1, 1)
+        buttons_grid.attach(button_rumble, 4, 5, 1, 1)
         buttons_grid.attach(Gtk.Label.new("          "), 5, 0, 1, 1)
         buttons_grid.attach(label_d_up, 6, 0, 1, 1)
-        buttons_grid.attach(self.button_d_up, 7, 0, 1, 1)
+        buttons_grid.attach(button_d_up, 7, 0, 1, 1)
         buttons_grid.attach(label_d_left, 6, 1, 1, 1)
-        buttons_grid.attach(self.button_d_left, 7, 1, 1, 1)
+        buttons_grid.attach(button_d_left, 7, 1, 1, 1)
         buttons_grid.attach(label_d_right, 6, 2, 1, 1)
-        buttons_grid.attach(self.button_d_right, 7, 2, 1, 1)
+        buttons_grid.attach(button_d_right, 7, 2, 1, 1)
         buttons_grid.attach(label_d_down, 6, 3, 1, 1)
-        buttons_grid.attach(self.button_d_down, 7, 3, 1, 1)
+        buttons_grid.attach(button_d_down, 7, 3, 1, 1)
         buttons_grid.attach(x_axis_label, 6, 4, 1, 1)
-        buttons_grid.attach(self.x_axis_button, 7, 4, 1, 1)
+        buttons_grid.attach(x_axis_button, 7, 4, 1, 1)
         buttons_grid.attach(y_axis_label, 6, 5, 1, 1)
-        buttons_grid.attach(self.y_axis_button, 7, 5, 1, 1)
+        buttons_grid.attach(y_axis_button, 7, 5, 1, 1)
 
         buttons_frame.add(buttons_grid)
         grid.attach(buttons_frame, 0, 2, 5, 1)
@@ -347,6 +348,25 @@ class PluginDialog(Gtk.Dialog):
         other_frame.add(other_grid)
         grid.attach(other_frame, 0, 3, 5, 1)
 
+        if section == 'Input-SDL-Control1':
+            self.pages_list[1] = [self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
+                                  button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
+                                  button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
+        elif section == 'Input-SDL-Control2':
+            self.pages_list[2] = [self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
+                                  button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
+                                  button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
+        elif section == 'Input-SDL-Control3':
+            self.pages_list[3] = [self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
+                                  button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
+                                  button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
+        elif section == 'Input-SDL-Control4':
+            self.pages_list[4] = [self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
+                                  button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
+                                  button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
+
+        self.sensitive_mode(section, self.mode_combo.get_active_id())
+
         #if len(value_param) == 0:
         #    empty = Gtk.Label("No option have been found here!")
         #    grid.attach(empty, 0, 0, 1, 1)
@@ -359,11 +379,13 @@ class PluginDialog(Gtk.Dialog):
     def input_config(self):
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
 
+        self.pages_list = [None, None, None, None, None]
+
         self.num_gamepads = sdl.SDL_NumJoysticks()
         self.active_gamepads = []
         if self.num_gamepads > 0:
             for i in range(self.num_gamepads):
-                gamepad = sdl.SDL_JoystickOpen(i)
+                #gamepad = sdl.SDL_JoystickOpen(i)
                 self.active_gamepads.append(sdl.SDL_JoystickNameForIndex(i))
                 #if sdl.SDL_JoystickGetAttached(gamepad):
                 #    sdl.SDL_JoystickClose(gamepad)
@@ -445,7 +467,12 @@ class PluginDialog(Gtk.Dialog):
         g.m64p_wrapper.ConfigOpenSection(section)
         g.m64p_wrapper.ConfigSetParameter(param, int(widget_id))
         if param == "mode":
-            self.sensitive_mode(widget_id)
+            self.sensitive_mode(section, int(widget_id))
+        elif param == "device":
+            if self.mode_combo.get_active_id() == 0:
+                g.m64p_wrapper.ConfigSetParameter("name", self.active_gamepads[int(self.device_combo.get_active_id())].decode("utf-8"))
+            else:
+                pass
         #else:
         #    print("Config: Unknown parameter.")
 
@@ -471,10 +498,10 @@ class PluginDialog(Gtk.Dialog):
         active_plugin = os.path.splitext(plugin)[0]
         active_plugin = active_plugin.replace("mupen64plus-", "")
         # TODO: Temporary until the new input dialog is ready
-        if active_plugin == "input-sdl":
-            return "SDL_input"
-        else:
-            return active_plugin
+        #if active_plugin == "input-sdl":
+        #    return "SDL_input"
+        #else:
+        return active_plugin
 
     def on_key_events(self, widget, event):
         if event.get_event_type() == Gdk.EventType.KEY_PRESS:
@@ -514,64 +541,50 @@ class PluginDialog(Gtk.Dialog):
     def on_bind_key(self, widget, event):
         pass
 
-    def sensitive_mode(self, mode):
-        if mode == '0': #Manual
-            self.device_combo.set_sensitive(True)
-            self.button_a.set_sensitive(True)
-            self.button_b.set_sensitive(True)
-            self.button_z.set_sensitive(True)
-            self.button_l.set_sensitive(True)
-            self.button_r.set_sensitive(True)
-            self.button_start.set_sensitive(True)
-            self.button_c_up.set_sensitive(True)
-            self.button_c_left.set_sensitive(True)
-            self.button_c_right.set_sensitive(True)
-            self.button_c_down.set_sensitive(True)
-            self.button_mempak.set_sensitive(True)
-            self.button_rumble.set_sensitive(True)
-            self.button_d_up.set_sensitive(True)
-            self.button_d_left.set_sensitive(True)
-            self.button_d_right.set_sensitive(True)
-            self.button_d_down.set_sensitive(True)
-            self.x_axis_button.set_sensitive(True)
-            self.y_axis_button.set_sensitive(True)
-        elif mode == '1': #Automatic with named device
-            self.device_combo.set_sensitive(True)
-            self.button_a.set_sensitive(False)
-            self.button_b.set_sensitive(False)
-            self.button_z.set_sensitive(False)
-            self.button_l.set_sensitive(False)
-            self.button_r.set_sensitive(False)
-            self.button_start.set_sensitive(False)
-            self.button_c_up.set_sensitive(False)
-            self.button_c_left.set_sensitive(False)
-            self.button_c_right.set_sensitive(False)
-            self.button_c_down.set_sensitive(False)
-            self.button_mempak.set_sensitive(False)
-            self.button_rumble.set_sensitive(False)
-            self.button_d_up.set_sensitive(False)
-            self.button_d_left.set_sensitive(False)
-            self.button_d_right.set_sensitive(False)
-            self.button_d_down.set_sensitive(False)
-            self.x_axis_button.set_sensitive(False)
-            self.y_axis_button.set_sensitive(False)
-        elif mode == '2': #fully automatic
-            self.device_combo.set_sensitive(False)
-            self.button_a.set_sensitive(False)
-            self.button_b.set_sensitive(False)
-            self.button_z.set_sensitive(False)
-            self.button_l.set_sensitive(False)
-            self.button_r.set_sensitive(False)
-            self.button_start.set_sensitive(False)
-            self.button_c_up.set_sensitive(False)
-            self.button_c_left.set_sensitive(False)
-            self.button_c_right.set_sensitive(False)
-            self.button_c_down.set_sensitive(False)
-            self.button_mempak.set_sensitive(False)
-            self.button_rumble.set_sensitive(False)
-            self.button_d_up.set_sensitive(False)
-            self.button_d_left.set_sensitive(False)
-            self.button_d_right.set_sensitive(False)
-            self.button_d_down.set_sensitive(False)
-            self.x_axis_button.set_sensitive(False)
-            self.y_axis_button.set_sensitive(False)
+    def sensitive_mode(self, section, mode):
+        page = int(''.join(filter(str.isdigit, section)))
+        if mode == 0: #Manual
+            self.pages_list[page][0].set_sensitive(True)
+            self.pages_list[page][1].set_sensitive(True)
+            self.pages_list[page][2].set_sensitive(True)
+            self.pages_list[page][3].set_sensitive(True)
+            self.pages_list[page][4].set_sensitive(True)
+            self.pages_list[page][5].set_sensitive(True)
+            self.pages_list[page][6].set_sensitive(True)
+            self.pages_list[page][7].set_sensitive(True)
+            self.pages_list[page][8].set_sensitive(True)
+            self.pages_list[page][9].set_sensitive(True)
+            self.pages_list[page][10].set_sensitive(True)
+            self.pages_list[page][11].set_sensitive(True)
+            self.pages_list[page][12].set_sensitive(True)
+            self.pages_list[page][13].set_sensitive(True)
+            self.pages_list[page][14].set_sensitive(True)
+            self.pages_list[page][15].set_sensitive(True)
+            self.pages_list[page][16].set_sensitive(True)
+            self.pages_list[page][17].set_sensitive(True)
+            self.pages_list[page][18].set_sensitive(True)
+        else:
+            if mode == 1: #Automatic with named device
+                self.pages_list[page][0].set_sensitive(True)
+            else: #fully automatic
+                self.pages_list[page][0].set_sensitive(False)
+
+            self.pages_list[page][1].set_sensitive(False)
+            self.pages_list[page][2].set_sensitive(False)
+            self.pages_list[page][3].set_sensitive(False)
+            self.pages_list[page][4].set_sensitive(False)
+            self.pages_list[page][5].set_sensitive(False)
+            self.pages_list[page][6].set_sensitive(False)
+            self.pages_list[page][7].set_sensitive(False)
+            self.pages_list[page][8].set_sensitive(False)
+            self.pages_list[page][9].set_sensitive(False)
+            self.pages_list[page][10].set_sensitive(False)
+            self.pages_list[page][11].set_sensitive(False)
+            self.pages_list[page][12].set_sensitive(False)
+            self.pages_list[page][13].set_sensitive(False)
+            self.pages_list[page][14].set_sensitive(False)
+            self.pages_list[page][15].set_sensitive(False)
+            self.pages_list[page][16].set_sensitive(False)
+            self.pages_list[page][17].set_sensitive(False)
+            self.pages_list[page][18].set_sensitive(False)
+
