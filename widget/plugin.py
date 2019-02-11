@@ -491,8 +491,10 @@ class PluginDialog(Gtk.Dialog):
         if param == "mode":
             self.sensitive_mode(section, int(widget_id))
         elif param == "device":
-            if self.mode_combo.get_active_id() < 2:
+            if self.mode_combo.get_active_id() > -1:
                 g.m64p_wrapper.ConfigSetParameter("name", self.active_gamepads[int(self.device_combo.get_active_id())].decode("utf-8"))
+            elif self.mode_combo.get_active_id() == -1:
+                g.m64p_wrapper.ConfigSetParameter("name", "Keyboard")
             else:
                 pass
         #else:
@@ -571,6 +573,7 @@ class PluginDialog(Gtk.Dialog):
 
     def sensitive_mode(self, section, mode):
         page = int(''.join(filter(str.isdigit, section)))
+        mode = int(mode)
         if mode == 0: #Manual
             self.pages_list[page][0].set_sensitive(True)
             self.pages_list[page][1].set_sensitive(True)
@@ -594,7 +597,7 @@ class PluginDialog(Gtk.Dialog):
         else:
             if mode == 1: #Automatic with named device
                 self.pages_list[page][0].set_sensitive(True)
-            else: #fully automatic
+            elif mode == 2: #fully automatic
                 self.pages_list[page][0].set_sensitive(False)
 
             self.pages_list[page][1].set_sensitive(False)
