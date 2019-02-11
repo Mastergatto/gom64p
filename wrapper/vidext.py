@@ -8,9 +8,8 @@
 ## MODULES ##
 #############
 import ctypes as c
-from gi.repository import Gtk, GdkX11
+from gi.repository import Gtk
 import sys
-from OpenGL.GL import *
 
 import external.sdl2 as sdl
 import wrapper.datatypes as wrp_dt
@@ -93,6 +92,7 @@ class Vidext():
         sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
 
         if sys.platform.startswith('linux') or sys.platform.startswith('freebsd') :
+            from gi.repository import GdkX11
             # Hack to embed sdl window into the frontend.
             # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
             self.foreign_window = sdl.SDL_CreateWindowFrom(self.window.canvas.get_property('window').get_xid())
