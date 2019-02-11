@@ -18,6 +18,25 @@ import external.sdl2 as sdl
 #############
 ## CLASSES ##
 #############
+class BindDialog(Gtk.MessageDialog):
+    def __init__(self, widget, label):
+        Gtk.MessageDialog.__init__(self)
+        text = "Press any key or button for '" + label + "' button/axis. \n Press Escape to close without bind."
+        self.key_pressed = None
+        self.set_markup(text)
+        self.connect("key-press-event", self.on_key_events)
+        self.run()
+
+    def on_key_events(self, widget, event):
+        print(event.hardware_keycode)
+        print(w_key.keysym2sdl(event.hardware_keycode).name)
+        #g.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
+        if event.hardware_keycode != 9:
+            self.key_pressed = w_key.keysym2sdl(event.hardware_keycode)
+        self.destroy()
+        return True
+
+
 class PluginDialog(Gtk.Dialog):
     def __init__(self, parent, section):
         self.section = None
@@ -46,17 +65,19 @@ class PluginDialog(Gtk.Dialog):
         self.plugin_window.add_button("Cancel",Gtk.ResponseType.CANCEL)
         self.plugin_window.add_button("OK",Gtk.ResponseType.OK)
 
-        if self.section == 'SDL_input':
-            self.input_tabs()
-            self.plugin_window.set_default_size(480, 550)
-        elif self.section == 'input-sdl':
-            self.input_config()
-            self.plugin_window.set_default_size(550, 480)
-            self.plugin_window.connect("key-press-event", self.on_key_events)
-            self.plugin_window.connect("key-release-event", self.on_key_events)
+        if g.lock == False and g.m64p_wrapper.compatible == True:
+            if self.section == 'input-sdl':
+                self.plugin_window.set_default_size(550, 480)
+                self.input_config()
+                #self.plugin_window.connect("key-press-event", self.on_key_events)
+                #self.plugin_window.connect("key-release-event", self.on_key_events)
+            else:
+                self.plugin_window.set_default_size(480, 550)
+                self.generic(self.section)
         else:
-            self.plugin_window.set_default_size(480, 550)
-            self.generic(self.section)
+            label = Gtk.Label("Mupen64plus' core library is incompatible, please upgrade it.")
+            dialog_box = self.plugin_window.get_content_area()
+            dialog_box.add(label)
 
         self.plugin_window.show_all()
 
@@ -72,7 +93,7 @@ class PluginDialog(Gtk.Dialog):
             elif response == Gtk.ResponseType.APPLY:
                 pass
             else:
-                if self.section == 'SDL_input' or self.section == 'input-sdl':
+                if self.section == 'input-sdl':
                     if g.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control1") == 1:
                         g.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control1")
                     if g.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control2") == 1:
@@ -141,7 +162,7 @@ class PluginDialog(Gtk.Dialog):
         scroll.set_propagate_natural_height(True)
 
         # If there are tabs for multiple section opened in once, just return it, otherwise let's add it to dialog
-        if self.section == 'SDL_input' or self.section == 'input-sdl':
+        if self.section == 'input-sdl':
             return scroll
         else:
             dialog_box = self.plugin_window.get_content_area()
@@ -377,6 +398,7 @@ class PluginDialog(Gtk.Dialog):
         return scroll
 
     def input_config(self):
+        sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO) #necessary for SDL_GetKeyFromScancode
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
 
         self.pages_list = [None, None, None, None, None]
@@ -469,7 +491,7 @@ class PluginDialog(Gtk.Dialog):
         if param == "mode":
             self.sensitive_mode(section, int(widget_id))
         elif param == "device":
-            if self.mode_combo.get_active_id() == 0:
+            if self.mode_combo.get_active_id() < 2:
                 g.m64p_wrapper.ConfigSetParameter("name", self.active_gamepads[int(self.device_combo.get_active_id())].decode("utf-8"))
             else:
                 pass
@@ -497,13 +519,10 @@ class PluginDialog(Gtk.Dialog):
         # We try to guess the name to give at the library for looking it in the .cfg, by striping off the extension
         active_plugin = os.path.splitext(plugin)[0]
         active_plugin = active_plugin.replace("mupen64plus-", "")
-        # TODO: Temporary until the new input dialog is ready
-        #if active_plugin == "input-sdl":
-        #    return "SDL_input"
-        #else:
         return active_plugin
 
     def on_key_events(self, widget, event):
+        # TODO: Remove in future
         if event.get_event_type() == Gdk.EventType.KEY_PRESS:
             print(event.hardware_keycode)
             print(w_key.keysym2sdl(event.hardware_keycode).name)
@@ -534,12 +553,21 @@ class PluginDialog(Gtk.Dialog):
                 button.set_label(raw_value)
         else:
             button.set_label("(empty)")
-        button.connect("clicked", self.on_bind_key)
+        button.connect("clicked", self.on_bind_key, param)
 
         return button
     #SDL_GetKeyFromScancode
-    def on_bind_key(self, widget, event):
-        pass
+    def on_bind_key(self, widget, param):
+        dialog = BindDialog(widget, "L")
+        print(dialog.key_pressed)
+        if dialog.key_pressed != None:
+            value = dialog.key_pressed.value
+            keycode = sdl.SDL_GetKeyFromScancode(value)
+            print(value, keycode)
+            widget.set_label(sdl.SDL_GetKeyName(keycode).decode("utf-8"))
+            #g.m64p_wrapper.ConfigOpenSection(section)
+            store = "key(" + str(keycode) + ")"
+            g.m64p_wrapper.ConfigSetParameter(param, store)
 
     def sensitive_mode(self, section, mode):
         page = int(''.join(filter(str.isdigit, section)))
@@ -587,4 +615,3 @@ class PluginDialog(Gtk.Dialog):
             self.pages_list[page][16].set_sensitive(False)
             self.pages_list[page][17].set_sensitive(False)
             self.pages_list[page][18].set_sensitive(False)
-
