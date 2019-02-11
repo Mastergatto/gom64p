@@ -160,9 +160,13 @@ class ConfigDialog(Gtk.Dialog):
 
         sidma_spin = self.insert_spinbutton("SiDmaDuration", "Core", "m64p", -1, 5) #TODO: Check if exists a maximum value here
         sidma_label = Gtk.Label(label="Duration of SI DMA (-1: use per game settings)")
+        if g.lock == True or g.m64p_wrapper.compatible == False:
+            sidma_label.set_sensitive(False)
 
         countxop_spin = self.insert_spinbutton("CountPerOp", "Core", "m64p", 0, 5) #TODO: Check if exists a maximum value here
         countxop_label = Gtk.Label(label="Force n° of cycles per emulated instruction (if > 0)")
+        if g.lock == True or g.m64p_wrapper.compatible == False:
+            countxop_label.set_sensitive(False)
 
         emu_miscellaneous_grid.attach(auto_saveslot_chkbox, 0, 0, 2, 1)
         emu_miscellaneous_grid.attach(random_interrupt_chkbox, 0, 1, 2, 1)
@@ -197,6 +201,8 @@ class ConfigDialog(Gtk.Dialog):
         vidext_chkbox = self.insert_checkbox('VidExt', 'Frontend', 'frontend', "Enable Vidext", "This option will allow to play the game inside frontend's window")
 
         widthxheight_label = Gtk.Label(label="Screen width x height: ")
+        if g.lock == True or g.m64p_wrapper.compatible == False:
+            widthxheight_label.set_sensitive(False)
         width_spin = self.insert_spinbutton("ScreenWidth", "Video-General", "m64p", 1, 4096) #TODO: Check if exists a maximum value here
         height_spin = self.insert_spinbutton("ScreenHeight", "Video-General", "m64p", 1, 4096) #TODO: Check if exists a maximum value here
 
