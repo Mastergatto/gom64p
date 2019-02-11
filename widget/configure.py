@@ -271,7 +271,7 @@ class ConfigDialog(Gtk.Dialog):
 
         self.gfx_configure_button = Gtk.Button(label="Configure")
         self.gfx_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'gfx')
-        if g.lock == True and g.m64p_wrapper.compatible == False:
+        if g.lock == True or g.m64p_wrapper.compatible == False:
             gfx_combo.set_sensitive(False)
             self.gfx_configure_button.set_sensitive(False)
 
@@ -290,7 +290,7 @@ class ConfigDialog(Gtk.Dialog):
         audio_combo.connect('changed', self.on_combobox_changed, 'AudioPlugin')
         self.audio_configure_button = Gtk.Button(label="Configure")
         self.audio_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'audio')
-        if g.lock == True and g.m64p_wrapper.compatible == False:
+        if g.lock == True or g.m64p_wrapper.compatible == False:
             audio_combo.set_sensitive(False)
             self.audio_configure_button.set_sensitive(False)
 
@@ -311,7 +311,7 @@ class ConfigDialog(Gtk.Dialog):
         self.input_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'input')
         if g.frontend_conf.get('InputPlugin') == "mupen64plus-input-raphnetraw.so": #TODO: Is still necessary?
             self.input_configure_button.set_sensitive(False)
-        if g.lock == True and g.m64p_wrapper.compatible == False:
+        if g.lock == True or g.m64p_wrapper.compatible == False:
             input_combo.set_sensitive(False)
             self.input_configure_button.set_sensitive(False)
 
@@ -330,7 +330,7 @@ class ConfigDialog(Gtk.Dialog):
         rsp_combo.connect('changed', self.on_combobox_changed, 'RSPPlugin')
         self.rsp_configure_button = Gtk.Button(label="Configure")
         self.rsp_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'rsp')
-        if g.lock == True and g.m64p_wrapper.compatible == False:
+        if g.lock == True or g.m64p_wrapper.compatible == False:
             rsp_combo.set_sensitive(False)
             self.rsp_configure_button.set_sensitive(False)
 
@@ -362,18 +362,26 @@ class ConfigDialog(Gtk.Dialog):
         sram_dir_entry = self.insert_entry('SaveSRAMPath', 'Core', 'm64p', "Choose a dir where SRAM/EEPROM/FlashRAM saves will be stored", None)
         sram_dir_button = Gtk.Button.new_with_label("Open")
         sram_dir_button.connect("clicked", self.on_search_path_dir, sram_dir_entry)
+        if g.lock == True or g.m64p_wrapper.compatible == False:
+            sram_dir_button.set_sensitive(False)
 
         shared_dir_entry = self.insert_entry('SharedDataPath', 'Core', 'm64p', "Choose a dir where shared data will be stored", None)
         shared_data_dir_button = Gtk.Button.new_with_label("Open")
         shared_data_dir_button.connect("clicked", self.on_search_path_dir, shared_dir_entry)
+        if g.lock == True or g.m64p_wrapper.compatible == False:
+            shared_data_dir_button.set_sensitive(False)
 
         save_dir_entry = self.insert_entry('SaveStatePath', 'Core', 'm64p', "Choose a dir where save states will be stored", None)
         save_dir_button = Gtk.Button.new_with_label("Open")
         save_dir_button.connect("clicked", self.on_search_path_dir, save_dir_entry)
+        if g.lock == True or g.m64p_wrapper.compatible == False:
+            save_dir_button.set_sensitive(False)
 
         screenshot_entry = self.insert_entry('ScreenshotPath', 'Core', 'm64p', "Choose a dir where screenshots will be stored", None)
         screenshot_button = Gtk.Button.new_with_label("Open")
         screenshot_button.connect("clicked", self.on_search_path_dir, screenshot_entry)
+        if g.lock == True or g.m64p_wrapper.compatible == False:
+            screenshot_button.set_sensitive(False)
 
         # Path to directory where SRAM/EEPROM data (in-game saves) are stored. If this is blank, the default value of
         # Path to a directory to search when looking for shared data files
@@ -667,9 +675,18 @@ class ConfigDialog(Gtk.Dialog):
             spin.set_value(g.frontend_conf.get(param))
             spin.set_tooltip_text(help)
         elif config == "m64p":
-            spin.set_value(g.m64p_wrapper.ConfigGetParameter(param))
-            spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param))
+            if g.lock == False and g.m64p_wrapper.compatible == True:
+                spin.set_value(g.m64p_wrapper.ConfigGetParameter(param))
+                spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param))
+            else:
+                spin.set_sensitive(False)
         spin.set_snap_to_ticks(True)
         spin.connect("value-changed", self.on_spinbutton_changed, section, param)
         return spin
+
+    def return_state_lock(self): #TODO: Use this for all m64p widgets
+        if g.lock == True or g.m64p_wrapper.compatible == False:
+            return False
+        else:
+            return True
         
