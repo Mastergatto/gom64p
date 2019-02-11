@@ -16,7 +16,7 @@ class API():
     """Wrapper for calling libmupen64plus.so's functions into python code"""
     def __init__(self, params):
         #Latest API version supported by this wrapper.
-        self.core_version = 0x020501
+        self.core_version = 0x020509 # 2.5.9 BETA
 
         self.m64p_lib_core_path = params['m64plib']
         self.plugins_dir = params['pluginsdir']
@@ -1468,7 +1468,7 @@ class API():
             self.m64p_lib_core = c.CDLL(self.m64p_lib_core_path)
 
             check_core = self.PluginGetVersion(self.m64p_lib_core)
-            if check_core["version"] == self.core_version:
+            if check_core["version"] >= self.core_version:
                 self.compatible = True
 
         except:
