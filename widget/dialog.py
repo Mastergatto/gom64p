@@ -232,7 +232,7 @@ class LibraryChooserDialog(Gtk.FileChooserDialog):
         filter_text.set_name("Mupen64plus library (.so, .dll)")
         #filter_text.add_mime_type("application/x-n64-rom")
         filter_text.add_pattern("libmupen64plus.so*")
-        filter_text.add_pattern("libmupen64plus.dll")
+        filter_text.add_pattern("mupen64plus.dll")
         dialog.add_filter(filter_text)
 
         filter_any = Gtk.FileFilter()

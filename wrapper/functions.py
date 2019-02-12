@@ -58,6 +58,8 @@ class API():
 
         self.config_handle = None
         self.config_ext_handle = None
+        self.system = None
+        self.extension_filename = None
 
 
         #CORE_API_VERSION = 0x20001
@@ -1465,7 +1467,7 @@ class API():
 
     def preload(self):
         try:
-            self.m64p_lib_core = c.CDLL(self.m64p_lib_core_path)
+            self.m64p_lib_core = c.cdll.LoadLibrary(self.m64p_lib_core_path)
 
             check_core = self.PluginGetVersion(self.m64p_lib_core)
             if check_core["version"] >= self.core_version:
@@ -1512,26 +1514,26 @@ class API():
     def plugins_preload(self):
         if self.gfx_filename != "dummy":
             try:
-                self.m64p_lib_gfx = c.CDLL(self.plugins_dir + self.gfx_filename)
+                self.m64p_lib_gfx = c.cdll.LoadLibrary(self.plugins_dir + self.gfx_filename)
             except:
                 print(self.gfx_filename + ": Plugin cannot be used. Dummy plugin is used instead, which means no video.")
                 self.gfx_filename = "dummy"
 
         try:
-            self.m64p_lib_audio = c.CDLL(self.plugins_dir + self.audio_filename)
+            self.m64p_lib_audio = c.cdll.LoadLibrary(self.plugins_dir + self.audio_filename)
         except:
             print(self.audio_filename + ": Plugin not found, cannot be used. Default plugin is used instead.")
-            self.m64p_lib_audio = c.CDLL(self.plugins_dir + 'mupen64plus-audio-hle.so')
+            self.m64p_lib_audio = c.cdll.LoadLibrary(self.plugins_dir + 'mupen64plus-audio-hle' + self.extension_filename)
         try:
-            self.m64p_lib_input = c.CDLL(self.plugins_dir + self.input_filename)
+            self.m64p_lib_input = c.cdll.LoadLibrary(self.plugins_dir + self.input_filename)
         except:
             print(self.input_filename + ": Plugin not found, cannot be used. Default plugin is used instead.")
-            self.m64p_lib_input = c.CDLL(self.plugins_dir + 'mupen64plus-input-sdl.so')
+            self.m64p_lib_input = c.cdll.LoadLibrary(self.plugins_dir + 'mupen64plus-input-sdl.so' + self.extension_filename)
         try:
-            self.m64p_lib_rsp = c.CDLL(self.plugins_dir + self.rsp_filename)
+            self.m64p_lib_rsp = c.cdll.LoadLibrary(self.plugins_dir + self.rsp_filename)
         except:
             print(self.rsp_filename + ": Plugin not found, cannot be used. Default plugin is used instead.")
-            self.m64p_lib_rsp = c.CDLL(self.plugins_dir + 'mupen64plus-rsp-hle.so')
+            self.m64p_lib_rsp = c.cdll.LoadLibrary(self.plugins_dir + 'mupen64plus-rsp-hle.so' + self.extension_filename)
 
     def initialise(self):
         if self.compatible == True:
@@ -1578,21 +1580,25 @@ class API():
 
     def plugins_validate(self):
         p = pathlib.Path(self.plugins_dir)
-        system = platform.system()
-        if system == "Linux":
+        self.system = platform.system()
+        if self.system == "Linux":
+            self.extension_filename = ".so"
             directory = p.glob('*.so*')
-        elif system == "Windows":
+        elif self.system == "Windows":
+            self.extension_filename = ".dll"
             directory = p.glob('*.dll')
-        elif system == "Darwin":
+        elif self.system == "Darwin":
+            self.extension_filename = ".dylib"
             directory = p.glob('*.dylib')
         else:
             print("Warning: Your system is not supported")
+            self.extension_filename = ".so"
             directory = p.glob('*.so*')
 
         for plugin in sorted(directory):
             try:
                 filename = plugin.name
-                info = self.PluginGetVersion(c.CDLL(self.plugins_dir + filename))
+                info = self.PluginGetVersion(c.cdll.LoadLibrary(self.plugins_dir + filename))
                 if info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_CORE.value:
                     pass
                 elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_AUDIO.value:
