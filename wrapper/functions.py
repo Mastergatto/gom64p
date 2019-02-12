@@ -22,6 +22,7 @@ class API():
         self.plugins_dir = params['pluginsdir']
         self.frontend_api_version = params['api_version']
         self.compatible = False
+        self.lock = False
         self.vext_override = False
         self.current_slot = 0
         self.media_loader = wrp_cb.MEDIA_LOADER
@@ -67,7 +68,7 @@ class API():
         #MINIMUM_CORE_VERSION = 0x016300
 
         #MUPEN_CORE_NAME "Mupen64Plus Core"
-        #MUPEN_CORE_VERSION 0x020501
+        #MUPEN_CORE_VERSION 0x020509
         #FRONTEND_API_VERSION 0x020102
         #CONFIG_API_VERSION   0x020301
         #DEBUG_API_VERSION    0x020001
@@ -1475,7 +1476,7 @@ class API():
 
         except:
             print("Core: mupen64plus library hasn't been found")
-            g.lock = True
+            self.lock = True
 
     def plugins_startup(self):
         if self.gfx_filename != "dummy":

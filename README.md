@@ -9,4 +9,3 @@ Frontend in GTK+ 3.x and python3 for mupen64plus. Tested on Linux, untested on o
 - SDL 2.0+
 - python version 3 (best if 3.7)
 - pygobject
-- python-opengl (may be removed in future) 

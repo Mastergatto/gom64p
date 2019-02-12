@@ -21,7 +21,7 @@ import external.sdl2 as sdl
 class BindDialog(Gtk.MessageDialog):
     def __init__(self, widget, label):
         Gtk.MessageDialog.__init__(self)
-        text = "Press any key or button for '" + label + "' button/axis. \n Press Escape to close without bind."
+        text = "Press any key or button for '" + label + "'. \n Press Backspace to erase its value. \n Press Escape to close without bind."
         self.key_pressed = None
         self.set_markup(text)
         self.connect("key-press-event", self.on_key_events)
@@ -43,6 +43,7 @@ class PluginDialog(Gtk.Dialog):
         self.former_values = None
         #self.former_update()
         self.is_changed = False
+        self.page_checker = [False, False, False, False]
 
         if section == 'gfx':
             self.section = self.get_section(g.m64p_wrapper.gfx_filename)
@@ -168,50 +169,6 @@ class PluginDialog(Gtk.Dialog):
             dialog_box = self.plugin_window.get_content_area()
             dialog_box.add(scroll)
 
-    def input_tabs(self):
-        input_notebook = Gtk.Notebook()
-        input_notebook.set_vexpand(True)
-
-        # Tab "Player 1"#
-        player1_tab = Gtk.Label(label="Player1")
-        player1_box = Gtk.VBox()
-
-        area_input1 = self.generic('Input-SDL-Control1')
-        player1_box.pack_start(area_input1, False, False, 0)
-        #print(cb.parameters['Input-SDL-Control1'])
-
-        input_notebook.append_page(player1_box, player1_tab)
-
-        # Tab "Player 2"
-        player2_tab = Gtk.Label(label="Player2")
-        player2_box = Gtk.VBox()
-
-        area_input2 = self.generic('Input-SDL-Control2')
-        player2_box.pack_start(area_input2, False, False, 0)
-
-        input_notebook.append_page(player2_box, player2_tab)
-
-        # Tab "Player 3"
-        player3_tab = Gtk.Label(label="Player3")
-        player3_box = Gtk.VBox()
-
-        area_input3 = self.generic('Input-SDL-Control3')
-        player3_box.pack_start(area_input3, False, False, 0)
-
-        input_notebook.append_page(player3_box, player3_tab)
-
-        # Tab "Player 4"
-        player4_tab = Gtk.Label(label="Player4")
-        player4_box = Gtk.VBox()
-
-        area_input4 = self.generic('Input-SDL-Control4')
-        player4_box.pack_start(area_input4, False, False, 0)
-
-        input_notebook.append_page(player4_box, player4_tab)
-
-        dialog_box = self.plugin_window.get_content_area()
-        dialog_box.add(input_notebook)
-
     def input_page(self, section):
         grid = Gtk.Grid()
         grid.set_hexpand(True)
@@ -276,37 +233,37 @@ class PluginDialog(Gtk.Dialog):
 
         #empty = Gtk.Label.new("")
         label_a = Gtk.Label("A")
-        button_a = self.insert_bind_button('A Button')
+        button_a = self.insert_bind_button('A Button', "A button")
         label_b = Gtk.Label("B")
-        button_b = self.insert_bind_button('B Button')
+        button_b = self.insert_bind_button('B Button', "B button")
         label_z = Gtk.Label("Z")
-        button_z = self.insert_bind_button('Z Trig')
+        button_z = self.insert_bind_button('Z Trig', "Z trigger")
         label_l = Gtk.Label("L")
-        button_l = self.insert_bind_button('L Trig')
+        button_l = self.insert_bind_button('L Trig', "L trigger")
         label_r = Gtk.Label("R")
-        button_r = self.insert_bind_button('R Trig')
+        button_r = self.insert_bind_button('R Trig', "R trigger")
         label_start = Gtk.Label("START")
-        button_start = self.insert_bind_button('Start')
+        button_start = self.insert_bind_button('Start', "Start button")
         label_c_up = Gtk.Label("C-UP")
-        button_c_up = self.insert_bind_button('C Button U')
+        button_c_up = self.insert_bind_button('C Button U', 'C↑ button')
         label_c_left = Gtk.Label("C-LEFT")
-        button_c_left = self.insert_bind_button('C Button L')
+        button_c_left = self.insert_bind_button('C Button L', 'C← button')
         label_c_right = Gtk.Label("C-RIGHT")
-        button_c_right = self.insert_bind_button('C Button R')
+        button_c_right = self.insert_bind_button('C Button R', 'C→ button')
         label_c_down = Gtk.Label("C-DOWN")
-        button_c_down = self.insert_bind_button('C Button D')
+        button_c_down = self.insert_bind_button('C Button D', 'C↓ button')
         label_mempak = Gtk.Label("Mempak")
-        button_mempak = self.insert_bind_button('Mempak switch')
+        button_mempak = self.insert_bind_button('Mempak switch', "Mempak switch")
         label_rumble = Gtk.Label("Rumble")
-        button_rumble = self.insert_bind_button('Rumblepak switch')
+        button_rumble = self.insert_bind_button('Rumblepak switch', "Rumblepak switch")
         label_d_up = Gtk.Label("D-UP")
-        button_d_up = self.insert_bind_button('DPad U')
+        button_d_up = self.insert_bind_button("DPad U", 'DPad ↑')
         label_d_left = Gtk.Label("D-LEFT")
-        button_d_left = self.insert_bind_button('DPad L')
+        button_d_left = self.insert_bind_button("DPad L", 'DPad ←')
         label_d_right = Gtk.Label("D-RIGHT")
-        button_d_right = self.insert_bind_button('DPad R')
+        button_d_right = self.insert_bind_button("DPad R", 'DPad →')
         label_d_down = Gtk.Label("D-DOWN")
-        button_d_down = self.insert_bind_button('DPad D')
+        button_d_down = self.insert_bind_button("DPad D", 'DPad ↓')
         x_axis_label = Gtk.Label("X axis")
         x_axis_button = Gtk.Button()
         y_axis_label = Gtk.Label("Y axis")
@@ -415,6 +372,7 @@ class PluginDialog(Gtk.Dialog):
 
         input_notebook = Gtk.Notebook()
         input_notebook.set_vexpand(True)
+        input_notebook.connect("switch-page", self.on_change_page)
 
         # Tab "Player 1"#
         player1_tab = Gtk.Label(label="Player1")
@@ -534,42 +492,61 @@ class PluginDialog(Gtk.Dialog):
             pass
         return True
 
-    def insert_bind_button(self, param):
+    def on_change_page(self, widget, page, number):
+        # When the Notebook is being realized, this signal is quickly emited four times, so we avoid to change the section uselessly.
+        if self.page_checker[number] == False:
+            self.page_checker[number] = True
+        else:
+            if number == 0:
+                g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control1')
+            elif number == 1:
+                g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control2')
+            elif number == 2:
+                g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control3')
+            elif number == 3:
+                g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control4')
+
+    def insert_bind_button(self, param, name):
         button = Gtk.Button()
         raw_value = g.m64p_wrapper.ConfigGetParameter(param)
         if raw_value != '':
             if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
                 #value = int(raw_value.lstrip('key(').rstrip(')'))
-                name = sdl.SDL_GetKeyName(int(''.join(filter(str.isdigit, raw_value))))
-                print(param, name.decode())
+                keyname = sdl.SDL_GetKeyName(int(''.join(filter(str.isdigit, raw_value))))
+                print(param, keyname.decode())
                 #scancode = sdl.SDL_GetScancodeFromKey(value)
                 #print("Scancode", scancode)
                 #button.set_label(str(w_key.Scancodes(scancode).name).lstrip('SDL_SCANCODE_'))
-                if name == b'\xc4\xb0':
+                if keyname == b'\xc4\xb0':
                     button.set_label("L-shift")
-                elif name == b'\xc4\xb2':
+                elif keyname == b'\xc4\xb2':
                     button.set_label("L-ctrl")
                 else:
-                    button.set_label(name.decode('utf-8'))
+                    button.set_label(keyname.decode('utf-8'))
             else:
                 button.set_label(raw_value)
         else:
             button.set_label("(empty)")
-        button.connect("clicked", self.on_bind_key, param)
+        button.connect("clicked", self.on_bind_key, param, name)
 
         return button
-    #SDL_GetKeyFromScancode
-    def on_bind_key(self, widget, param):
-        dialog = BindDialog(widget, "L")
+
+    def on_bind_key(self, widget, param, name):
+        dialog = BindDialog(widget, name)
         print(dialog.key_pressed)
         if dialog.key_pressed != None:
-            value = dialog.key_pressed.value
-            keycode = sdl.SDL_GetKeyFromScancode(value)
-            print(value, keycode)
-            widget.set_label(sdl.SDL_GetKeyName(keycode).decode("utf-8"))
-            #g.m64p_wrapper.ConfigOpenSection(section)
-            store = "key(" + str(keycode) + ")"
-            g.m64p_wrapper.ConfigSetParameter(param, store)
+            if dialog.key_pressed.value == 42:
+                widget.set_label("(empty)")
+                store = ""
+                g.m64p_wrapper.ConfigSetParameter(param, store)
+            else:
+                value = dialog.key_pressed.value
+                keycode = sdl.SDL_GetKeyFromScancode(value)
+                print(value, keycode)
+                widget.set_label(sdl.SDL_GetKeyName(keycode).decode("utf-8"))
+                #g.m64p_wrapper.ConfigOpenSection(section)
+                store = "key(" + str(keycode) + ")"
+                g.m64p_wrapper.ConfigSetParameter(param, store)
 
     def sensitive_mode(self, section, mode):
         page = int(''.join(filter(str.isdigit, section)))

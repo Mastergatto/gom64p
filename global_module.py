@@ -20,8 +20,6 @@ parameters = {}
 
 # This frontend is fully compliant with latest api.
 parameters['api_version'] = 0x020102
-running = False #UNUSED
-lock = False # if m64+ library isn't found
 
 frontend_conf = u_conf.FrontendConf()
 
@@ -38,6 +36,7 @@ parameters['rsp'] = frontend_conf.get('RSPPlugin')
 u_plat.Platform()
 m64p_wrapper = w.API(parameters)
 
+running = False
+lock = m64p_wrapper.lock # if m64+ library isn't found
 CB_STATE = None
-
 cache = None
