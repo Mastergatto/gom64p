@@ -604,7 +604,7 @@ class ConfigDialog(Gtk.Dialog):
         self.is_changed = False
         self.apply_button.set_sensitive(False)
         g.frontend_conf.open_section("Frontend")
-        print(self.former_values['vidext'])
+        g.frontend_conf.set('M64pLib', self.former_values['library'])
         g.frontend_conf.set('PluginsDir', self.former_values['plugins_dir'])
         g.frontend_conf.set('ConfigDir', self.former_values['config_dir'])
         g.frontend_conf.set('DataDir', self.former_values['data_dir'])
@@ -622,6 +622,7 @@ class ConfigDialog(Gtk.Dialog):
     def former_update(self):
         self.is_changed = False
         g.frontend_conf.open_section("Frontend")
+        self.former_values['library'] = g.frontend_conf.get('M64pLib')
         self.former_values['plugins_dir'] = g.frontend_conf.get('PluginsDir')
         self.former_values['config_dir'] = g.frontend_conf.get('ConfigDir')
         self.former_values['data_dir'] = g.frontend_conf.get('DataDir')
