@@ -331,7 +331,7 @@ class Menu:
         g.running = False
 
     def on_ChoosingRom(self, *args):
-        dialog = w_dialog.RomChooserDialog(self.m64p_window)
+        dialog = w_dialog.FileChooserDialog(self.m64p_window, "rom")
         self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "Selecting the ROM...")
         self.rom = dialog.path
         rom_uri = GLib.filename_to_uri(self.rom, None)
@@ -373,7 +373,7 @@ class Menu:
 
     def on_SaveStateAction(self, widget, path=False, *args):
         if path == True:
-            dialog = w_dialog.SnapshotChooserDialog(self.m64p_window, 1) # Gtk.FileChooserAction for save
+            dialog = w_dialog.FileChooserDialog(self.m64p_window, "snapshot", 1) # Gtk.FileChooserAction for save
             file = dialog.path
             g.m64p_wrapper.state_save(file) #TODO:Currently hardcoded to always create a m64+ save state.
         else:
@@ -382,7 +382,7 @@ class Menu:
 
     def on_LoadStateAction(self, widget, path=False, *args):
         if path == True:
-            dialog = w_dialog.SnapshotChooserDialog(self.m64p_window, 0) #Gtk.FileChooserAction for load
+            dialog = w_dialog.FileChooserDialog(self.m64p_window, "snapshot", 0) #Gtk.FileChooserAction for load
             file = dialog.path
             g.m64p_wrapper.state_load(file)
         else:

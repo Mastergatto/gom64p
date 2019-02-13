@@ -570,7 +570,7 @@ class ConfigDialog(Gtk.Dialog):
             g.m64p_wrapper.ConfigSetParameter(param, widget.get_value_as_int())
 
     def on_search_path_lib(self, widget, entry):
-        dialog = w_dialog.LibraryChooserDialog(self.config_window)
+        dialog = w_dialog.FileChooserDialog(self.config_window, "library")
         library = dialog.path
         if library != None:
             self.is_changed = True
@@ -578,7 +578,7 @@ class ConfigDialog(Gtk.Dialog):
             entry.set_text(library)
 
     def on_search_path_dir(self, widget, entry):
-        dialog = w_dialog.DirChooserDialog(self.config_window)
+        dialog = w_dialog.FileChooserDialog(self.config_window, "directory")
         dir_path = dialog.path
         if dir_path != None:
             self.is_changed = True

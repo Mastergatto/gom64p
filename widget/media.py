@@ -223,7 +223,7 @@ class MediaDialog(Gtk.Dialog):
         self.filename = ""
 
     def on_search_file_path(self, widget, entry, mem):
-        dialog = w_dialog.GBChooserDialog(self.media_window, mem)
+        dialog = w_dialog.FileChooserDialog(self.media_window, "gameboy", mem)
         self.filename = dialog.path
         if self.filename != None:
             self.is_changed = True
@@ -233,7 +233,7 @@ class MediaDialog(Gtk.Dialog):
             print('Dialog is canceled.')
 
     def on_search_64dd_path(self, widget, entry, mem):
-        dialog = w_dialog.N64DDChooserDialog(self.media_window, mem)
+        dialog = w_dialog.FileChooserDialog(self.media_window, "64dd", mem)
         self.filename = dialog.path
         if self.filename != None:
             self.is_changed = True
@@ -243,6 +243,7 @@ class MediaDialog(Gtk.Dialog):
             print('Dialog is canceled.')
 
 class N64DD_Dialog(Gtk.Dialog):
+    #TODO: Unused, maybe delete later?
     def __init__(self, parent):
         self.filename = None
         self.num_controller = None
