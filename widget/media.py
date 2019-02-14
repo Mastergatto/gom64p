@@ -216,6 +216,11 @@ class MediaDialog(Gtk.Dialog):
         self.is_changed = True
         self.apply_button.set_sensitive(True)
         value = widget.get_text()
+        if param != "IPL-ROM" and param != "Disk":
+            g.m64p_wrapper.ConfigOpenSection("Transferpak")
+        else:
+            g.m64p_wrapper.ConfigOpenSection("64DD")
+
         g.m64p_wrapper.ConfigSetParameter(param, value)
 
     def on_clear_entry(self, widget, entry):
