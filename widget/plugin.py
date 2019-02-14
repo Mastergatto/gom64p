@@ -19,20 +19,21 @@ import external.sdl2 as sdl
 ## CLASSES ##
 #############
 class BindDialog(Gtk.MessageDialog):
-    def __init__(self, widget, label):
+    def __init__(self, widget, device, label):
         Gtk.MessageDialog.__init__(self)
         text = "Press any key or button for '" + label + "'. \n Press Backspace to erase its value. \n Press Escape to close without bind."
         self.key_pressed = None
+        self.gamepad_pressed = None
         self.set_markup(text)
-        self.connect("key-press-event", self.on_key_events)
+        self.connect("key-press-event", self.on_key_events, device)
+        if device == "gamepad":
+            pass
         self.run()
 
-    def on_key_events(self, widget, event):
-        print(event.hardware_keycode)
-        print(w_key.keysym2sdl(event.hardware_keycode).name)
-        #g.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
+    def on_key_events(self, widget, event, device):
         if event.hardware_keycode != 9:
-            self.key_pressed = w_key.keysym2sdl(event.hardware_keycode)
+            if device == "keyboard" or (device == "gamepad" and event.hardware_keycode == 22):
+                self.key_pressed = w_key.keysym2sdl(event.hardware_keycode)
         self.destroy()
         return True
 
@@ -84,12 +85,12 @@ class PluginDialog(Gtk.Dialog):
 
         response = Gtk.ResponseType.APPLY
         while response == Gtk.ResponseType.APPLY:
-            if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
-                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
+            if sdl.SDL_WasInit(sdl.SDL_INIT_GAMECONTROLLER):
+                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
             response = self.plugin_window.run()
             if response == Gtk.ResponseType.OK:
                 g.m64p_wrapper.ConfigSaveFile()
-                #sdl.SDL_JoystickUpdate()
+                #sdl.SDL_GameControllerUpdate()
                 self.plugin_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 pass
@@ -345,9 +346,6 @@ class PluginDialog(Gtk.Dialog):
 
         self.sensitive_mode(section, self.mode_combo.get_active_id())
 
-        #if len(value_param) == 0:
-        #    empty = Gtk.Label("No option have been found here!")
-        #    grid.attach(empty, 0, 0, 1, 1)
         scroll = Gtk.ScrolledWindow()
         scroll.add(grid)
         scroll.set_propagate_natural_height(True)
@@ -356,7 +354,7 @@ class PluginDialog(Gtk.Dialog):
 
     def input_config(self):
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO) #necessary for SDL_GetKeyFromScancode
-        sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
+        sdl.SDL_InitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
 
         self.pages_list = [None, None, None, None, None]
 
@@ -364,10 +362,11 @@ class PluginDialog(Gtk.Dialog):
         self.active_gamepads = []
         if self.num_gamepads > 0:
             for i in range(self.num_gamepads):
-                #gamepad = sdl.SDL_JoystickOpen(i)
-                self.active_gamepads.append(sdl.SDL_JoystickNameForIndex(i))
-                #if sdl.SDL_JoystickGetAttached(gamepad):
-                #    sdl.SDL_JoystickClose(gamepad)
+                if sdl.SDL_IsGameController(i) == True:
+                    self.active_gamepads.append(sdl.SDL_GameControllerNameForIndex(i))
+                else:
+                    # TODO: Not all gamepad are recognized as such by SDL, what to do in this case?
+                    self.active_gamepads.append(sdl.SDL_JoystickNameForIndex(i))
        # print(self.num_gamepads, self.active_gamepads)
 
         input_notebook = Gtk.Notebook()
@@ -449,12 +448,11 @@ class PluginDialog(Gtk.Dialog):
         if param == "mode":
             self.sensitive_mode(section, int(widget_id))
         elif param == "device":
-            if self.mode_combo.get_active_id() > -1:
-                g.m64p_wrapper.ConfigSetParameter("name", self.active_gamepads[int(self.device_combo.get_active_id())].decode("utf-8"))
-            elif self.mode_combo.get_active_id() == -1:
-                g.m64p_wrapper.ConfigSetParameter("name", "Keyboard")
-            else:
-                pass
+            if int(self.mode_combo.get_active_id()) > -1:
+                if int(widget_id) != -1:
+                    g.m64p_wrapper.ConfigSetParameter("name", self.active_gamepads[int(widget_id)].decode("utf-8"))
+                else:
+                    g.m64p_wrapper.ConfigSetParameter("name", "Keyboard")
         #else:
         #    print("Config: Unknown parameter.")
 
@@ -511,16 +509,13 @@ class PluginDialog(Gtk.Dialog):
         raw_value = g.m64p_wrapper.ConfigGetParameter(param)
         if raw_value != '':
             if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
-                #value = int(raw_value.lstrip('key(').rstrip(')'))
                 keyname = sdl.SDL_GetKeyName(int(''.join(filter(str.isdigit, raw_value))))
-                print(param, keyname.decode())
-                #scancode = sdl.SDL_GetScancodeFromKey(value)
-                #print("Scancode", scancode)
-                #button.set_label(str(w_key.Scancodes(scancode).name).lstrip('SDL_SCANCODE_'))
+
+                # Workaround: For some reason SDL doesn't return the correct name for those key, so let's correct them.
                 if keyname == b'\xc4\xb0':
-                    button.set_label("L-shift")
+                    button.set_label("Left Shift")
                 elif keyname == b'\xc4\xb2':
-                    button.set_label("L-ctrl")
+                    button.set_label("Left Ctrl")
                 else:
                     button.set_label(keyname.decode('utf-8'))
             else:
@@ -532,8 +527,8 @@ class PluginDialog(Gtk.Dialog):
         return button
 
     def on_bind_key(self, widget, param, name):
-        dialog = BindDialog(widget, name)
-        print(dialog.key_pressed)
+        device = "keyboard" # TODO: temporary until gamepad binding is added
+        dialog = BindDialog(widget, device, name)
         if dialog.key_pressed != None:
             if dialog.key_pressed.value == 42:
                 widget.set_label("(empty)")
@@ -547,6 +542,8 @@ class PluginDialog(Gtk.Dialog):
                 #g.m64p_wrapper.ConfigOpenSection(section)
                 store = "key(" + str(keycode) + ")"
                 g.m64p_wrapper.ConfigSetParameter(param, store)
+        elif dialog.gamepad_pressed != None:
+            pass
 
     def sensitive_mode(self, section, mode):
         page = int(''.join(filter(str.isdigit, section)))
