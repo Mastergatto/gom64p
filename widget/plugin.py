@@ -19,18 +19,20 @@ import external.sdl2 as sdl
 ## CLASSES ##
 #############
 class BindDialog(Gtk.MessageDialog):
-    def __init__(self, widget, device, label, controller=None):
+    def __init__(self, widget, device, label, controller):
         Gtk.MessageDialog.__init__(self)
         text = "Press any key or button for '" + label + "'. \n Press Backspace to erase its value. \n Press Escape to close without bind."
         self.key_pressed = None
         self.gamepad_pressed = None
-        self.pending = True
+        self.gamepad_type = None
+        self.pending = False
+
         self.set_markup(text)
         self.connect("key-press-event", self.on_key_events, device)
-        if device == "gamepad":# and controller != None:
+        if device == "gamepad" and controller != None:
             sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
             sdl.SDL_InitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
-            gamepad = sdl.SDL_GameControllerOpen(0) #TODO: hardcoded for now.
+            gamepad = sdl.SDL_GameControllerOpen(controller)
             if gamepad != None:
                 sdl.SDL_GameControllerEventState(sdl.SDL_ENABLE)
                 thread = threading.Thread(name="Binding", target=self.poll_sdl_events)
@@ -40,9 +42,10 @@ class BindDialog(Gtk.MessageDialog):
                     print("The binding thread has encountered an unexpected error")
                     threading.main_thread()
         self.run()
-        sdl.SDL_GameControllerClose(controller)
-        if sdl.SDL_WasInit(sdl.SDL_INIT_GAMECONTROLLER):
-            sdl.SDL_QuitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
+        if device == "gamepad" and controller != None:
+            sdl.SDL_GameControllerClose(gamepad)
+            if sdl.SDL_WasInit(sdl.SDL_INIT_GAMECONTROLLER):
+                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
 
     def on_key_events(self, widget, event, device):
         if device == "keyboard" or (device == "gamepad" and (event.hardware_keycode == 22 or event.hardware_keycode == 9)):
@@ -56,23 +59,27 @@ class BindDialog(Gtk.MessageDialog):
 
     def poll_sdl_events(self):
         import ctypes as c
+        self.pending = True
         while self.pending:
             event = sdl.SDL_Event()
             while sdl.SDL_PollEvent(c.byref(event)):
-                # SDL_JOYDEVICEADDED = 1541
-                # sdl.SDL_CONTROLLERAXISMOTION = 1616
-                # sdl.SDL_CONTROLLERBUTTONDOWN = 1617
-                # sdl.SDL_CONTROLLERBUTTONUP = 1618
-                # sdl.SDL_CONTROLLERDEVICEADDED = 1619
-                print(event.type)
                 if event.type == sdl.SDL_CONTROLLERBUTTONDOWN:
                     button = event.cbutton
-                    print(button.which, button.button)
                     self.gamepad_pressed = button.button
+                    self.gamepad_type = "button"
                     self.pending = False
                     break
                 elif event.type == sdl.SDL_CONTROLLERAXISMOTION:
-                    pass
+                    axis = event.caxis.axis
+                    if event.caxis.value < -16000:
+                        self.gamepad_pressed = axis
+                        self.gamepad_type = "Naxis"
+                        self.pending = False
+                    elif event.caxis.value > 16000:
+                        self.gamepad_pressed = axis
+                        self.gamepad_type = "Paxis"
+                        self.pending = False
+                    break
                 #elif event.type == sdl.SDL_CONTROLLERDEVICEADDED:
                 #    sdl.SDL_GameControllerUpdate()
         self.destroy()
@@ -83,7 +90,7 @@ class PluginDialog(Gtk.Dialog):
         self.former_values = None
         #self.former_update()
         self.is_changed = False
-        self.page_checker = [False, False, False, False]
+        self.page_check = [False, False, False, False]
 
         if section == 'gfx':
             self.section = self.get_section(g.m64p_wrapper.gfx_filename)
@@ -280,37 +287,37 @@ class PluginDialog(Gtk.Dialog):
 
         #empty = Gtk.Label.new("")
         label_a = Gtk.Label("A")
-        button_a = self.insert_bind_button('A Button', "A button")
+        button_a = self.insert_bind_button('A Button', section, "A button")
         label_b = Gtk.Label("B")
-        button_b = self.insert_bind_button('B Button', "B button")
+        button_b = self.insert_bind_button('B Button',  section, "B button")
         label_z = Gtk.Label("Z")
-        button_z = self.insert_bind_button('Z Trig', "Z trigger")
+        button_z = self.insert_bind_button('Z Trig',  section, "Z trigger")
         label_l = Gtk.Label("L")
-        button_l = self.insert_bind_button('L Trig', "L trigger")
+        button_l = self.insert_bind_button('L Trig',  section, "L trigger")
         label_r = Gtk.Label("R")
-        button_r = self.insert_bind_button('R Trig', "R trigger")
+        button_r = self.insert_bind_button('R Trig',  section, "R trigger")
         label_start = Gtk.Label("START")
-        button_start = self.insert_bind_button('Start', "Start button")
-        label_c_up = Gtk.Label("C-UP")
-        button_c_up = self.insert_bind_button('C Button U', 'C↑ button')
-        label_c_left = Gtk.Label("C-LEFT")
-        button_c_left = self.insert_bind_button('C Button L', 'C← button')
-        label_c_right = Gtk.Label("C-RIGHT")
-        button_c_right = self.insert_bind_button('C Button R', 'C→ button')
-        label_c_down = Gtk.Label("C-DOWN")
-        button_c_down = self.insert_bind_button('C Button D', 'C↓ button')
+        button_start = self.insert_bind_button('Start',  section, "Start button")
+        label_c_up = Gtk.Label("C↑")
+        button_c_up = self.insert_bind_button('C Button U',  section, 'C↑ button')
+        label_c_left = Gtk.Label("C←")
+        button_c_left = self.insert_bind_button('C Button L',  section, 'C← button')
+        label_c_right = Gtk.Label("C→")
+        button_c_right = self.insert_bind_button('C Button R',  section, 'C→ button')
+        label_c_down = Gtk.Label("C↓")
+        button_c_down = self.insert_bind_button('C Button D',  section, 'C↓ button')
         label_mempak = Gtk.Label("Mempak")
-        button_mempak = self.insert_bind_button('Mempak switch', "Mempak switch")
+        button_mempak = self.insert_bind_button('Mempak switch',  section, "Mempak switch")
         label_rumble = Gtk.Label("Rumble")
-        button_rumble = self.insert_bind_button('Rumblepak switch', "Rumblepak switch")
-        label_d_up = Gtk.Label("D-UP")
-        button_d_up = self.insert_bind_button("DPad U", 'DPad ↑')
-        label_d_left = Gtk.Label("D-LEFT")
-        button_d_left = self.insert_bind_button("DPad L", 'DPad ←')
-        label_d_right = Gtk.Label("D-RIGHT")
-        button_d_right = self.insert_bind_button("DPad R", 'DPad →')
-        label_d_down = Gtk.Label("D-DOWN")
-        button_d_down = self.insert_bind_button("DPad D", 'DPad ↓')
+        button_rumble = self.insert_bind_button('Rumblepak switch',  section, "Rumblepak switch")
+        label_d_up = Gtk.Label("D↑")
+        button_d_up = self.insert_bind_button("DPad U",  section, 'DPad ↑')
+        label_d_left = Gtk.Label("D←")
+        button_d_left = self.insert_bind_button("DPad L",  section, 'DPad ←')
+        label_d_right = Gtk.Label("D→")
+        button_d_right = self.insert_bind_button("DPad R",  section, 'DPad →')
+        label_d_down = Gtk.Label("D↓")
+        button_d_down = self.insert_bind_button("DPad D",  section, 'DPad ↓')
         x_axis_label = Gtk.Label("X axis")
         x_axis_button = Gtk.Button()
         y_axis_label = Gtk.Label("Y axis")
@@ -374,19 +381,19 @@ class PluginDialog(Gtk.Dialog):
         grid.attach(other_frame, 0, 3, 5, 1)
 
         if section == 'Input-SDL-Control1':
-            self.pages_list[1] = [self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
+            self.pages_list[1] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
                                   button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
                                   button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
         elif section == 'Input-SDL-Control2':
-            self.pages_list[2] = [self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
+            self.pages_list[2] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
                                   button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
                                   button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
         elif section == 'Input-SDL-Control3':
-            self.pages_list[3] = [self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
+            self.pages_list[3] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
                                   button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
                                   button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
         elif section == 'Input-SDL-Control4':
-            self.pages_list[4] = [self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
+            self.pages_list[4] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
                                   button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
                                   button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
 
@@ -494,12 +501,15 @@ class PluginDialog(Gtk.Dialog):
         g.m64p_wrapper.ConfigSetParameter(param, int(widget_id))
         if param == "mode":
             self.sensitive_mode(section, int(widget_id))
+            # Something there to reset binding?
         elif param == "device":
-            if int(self.mode_combo.get_active_id()) > -1:
+            if int(self.pages_list[self.filter_number(section)][0].get_active_id()) < 2:
                 if int(widget_id) != -1:
                     g.m64p_wrapper.ConfigSetParameter("name", self.active_gamepads[int(widget_id)].decode("utf-8"))
                 else:
                     g.m64p_wrapper.ConfigSetParameter("name", "Keyboard")
+                #Something there to reset binding?
+                g.m64p_wrapper.ConfigSaveSection(section)
         #else:
         #    print("Config: Unknown parameter.")
 
@@ -528,8 +538,8 @@ class PluginDialog(Gtk.Dialog):
 
     def on_change_page(self, widget, page, number):
         # When the Notebook is being realized, this signal is quickly emited four times, so we avoid to change the section uselessly.
-        if self.page_checker[number] == False:
-            self.page_checker[number] = True
+        if self.page_check[number] == False:
+            self.page_check[number] = True
         else:
             if number == 0:
                 g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control1')
@@ -539,13 +549,14 @@ class PluginDialog(Gtk.Dialog):
                 g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control3')
             elif number == 3:
                 g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control4')
+            # TODO: Should we update self.mode_combo and others....?
 
-    def insert_bind_button(self, param, name):
+    def insert_bind_button(self, param, section, name):
         button = Gtk.Button()
         raw_value = g.m64p_wrapper.ConfigGetParameter(param)
         if raw_value != '':
             if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
-                keyname = sdl.SDL_GetKeyName(int(''.join(filter(str.isdigit, raw_value))))
+                keyname = sdl.SDL_GetKeyName(self.filter_number(raw_value))
 
                 # Workaround: For some reason SDL doesn't return the correct name for those key, so let's correct them.
                 if keyname == b'\xc4\xb0':
@@ -558,13 +569,19 @@ class PluginDialog(Gtk.Dialog):
                 button.set_label(raw_value)
         else:
             button.set_label("(empty)")
-        button.connect("clicked", self.on_bind_key, param, name)
+        button.connect("clicked", self.on_bind_key, param, section, name)
 
         return button
 
-    def on_bind_key(self, widget, param, name):
-        device = "gamepad" # TODO: temporary until gamepad binding is added
-        dialog = BindDialog(widget, device, name)
+    def on_bind_key(self, widget, param, section, name):
+        if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
+            device = "keyboard"
+            controller = None
+        else:
+            device = "gamepad"
+            controller = self.filter_number(section) - 1 # TODO: It's bad, use self.active_gamepad instead
+            print(controller)
+        dialog = BindDialog(widget, device, name, controller)
         if dialog.key_pressed != None:
             if dialog.key_pressed.value == 42:
                 widget.set_label("(empty)")
@@ -579,7 +596,19 @@ class PluginDialog(Gtk.Dialog):
                 store = "key(" + str(keycode) + ")"
                 g.m64p_wrapper.ConfigSetParameter(param, store)
         elif dialog.gamepad_pressed != None:
-            pass
+            if dialog.gamepad_type == "button":
+                value = dialog.gamepad_pressed
+                store = "button(" + str(value) + ")"
+                widget.set_label(store)
+                g.m64p_wrapper.ConfigSetParameter(param, store)
+            else:
+                value = dialog.gamepad_pressed
+                if dialog.gamepad_type == "Naxis":
+                    store = "axis(" + str(value) + "-)"
+                elif dialog.gamepad_type == "Paxis":
+                    store = "axis(" + str(value) + "+)"
+                widget.set_label(store)
+                g.m64p_wrapper.ConfigSetParameter(param, store)
 
     def on_toggle_button(self, widget):
         status = widget.get_active()
@@ -590,10 +619,9 @@ class PluginDialog(Gtk.Dialog):
         g.m64p_wrapper.ConfigSetParameter("plugged", status)
 
     def sensitive_mode(self, section, mode):
-        page = int(''.join(filter(str.isdigit, section)))
+        page = self.filter_number(section)
         mode = int(mode)
         if mode == 0: #Manual
-            self.pages_list[page][0].set_sensitive(True)
             self.pages_list[page][1].set_sensitive(True)
             self.pages_list[page][2].set_sensitive(True)
             self.pages_list[page][3].set_sensitive(True)
@@ -612,13 +640,13 @@ class PluginDialog(Gtk.Dialog):
             self.pages_list[page][16].set_sensitive(True)
             self.pages_list[page][17].set_sensitive(True)
             self.pages_list[page][18].set_sensitive(True)
+            self.pages_list[page][19].set_sensitive(True)
         else:
             if mode == 1: #Automatic with named device
-                self.pages_list[page][0].set_sensitive(True)
+                self.pages_list[page][1].set_sensitive(True)
             elif mode == 2: #fully automatic
-                self.pages_list[page][0].set_sensitive(False)
+                self.pages_list[page][1].set_sensitive(False)
 
-            self.pages_list[page][1].set_sensitive(False)
             self.pages_list[page][2].set_sensitive(False)
             self.pages_list[page][3].set_sensitive(False)
             self.pages_list[page][4].set_sensitive(False)
@@ -636,3 +664,8 @@ class PluginDialog(Gtk.Dialog):
             self.pages_list[page][16].set_sensitive(False)
             self.pages_list[page][17].set_sensitive(False)
             self.pages_list[page][18].set_sensitive(False)
+            self.pages_list[page][19].set_sensitive(False)
+
+    def filter_number(self, string):
+        return int(''.join(filter(str.isdigit, string)))
+        
