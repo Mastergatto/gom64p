@@ -7,8 +7,8 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk, Gdk
-import os.path
+from gi.repository import Gtk, Gdk, GLib
+import os.path, threading
 
 import global_module as g
 import wrapper.callback as cb
@@ -19,24 +19,63 @@ import external.sdl2 as sdl
 ## CLASSES ##
 #############
 class BindDialog(Gtk.MessageDialog):
-    def __init__(self, widget, device, label):
+    def __init__(self, widget, device, label, controller=None):
         Gtk.MessageDialog.__init__(self)
         text = "Press any key or button for '" + label + "'. \n Press Backspace to erase its value. \n Press Escape to close without bind."
         self.key_pressed = None
         self.gamepad_pressed = None
+        self.pending = True
         self.set_markup(text)
         self.connect("key-press-event", self.on_key_events, device)
-        if device == "gamepad":
-            pass
+        if device == "gamepad":# and controller != None:
+            sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
+            sdl.SDL_InitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
+            gamepad = sdl.SDL_GameControllerOpen(0) #TODO: hardcoded for now.
+            if gamepad != None:
+                sdl.SDL_GameControllerEventState(sdl.SDL_ENABLE)
+                thread = threading.Thread(name="Binding", target=self.poll_sdl_events)
+                try:
+                    thread.start()
+                except:
+                    print("The binding thread has encountered an unexpected error")
+                    threading.main_thread()
         self.run()
+        sdl.SDL_GameControllerClose(controller)
+        if sdl.SDL_WasInit(sdl.SDL_INIT_GAMECONTROLLER):
+            sdl.SDL_QuitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
 
     def on_key_events(self, widget, event, device):
-        if event.hardware_keycode != 9:
-            if device == "keyboard" or (device == "gamepad" and event.hardware_keycode == 22):
+        if device == "keyboard" or (device == "gamepad" and (event.hardware_keycode == 22 or event.hardware_keycode == 9)):
+            if event.hardware_keycode != 9:
                 self.key_pressed = w_key.keysym2sdl(event.hardware_keycode)
-        self.destroy()
+            if self.pending == True:
+                self.pending = False
+            else:
+                self.destroy()
         return True
 
+    def poll_sdl_events(self):
+        import ctypes as c
+        while self.pending:
+            event = sdl.SDL_Event()
+            while sdl.SDL_PollEvent(c.byref(event)):
+                # SDL_JOYDEVICEADDED = 1541
+                # sdl.SDL_CONTROLLERAXISMOTION = 1616
+                # sdl.SDL_CONTROLLERBUTTONDOWN = 1617
+                # sdl.SDL_CONTROLLERBUTTONUP = 1618
+                # sdl.SDL_CONTROLLERDEVICEADDED = 1619
+                print(event.type)
+                if event.type == sdl.SDL_CONTROLLERBUTTONDOWN:
+                    button = event.cbutton
+                    print(button.which, button.button)
+                    self.gamepad_pressed = button.button
+                    self.pending = False
+                    break
+                elif event.type == sdl.SDL_CONTROLLERAXISMOTION:
+                    pass
+                #elif event.type == sdl.SDL_CONTROLLERDEVICEADDED:
+                #    sdl.SDL_GameControllerUpdate()
+        self.destroy()
 
 class PluginDialog(Gtk.Dialog):
     def __init__(self, parent, section):
@@ -52,11 +91,10 @@ class PluginDialog(Gtk.Dialog):
             self.section = self.get_section(g.m64p_wrapper.audio_filename)
         elif section == 'input':
             self.section = self.get_section(g.m64p_wrapper.input_filename)
-            print(self.section)
         elif section == 'rsp':
             self.section = self.get_section(g.m64p_wrapper.rsp_filename)
 
-        title = self.section + " config"
+        title = self.section + " configuration"
         self.plugin_window = Gtk.Dialog()
         self.plugin_window.set_properties(self, title=title)
         self.plugin_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
@@ -87,6 +125,8 @@ class PluginDialog(Gtk.Dialog):
         while response == Gtk.ResponseType.APPLY:
             if sdl.SDL_WasInit(sdl.SDL_INIT_GAMECONTROLLER):
                 sdl.SDL_QuitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
+            if sdl.SDL_WasInit(sdl.SDL_INIT_VIDEO):
+                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
             response = self.plugin_window.run()
             if response == Gtk.ResponseType.OK:
                 g.m64p_wrapper.ConfigSaveFile()
@@ -192,8 +232,14 @@ class PluginDialog(Gtk.Dialog):
             self.mode_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('mode'))
         self.mode_combo.connect('changed', self.on_combobox_changed, section, 'mode')
 
-        plugged = Gtk.ToggleButton()
-        plugged.set_label("Unplugged")
+        plugged_button = Gtk.ToggleButton()
+        if g.m64p_wrapper.ConfigGetParameter('plugged') == True:
+            plugged_button.set_label("Plugged")
+            plugged_button.set_active(True)
+        else:
+            plugged_button.set_label("Unplugged")
+        plugged_button.connect("toggled", self.on_toggle_button)
+
 
         pak_combo = Gtk.ComboBoxText()
         pak_combo.append('1',"None")
@@ -221,7 +267,7 @@ class PluginDialog(Gtk.Dialog):
 
         grid.attach(mode_label, 0, 0, 1, 1)
         grid.attach(self.mode_combo, 1, 0, 5, 1) #Gtk.PositionType.RIGHT
-        grid.attach(plugged, 0, 1, 1, 1)
+        grid.attach(plugged_button, 0, 1, 1, 1)
         grid.attach(pak_combo, 1, 1, 1, 1)
         grid.attach(device_label, 4, 1, 1, 1)
         grid.attach(self.device_combo, 5, 1, 1, 1)
@@ -353,6 +399,7 @@ class PluginDialog(Gtk.Dialog):
         return scroll
 
     def input_config(self):
+        #sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO) #necessary for SDL_GetKeyFromScancode
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
 
@@ -479,17 +526,6 @@ class PluginDialog(Gtk.Dialog):
         active_plugin = active_plugin.replace("mupen64plus-", "")
         return active_plugin
 
-    def on_key_events(self, widget, event):
-        # TODO: Remove in future
-        if event.get_event_type() == Gdk.EventType.KEY_PRESS:
-            print(event.hardware_keycode)
-            print(w_key.keysym2sdl(event.hardware_keycode).name)
-            #g.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
-        elif event.get_event_type() == Gdk.EventType.KEY_RELEASE:
-            #g.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(event.hardware_keycode).value)
-            pass
-        return True
-
     def on_change_page(self, widget, page, number):
         # When the Notebook is being realized, this signal is quickly emited four times, so we avoid to change the section uselessly.
         if self.page_checker[number] == False:
@@ -527,7 +563,7 @@ class PluginDialog(Gtk.Dialog):
         return button
 
     def on_bind_key(self, widget, param, name):
-        device = "keyboard" # TODO: temporary until gamepad binding is added
+        device = "gamepad" # TODO: temporary until gamepad binding is added
         dialog = BindDialog(widget, device, name)
         if dialog.key_pressed != None:
             if dialog.key_pressed.value == 42:
@@ -544,6 +580,14 @@ class PluginDialog(Gtk.Dialog):
                 g.m64p_wrapper.ConfigSetParameter(param, store)
         elif dialog.gamepad_pressed != None:
             pass
+
+    def on_toggle_button(self, widget):
+        status = widget.get_active()
+        if status == True:
+            widget.set_label("Plugged")
+        else:
+            widget.set_label("Unplugged")
+        g.m64p_wrapper.ConfigSetParameter("plugged", status)
 
     def sensitive_mode(self, section, mode):
         page = int(''.join(filter(str.isdigit, section)))
