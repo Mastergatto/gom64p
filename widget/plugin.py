@@ -31,10 +31,10 @@ class BindDialog(Gtk.MessageDialog):
         self.connect("key-press-event", self.on_key_events, device)
         if device == "gamepad" and controller != None:
             sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
-            sdl.SDL_InitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
-            gamepad = sdl.SDL_GameControllerOpen(controller)
+            sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
+            gamepad = sdl.SDL_JoystickOpen(controller)
             if gamepad != None:
-                sdl.SDL_GameControllerEventState(sdl.SDL_ENABLE)
+                sdl.SDL_JoystickEventState(sdl.SDL_ENABLE)
                 thread = threading.Thread(name="Binding", target=self.poll_sdl_events)
                 try:
                     thread.start()
@@ -43,9 +43,9 @@ class BindDialog(Gtk.MessageDialog):
                     threading.main_thread()
         self.run()
         if device == "gamepad" and controller != None:
-            sdl.SDL_GameControllerClose(gamepad)
-            if sdl.SDL_WasInit(sdl.SDL_INIT_GAMECONTROLLER):
-                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
+            sdl.SDL_JoystickClose(gamepad)
+            if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
+                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
 
     def on_key_events(self, widget, event, device):
         if device == "keyboard" or (device == "gamepad" and (event.hardware_keycode == 22 or event.hardware_keycode == 9)):
@@ -63,13 +63,13 @@ class BindDialog(Gtk.MessageDialog):
         while self.pending:
             event = sdl.SDL_Event()
             while sdl.SDL_PollEvent(c.byref(event)):
-                if event.type == sdl.SDL_CONTROLLERBUTTONDOWN:
+                if event.type == sdl.SDL_JOYBUTTONDOWN:
                     button = event.cbutton
                     self.gamepad_pressed = button.button
                     self.gamepad_type = "button"
                     self.pending = False
                     break
-                elif event.type == sdl.SDL_CONTROLLERAXISMOTION:
+                elif event.type == sdl.SDL_JOYAXISMOTION:
                     axis = event.caxis.axis
                     if event.caxis.value < -16000:
                         self.gamepad_pressed = axis
@@ -80,8 +80,8 @@ class BindDialog(Gtk.MessageDialog):
                         self.gamepad_type = "Paxis"
                         self.pending = False
                     break
-                #elif event.type == sdl.SDL_CONTROLLERDEVICEADDED:
-                #    sdl.SDL_GameControllerUpdate()
+                #elif event.type == sdl.SDL_JOYDEVICEADDED or event.type == sdl.SDL_JOYDEVICEREMOVED:
+                #    sdl.SDL_JoystickUpdate()
         self.destroy()
 
 class PluginDialog(Gtk.Dialog):
@@ -130,14 +130,14 @@ class PluginDialog(Gtk.Dialog):
 
         response = Gtk.ResponseType.APPLY
         while response == Gtk.ResponseType.APPLY:
-            if sdl.SDL_WasInit(sdl.SDL_INIT_GAMECONTROLLER):
-                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
+            if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
+                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
             if sdl.SDL_WasInit(sdl.SDL_INIT_VIDEO):
                 sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
             response = self.plugin_window.run()
             if response == Gtk.ResponseType.OK:
                 g.m64p_wrapper.ConfigSaveFile()
-                #sdl.SDL_GameControllerUpdate()
+                #sdl.SDL_JoystickUpdate()
                 self.plugin_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 pass
@@ -408,7 +408,7 @@ class PluginDialog(Gtk.Dialog):
     def input_config(self):
         #sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO) #necessary for SDL_GetKeyFromScancode
-        sdl.SDL_InitSubSystem(sdl.SDL_INIT_GAMECONTROLLER)
+        sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
 
         self.pages_list = [None, None, None, None, None]
 
@@ -416,11 +416,7 @@ class PluginDialog(Gtk.Dialog):
         self.active_gamepads = []
         if self.num_gamepads > 0:
             for i in range(self.num_gamepads):
-                if sdl.SDL_IsGameController(i) == True:
-                    self.active_gamepads.append(sdl.SDL_GameControllerNameForIndex(i))
-                else:
-                    # TODO: Not all gamepad are recognized as such by SDL, what to do in this case?
-                    self.active_gamepads.append(sdl.SDL_JoystickNameForIndex(i))
+                self.active_gamepads.append(sdl.SDL_JoystickNameForIndex(i))
        # print(self.num_gamepads, self.active_gamepads)
 
         input_notebook = Gtk.Notebook()
