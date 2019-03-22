@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) by Toomai Glittershine for SmashWiki -->
+<svg id="svg2" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xlink="http://www.w3.org/1999/xlink"
+		height="256" width="256"
+		viewBox="0 0 256 256">
+	<defs id="defs4">
+		<linearGradient id="linearGradient4285">
+			<stop id="stop4287" offset="0" style="stop-color:#ffe73f;stop-opacity:1;" />
+			<stop id="stop4297" offset="0.85" style="stop-color:#ffe73f;stop-opacity:1;" />
+			<stop id="stop4293" offset="0.95" style="stop-color:#ffe73f;stop-opacity:0;" />
+			<stop id="stop4289" offset="1" style="stop-color:#ffe73f;stop-opacity:0;" />
+		</linearGradient>
+		<linearGradient id="linearGradient4273">
+			 <stop id="stop4275" offset="0" style="stop-color:#ffdf00;stop-opacity:1;" />
+			<stop id="stop4281" offset="0.95" style="stop-color:#ffdf00;stop-opacity:1;" />
+			<stop id="stop4277" offset="1" style="stop-color:#7f6f00;stop-opacity:1;" />
+		</linearGradient>
+		<radialGradient id="radialGradient4279" xlink:href="#linearGradient4273" cx="128" cy="124" fx="128" fy="124" r="96" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.75,0,0,0.75,32,32)" />
+		<radialGradient id="radialGradient4291" xlink:href="#linearGradient4285" cx="128" cy="124" fx="128" fy="124" r="96" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.75,0,0,0.75,32,32)" />
+	</defs>
+	<metadata id="metadata7">
+		<rdf:RDF>
+			<cc:Work rdf:about="">
+				<dc:format>image/svg+xml</dc:format>
+				<dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+				<dc:title/>
+			</cc:Work>
+		</rdf:RDF>
+	</metadata>
+	<g id="g3458">
+		<path id="circle4220" style="opacity:1;fill:#7f6f00;fill-opacity:1;stroke:none;"
+			d="m 56,128 0,20 c 0,39.7645 32.235492,72 72,72 39.7645,0 72,-32.23556 72,-72 l 0,-20 z"
+		/>
+		<circle id="path3336" cx="128" cy="128" r="72" style="opacity:1;fill:url(#radialGradient4279);fill-opacity:1;stroke:none;" />
+		<circle id="path4283" cx="128" cy="124" r="72" style="opacity:1;fill:url(#radialGradient4291);fill-opacity:1;stroke:none;" />
+		<path id="path4203" style="opacity:1;fill:#7f6f00;fill-opacity:1;fill-rule:evenodd;stroke:none;"
+			d="m 154.01367,166.85937 c 0.57701,0.33314 1.73047,-0.3341 1.73047,-1.00037 l 0,-81.718 c 0,-0.66627 -1.15346,-1.33351 -1.73047,-1.00038 L 83.24219,124 c -0.57735,0.33333 -0.57735,1.66667 0,2 z"
+		/>
+		<path id="path4266" style="opacity:1;fill:#bfa700;fill-opacity:1;fill-rule:evenodd;stroke:none;"
+			d="m 154.25391,87.060547 c -0.0868,0.01234 -0.16811,0.03844 -0.24024,0.08008 L 84.974609,127 154.01367,166.85938 c 0.57701,0.33313 1.73047,-0.33373 1.73047,-1 l 0,-77.718755 c 0,-0.582986 -0.8829,-1.166426 -1.49023,-1.080078 z"
+		/>
+	</g>
+</svg>

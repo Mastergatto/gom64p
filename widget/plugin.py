@@ -34,7 +34,6 @@ class BindDialog(Gtk.MessageDialog):
             sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
             gamepad = sdl.SDL_JoystickOpen(controller)
             if gamepad != None:
-                sdl.SDL_JoystickEventState(sdl.SDL_ENABLE)
                 thread = threading.Thread(name="Binding", target=self.poll_sdl_events)
                 try:
                     thread.start()
@@ -60,6 +59,7 @@ class BindDialog(Gtk.MessageDialog):
     def poll_sdl_events(self):
         import ctypes as c
         self.pending = True
+        sdl.SDL_JoystickEventState(sdl.SDL_ENABLE)
         while self.pending:
             event = sdl.SDL_Event()
             while sdl.SDL_PollEvent(c.byref(event)):
