@@ -38,18 +38,18 @@ class Menu:
     def toolbar_call(self):
         self.toolbar = Gtk.Toolbar()
 
-        self.toolbar_load_rom = self.insert_toolbar_item("gtk-open", self.return_state_lock(), self.on_ChoosingRom)
-        self.toolbar_play = self.insert_toolbar_item("gtk-media-play", False, self.on_ResumeAction)
-        self.toolbar_pause = self.insert_toolbar_item("gtk-media-pause", False, self.on_PauseAction)
-        self.toolbar_stop = self.insert_toolbar_item("gtk-media-stop", False, self.on_action_stop)
+        self.toolbar_load_rom = self.insert_toolbar_item("document-open", self.return_state_lock(), self.on_ChoosingRom)
+        self.toolbar_play = self.insert_toolbar_item("media-playback-start", False, self.on_ResumeAction)
+        self.toolbar_pause = self.insert_toolbar_item("media-playback-pause", False, self.on_PauseAction)
+        self.toolbar_stop = self.insert_toolbar_item("media-playback-stop", False, self.on_action_stop)
         self.toolbar_next = self.insert_toolbar_item("media-skip-forward", False, self.on_advance_action)
-        self.toolbar_save_state = self.insert_toolbar_item("gtk-save", False, self.on_SaveStateAction)
-        self.toolbar_load_state = self.insert_toolbar_item("gtk-revert-to-saved", False, self.on_LoadStateAction)
+        self.toolbar_save_state = self.insert_toolbar_item("document-save", False, self.on_SaveStateAction)
+        self.toolbar_load_state = self.insert_toolbar_item("document-revert", False, self.on_LoadStateAction)
 
-        self.toolbar_configure = Gtk.ToolButton(icon_name="gtk-preferences")
+        self.toolbar_configure = Gtk.ToolButton(icon_name="preferences-system")
         self.toolbar_configure.connect_object("clicked", w_conf.ConfigDialog, self.m64p_window)
 
-        self.toolbar_fullscreen = self.insert_toolbar_item("gtk-fullscreen", False, self.on_fullscreen_action)
+        self.toolbar_fullscreen = self.insert_toolbar_item("view-fullscreen", False, self.on_fullscreen_action)
         self.toolbar_screenshot = self.insert_toolbar_item("camera-photo", False, self.on_screenshot_action)
 
         self.toolbar.insert(self.toolbar_load_rom, 0)
@@ -334,18 +334,19 @@ class Menu:
         dialog = w_dialog.FileChooserDialog(self.m64p_window, "rom")
         self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "Selecting the ROM...")
         self.rom = dialog.path
-        rom_uri = GLib.filename_to_uri(self.rom, None)
-        if self.recent_manager.has_item(rom_uri) == False:
-            self.recent_manager.add_item(rom_uri)
+        if dialog.path != None:
+            rom_uri = GLib.filename_to_uri(self.rom, None)
+            if self.recent_manager.has_item(rom_uri) == False:
+                self.recent_manager.add_item(rom_uri)
 
-        if self.rom != None and g.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation", target=self.rom_startup)
-            try:
-                thread.start()
-                return thread
-            except:
-                print("The emulation thread has encountered an unexpected error")
-                threading.main_thread()
+            if self.rom != None and g.m64p_wrapper.compatible == True:
+                thread = threading.Thread(name="Emulation", target=self.rom_startup)
+                try:
+                    thread.start()
+                    return thread
+                except:
+                    print("The emulation thread has encountered an unexpected error")
+                    threading.main_thread()
             #except (KeyboardInterrupt, SystemExit):
             #    #https://docs.python.org/3/library/signal.html
             #    thread.stop()
