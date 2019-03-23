@@ -373,26 +373,11 @@ class PluginDialog(Gtk.Dialog):
         other_frame.add(other_grid)
         grid.attach(other_frame, 0, 3, 5, 1)
 
-        if section == 'Input-SDL-Control1':
-            self.pages_list[1] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
-                                  button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
-                                  button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
-            self.gamepads_stored[1] = gamepad
-        elif section == 'Input-SDL-Control2':
-            self.pages_list[2] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
-                                  button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
-                                  button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
-            self.gamepads_stored[2] = gamepad
-        elif section == 'Input-SDL-Control3':
-            self.pages_list[3] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
-                                  button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
-                                  button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
-            self.gamepads_stored[3] = gamepad
-        elif section == 'Input-SDL-Control4':
-            self.pages_list[4] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
-                                  button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
-                                  button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
-            self.gamepads_stored[4] = gamepad
+        page = self.filter_number(section)
+        self.pages_list[page] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
+                            button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
+                            button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
+        self.gamepads_stored[page] = gamepad
 
         self.sensitive_mode(section, self.mode_combo.get_active_id())
 
