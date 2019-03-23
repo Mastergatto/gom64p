@@ -19,9 +19,10 @@ import external.sdl2 as sdl
 ## CLASSES ##
 #############
 class BindDialog(Gtk.MessageDialog):
-    def __init__(self, widget, device, label, controller):
+    def __init__(self, widget, device, label, controller, poll):
         Gtk.MessageDialog.__init__(self)
         text = "Press any key or button for '" + label + "'. \n Press Backspace to erase its value. \n Press Escape to close without bind."
+        self.poll = poll
         self.key_pressed = None
         self.gamepad_pressed = None
         self.gamepad_type = None
@@ -59,29 +60,10 @@ class BindDialog(Gtk.MessageDialog):
     def poll_sdl_events(self):
         import ctypes as c
         self.pending = True
-        sdl.SDL_JoystickEventState(sdl.SDL_ENABLE)
-        while self.pending:
-            event = sdl.SDL_Event()
-            while sdl.SDL_PollEvent(c.byref(event)):
-                if event.type == sdl.SDL_JOYBUTTONDOWN:
-                    button = event.cbutton
-                    self.gamepad_pressed = button.button
-                    self.gamepad_type = "button"
-                    self.pending = False
-                    break
-                elif event.type == sdl.SDL_JOYAXISMOTION:
-                    axis = event.caxis.axis
-                    if event.caxis.value < -16000:
-                        self.gamepad_pressed = axis
-                        self.gamepad_type = "Naxis"
-                        self.pending = False
-                    elif event.caxis.value > 16000:
-                        self.gamepad_pressed = axis
-                        self.gamepad_type = "Paxis"
-                        self.pending = False
-                    break
-                #elif event.type == sdl.SDL_JOYDEVICEADDED or event.type == sdl.SDL_JOYDEVICEREMOVED:
-                #    sdl.SDL_JoystickUpdate()
+        #sdl.SDL_JoystickEventState(sdl.SDL_ENABLE)
+        #while 1:
+        #    return 0
+
         self.destroy()
 
 class PluginDialog(Gtk.Dialog):
@@ -91,6 +73,11 @@ class PluginDialog(Gtk.Dialog):
         #self.former_update()
         self.is_changed = False
         self.page_check = [False, False, False, False]
+
+        # SDL
+        self.pending = True
+        self.gamepad_pressed = None
+        self.gamepad_type = None
 
         if section == 'gfx':
             self.section = self.get_section(g.m64p_wrapper.gfx_filename)
@@ -130,14 +117,15 @@ class PluginDialog(Gtk.Dialog):
 
         response = Gtk.ResponseType.APPLY
         while response == Gtk.ResponseType.APPLY:
-            if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
-                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
-            if sdl.SDL_WasInit(sdl.SDL_INIT_VIDEO):
-                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
             response = self.plugin_window.run()
             if response == Gtk.ResponseType.OK:
                 g.m64p_wrapper.ConfigSaveFile()
                 #sdl.SDL_JoystickUpdate()
+                self.pending = False
+                if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
+                    sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
+                if sdl.SDL_WasInit(sdl.SDL_INIT_VIDEO):
+                    sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
                 self.plugin_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 pass
@@ -154,7 +142,11 @@ class PluginDialog(Gtk.Dialog):
                 else:
                     if g.m64p_wrapper.ConfigHasUnsavedChanges(self.section) == 1:
                         g.m64p_wrapper.ConfigRevertChanges(self.section)
-
+                self.pending = False
+                if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
+                    sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
+                if sdl.SDL_WasInit(sdl.SDL_INIT_VIDEO):
+                    sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
                 self.plugin_window.destroy()
 
     def generic(self, section):
@@ -262,12 +254,13 @@ class PluginDialog(Gtk.Dialog):
 
         device_label = Gtk.Label("Device:")
         self.device_combo = Gtk.ComboBoxText()
-        self.device_combo.append('-1',"Keyboard")
-        for i in range(len(self.active_gamepads)):
-            self.device_combo.append(str(i), self.active_gamepads[i].decode("utf-8"))
+        self.device_combo.insert(-1, '-1',"Keyboard")
 
+        # For gamepads let's wait for the SDL polling, which will happen later. Meanwhile we retrieve device and name of gamepad for each player from the configuration.
         if g.m64p_wrapper.ConfigGetParameter('device') != None:
-            self.device_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('device')))
+            gamepad = [g.m64p_wrapper.ConfigGetParameter('device'), g.m64p_wrapper.ConfigGetParameter('name')]
+            if g.m64p_wrapper.ConfigGetParameter('device') == -1:
+                self.device_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('device')))
             self.device_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('device'))
         self.device_combo.connect('changed', self.on_combobox_changed, section, 'device')
 
@@ -384,18 +377,22 @@ class PluginDialog(Gtk.Dialog):
             self.pages_list[1] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
                                   button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
                                   button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
+            self.gamepads_stored[1] = gamepad
         elif section == 'Input-SDL-Control2':
             self.pages_list[2] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
                                   button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
                                   button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
+            self.gamepads_stored[2] = gamepad
         elif section == 'Input-SDL-Control3':
             self.pages_list[3] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
                                   button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
                                   button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
+            self.gamepads_stored[3] = gamepad
         elif section == 'Input-SDL-Control4':
             self.pages_list[4] = [self.mode_combo, self.device_combo, button_a, button_b, button_z, button_l, button_r, button_start, button_c_up,
                                   button_c_left, button_c_right, button_c_down, button_mempak, button_rumble, button_d_up,
                                   button_d_left, button_d_right, button_d_down, x_axis_button, y_axis_button]
+            self.gamepads_stored[4] = gamepad
 
         self.sensitive_mode(section, self.mode_combo.get_active_id())
 
@@ -406,18 +403,8 @@ class PluginDialog(Gtk.Dialog):
         return scroll
 
     def input_config(self):
-        #sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
-        sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO) #necessary for SDL_GetKeyFromScancode
-        sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
-
         self.pages_list = [None, None, None, None, None]
-
-        self.num_gamepads = sdl.SDL_NumJoysticks()
-        self.active_gamepads = []
-        if self.num_gamepads > 0:
-            for i in range(self.num_gamepads):
-                self.active_gamepads.append(sdl.SDL_JoystickNameForIndex(i))
-       # print(self.num_gamepads, self.active_gamepads)
+        self.gamepads_stored = [None, None, None, None, None]
 
         input_notebook = Gtk.Notebook()
         input_notebook.set_vexpand(True)
@@ -462,6 +449,79 @@ class PluginDialog(Gtk.Dialog):
         dialog_box = self.plugin_window.get_content_area()
         dialog_box.add(input_notebook)
 
+        #sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
+        sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO) #necessary for SDL_GetKeyFromScancode
+        sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
+        thread = threading.Thread(name="Polling", target=self.poll_sdl_events)
+        try:
+            thread.start()
+        except:
+            print("The polling thread has encountered an unexpected error")
+            threading.main_thread()
+
+    def poll_sdl_events(self):
+        import ctypes as c
+        sdl.SDL_JoystickEventState(sdl.SDL_ENABLE)
+
+        self.num_gamepads = sdl.SDL_NumJoysticks()
+        self.active_gamepads_name = []
+        self.active_gamepads = {}
+
+        while self.pending:
+            event = sdl.SDL_Event()
+            while sdl.SDL_PollEvent(c.byref(event)):
+                if event.type == sdl.SDL_JOYBUTTONDOWN:
+                    button = event.cbutton
+                    print(button, button.button)
+                    self.gamepad_pressed = button.button
+                    self.gamepad_type = "button"
+                    break
+                elif event.type == sdl.SDL_JOYAXISMOTION:
+                    axis = event.caxis.axis
+                    print(axis, event.caxis.value)
+                    if event.caxis.value < -16000:
+                        self.gamepad_pressed = axis
+                        self.gamepad_type = "Naxis"
+                    elif event.caxis.value > 16000:
+                        self.gamepad_pressed = axis
+                        self.gamepad_type = "Paxis"
+                    break
+                elif event.type == sdl.SDL_JOYDEVICEADDED:
+                    n = event.jdevice.which
+                    device = sdl.SDL_JoystickOpen(n)
+                    joy_id = sdl.SDL_JoystickInstanceID(device)
+                    self.active_gamepads[joy_id] = device
+
+                    name = sdl.SDL_JoystickName(device).decode("utf-8")
+
+                    page = 1
+                    while page < 5:
+                        self.pages_list[page][1].insert(n, str(n), str(n) + ": " + name)
+                        if self.gamepads_stored[page][1] == name:
+                            self.pages_list[page][1].set_active_id(str(self.gamepads_stored[page][0]))
+                        page += 1
+
+                    print("Controller added: ", name)
+                    print("Current active controllers: ", sdl.SDL_NumJoysticks())
+                    break
+                elif event.type == sdl.SDL_JOYDEVICEREMOVED:
+                    joy_id = event.jdevice.which
+                    device = self.active_gamepads[joy_id]
+                    if sdl.SDL_JoystickGetAttached(device):
+                        sdl.SDL_JoystickClose(device)
+
+                    name = sdl.SDL_JoystickName(device).decode("utf-8")
+                    page = 1
+                    while page < 5:
+                        if self.gamepads_stored[page][1] == name:
+                            self.pages_list[page][1].set_active_id("-1")
+                            self.pages_list[page][1].remove(self.gamepads_stored[page][0])
+                        page += 1
+                    print("Controller removed: ", name)
+                    self.active_gamepads.pop(joy_id)
+                    print("Current active controllers: ", sdl.SDL_NumJoysticks())
+                    break
+
     def on_EntryChanged(self, widget, param, param_type, array, section):
         g.m64p_wrapper.ConfigOpenSection(section)
         value = widget.get_text()
@@ -501,7 +561,8 @@ class PluginDialog(Gtk.Dialog):
         elif param == "device":
             if int(self.pages_list[self.filter_number(section)][0].get_active_id()) < 2:
                 if int(widget_id) != -1:
-                    g.m64p_wrapper.ConfigSetParameter("name", self.active_gamepads[int(widget_id)].decode("utf-8"))
+                    text = widget.get_active_text()
+                    g.m64p_wrapper.ConfigSetParameter("name", text[3:]) # Hopefully there won't ever be more than 10 joysticks attached!
                 else:
                     g.m64p_wrapper.ConfigSetParameter("name", "Keyboard")
                 #Something there to reset binding?
