@@ -19,33 +19,31 @@ import external.sdl2 as sdl
 ## CLASSES ##
 #############
 class BindDialog(Gtk.MessageDialog):
-    def __init__(self, widget, device, label, controller, poll):
+    def __init__(self, parent, widget, device, label, controller):
         Gtk.MessageDialog.__init__(self)
         text = "Press any key or button for '" + label + "'. \n Press Backspace to erase its value. \n Press Escape to close without bind."
-        self.poll = poll
+        self.parent = parent
         self.key_pressed = None
+        self.desired_gamepad = controller
         self.gamepad_pressed = None
         self.gamepad_type = None
         self.pending = False
 
+        # Reset those variables to make sure that they stay on None when calling poll_sdl_events()
+        self.parent.gamepad_input = None
+        self.parent.gamepad_pressed = None
+        self.parent.gamepad_type = None
+
         self.set_markup(text)
         self.connect("key-press-event", self.on_key_events, device)
-        if device == "gamepad" and controller != None:
-            sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
-            sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK)
-            gamepad = sdl.SDL_JoystickOpen(controller)
-            if gamepad != None:
-                thread = threading.Thread(name="Binding", target=self.poll_sdl_events)
-                try:
-                    thread.start()
-                except:
-                    print("The binding thread has encountered an unexpected error")
-                    threading.main_thread()
+        if device == "gamepad" and self.desired_gamepad != None:
+            thread = threading.Thread(name="Binding", target=self.poll_sdl_events)
+            try:
+                thread.start()
+            except:
+                print("The binding thread has encountered an unexpected error")
+                threading.main_thread()
         self.run()
-        if device == "gamepad" and controller != None:
-            sdl.SDL_JoystickClose(gamepad)
-            if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
-                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
 
     def on_key_events(self, widget, event, device):
         if device == "keyboard" or (device == "gamepad" and (event.hardware_keycode == 22 or event.hardware_keycode == 9)):
@@ -58,12 +56,14 @@ class BindDialog(Gtk.MessageDialog):
         return True
 
     def poll_sdl_events(self):
-        import ctypes as c
         self.pending = True
-        #sdl.SDL_JoystickEventState(sdl.SDL_ENABLE)
-        #while 1:
-        #    return 0
-
+        while self.pending:
+            if self.parent.gamepad_input == sdl.SDL_JoystickInstanceID(self.desired_gamepad):
+                print(self.parent.gamepad_input, sdl.SDL_JoystickInstanceID(self.desired_gamepad))
+                if self.parent.gamepad_pressed != None and self.parent.gamepad_type != None:
+                    self.gamepad_pressed = self.parent.gamepad_pressed
+                    self.gamepad_type = self.parent.gamepad_type
+                    self.pending = False
         self.destroy()
 
 class PluginDialog(Gtk.Dialog):
@@ -76,6 +76,7 @@ class PluginDialog(Gtk.Dialog):
 
         # SDL
         self.pending = True
+        self.gamepad_input = None
         self.gamepad_pressed = None
         self.gamepad_type = None
 
@@ -449,28 +450,26 @@ class PluginDialog(Gtk.Dialog):
         sdl.SDL_JoystickEventState(sdl.SDL_ENABLE)
 
         self.num_gamepads = sdl.SDL_NumJoysticks()
-        self.active_gamepads_name = []
         self.active_gamepads = {}
 
         while self.pending:
             event = sdl.SDL_Event()
             while sdl.SDL_PollEvent(c.byref(event)):
                 if event.type == sdl.SDL_JOYBUTTONDOWN:
-                    button = event.cbutton
-                    print(button, button.button)
+                    button = event.jbutton
+                    self.gamepad_input = button.which
                     self.gamepad_pressed = button.button
                     self.gamepad_type = "button"
-                    break
                 elif event.type == sdl.SDL_JOYAXISMOTION:
-                    axis = event.caxis.axis
-                    print(axis, event.caxis.value)
-                    if event.caxis.value < -16000:
-                        self.gamepad_pressed = axis
+                    axis = event.jaxis
+                    if event.jaxis.value < -16000:
+                        self.gamepad_input = axis.which
+                        self.gamepad_pressed = axis.axis
                         self.gamepad_type = "Naxis"
-                    elif event.caxis.value > 16000:
-                        self.gamepad_pressed = axis
+                    elif event.jaxis.value > 16000:
+                        self.gamepad_input = axis.which
+                        self.gamepad_pressed = axis.axis
                         self.gamepad_type = "Paxis"
-                    break
                 elif event.type == sdl.SDL_JOYDEVICEADDED:
                     n = event.jdevice.which
                     device = sdl.SDL_JoystickOpen(n)
@@ -488,7 +487,6 @@ class PluginDialog(Gtk.Dialog):
 
                     print("Controller added: ", name)
                     print("Current active controllers: ", sdl.SDL_NumJoysticks())
-                    break
                 elif event.type == sdl.SDL_JOYDEVICEREMOVED:
                     joy_id = event.jdevice.which
                     device = self.active_gamepads[joy_id]
@@ -505,7 +503,6 @@ class PluginDialog(Gtk.Dialog):
                     print("Controller removed: ", name)
                     self.active_gamepads.pop(joy_id)
                     print("Current active controllers: ", sdl.SDL_NumJoysticks())
-                    break
 
     def on_EntryChanged(self, widget, param, param_type, array, section):
         g.m64p_wrapper.ConfigOpenSection(section)
@@ -616,14 +613,18 @@ class PluginDialog(Gtk.Dialog):
         return button
 
     def on_bind_key(self, widget, param, section, name):
+        controller = None
         if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
             device = "keyboard"
-            controller = None
         else:
             device = "gamepad"
-            controller = self.filter_number(section) - 1 # TODO: It's bad, use self.active_gamepad instead
-            print(controller)
-        dialog = BindDialog(widget, device, name, controller)
+            stored_name = g.m64p_wrapper.ConfigGetParameter('name')
+            for joy_id, instance in self.active_gamepads.items():
+                this_name = sdl.SDL_JoystickName(instance).decode("utf-8")
+                if this_name == stored_name:
+                    controller = self.active_gamepads[joy_id]
+
+        dialog = BindDialog(self, widget, device, name, controller)
         if dialog.key_pressed != None:
             if dialog.key_pressed.value == 42:
                 widget.set_label("(empty)")
