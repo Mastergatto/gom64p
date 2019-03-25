@@ -19,11 +19,12 @@ import external.sdl2 as sdl
 ## CLASSES ##
 #############
 class BindDialog(Gtk.MessageDialog):
-    def __init__(self, parent, widget, device, label, controller):
+    def __init__(self, parent, widget, device, label, controller, input_type=None):
         Gtk.MessageDialog.__init__(self)
         text = "Press any key or button for '" + label + "'. \n Press Backspace to erase its value. \n Press Escape to close without bind."
         self.parent = parent
         self.key_pressed = None
+        self.input_type = input_type
         self.desired_gamepad = controller
         self.gamepad_pressed = None
         self.gamepad_type = None
@@ -59,11 +60,11 @@ class BindDialog(Gtk.MessageDialog):
         self.pending = True
         while self.pending:
             if self.parent.gamepad_input == sdl.SDL_JoystickInstanceID(self.desired_gamepad):
-                print(self.parent.gamepad_input, sdl.SDL_JoystickInstanceID(self.desired_gamepad))
                 if self.parent.gamepad_pressed != None and self.parent.gamepad_type != None:
-                    self.gamepad_pressed = self.parent.gamepad_pressed
-                    self.gamepad_type = self.parent.gamepad_type
-                    self.pending = False
+                    if self.input_type != None:
+                        self.gamepad_pressed = self.parent.gamepad_pressed
+                        self.gamepad_type = self.parent.gamepad_type
+                        self.pending = False
         self.destroy()
 
 class PluginDialog(Gtk.Dialog):
@@ -313,9 +314,9 @@ class PluginDialog(Gtk.Dialog):
         label_d_down = Gtk.Label("D↓")
         button_d_down = self.insert_bind_button("DPad D",  section, 'DPad ↓')
         x_axis_label = Gtk.Label("X axis")
-        x_axis_button = Gtk.Button()
+        x_axis_button = self.insert_bind_button("X Axis",  section, 'X Axis', True)
         y_axis_label = Gtk.Label("Y axis")
-        y_axis_button = Gtk.Button()
+        y_axis_button = self.insert_bind_button("Y Axis",  section, 'Y Axis', True)
 
         buttons_grid.attach(label_a, 0, 0, 1, 1)
         buttons_grid.attach(button_a, 1, 0, 1, 1)
@@ -590,29 +591,29 @@ class PluginDialog(Gtk.Dialog):
                 g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control4')
             # TODO: Should we update self.mode_combo and others....?
 
-    def insert_bind_button(self, param, section, name):
+    def insert_bind_button(self, param, section, name, double=False):
         button = Gtk.Button()
         raw_value = g.m64p_wrapper.ConfigGetParameter(param)
         if raw_value != '':
             if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
-                keyname = sdl.SDL_GetKeyName(self.filter_number(raw_value))
-
-                # Workaround: For some reason SDL doesn't return the correct name for those key, so let's correct them.
-                if keyname == b'\xc4\xb0':
-                    button.set_label("Left Shift")
-                elif keyname == b'\xc4\xb2':
-                    button.set_label("Left Ctrl")
+                raw_value = raw_value.split(',')
+                if len(raw_value) == 2:
+                    first_value = sdl.SDL_GetKeyName(self.filter_number(raw_value[0]))
+                    second_value = sdl.SDL_GetKeyName(self.filter_number(raw_value[1]))
+                    keyname = b"(" + self.purify(first_value) + b", " + self.purify(second_value) + b")"
                 else:
-                    button.set_label(keyname.decode('utf-8'))
+                    keyname = self.purify(sdl.SDL_GetKeyName(self.filter_number(raw_value[0])))
+
+                button.set_label(keyname.decode('utf-8'))
             else:
                 button.set_label(raw_value)
         else:
             button.set_label("(empty)")
-        button.connect("clicked", self.on_bind_key, param, section, name)
+        button.connect("clicked", self.on_bind_key, param, section, name, double)
 
         return button
 
-    def on_bind_key(self, widget, param, section, name):
+    def on_bind_key(self, widget, param, section, name, double):
         controller = None
         if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
             device = "keyboard"
@@ -623,35 +624,59 @@ class PluginDialog(Gtk.Dialog):
                 this_name = sdl.SDL_JoystickName(instance).decode("utf-8")
                 if this_name == stored_name:
                     controller = self.active_gamepads[joy_id]
+        if double == True:
+            # Necessary for binding the estremes of an axis of the controller in a single GUI button
+            first_value = self.binding(widget, param, device, name, controller, False)
+            if first_value[0] != "":
+                if first_value[1] == "Naxis" or first_value[1] == "Paxis":
+                    input_type = "axis"
+                else:
+                    input_type = first_value[1]
 
-        dialog = BindDialog(self, widget, device, name, controller)
+                second_value = self.binding(widget, param, device, name, controller, False, input_type)
+                if second_value[0] != "":
+                    store = input_type + "(" + first_value[0] + "," + second_value[0] + ")"
+                    if input_type == "key":
+                        widget.set_label("(" + sdl.SDL_GetKeyName(int(first_value[0])).decode("utf-8") + ", " + sdl.SDL_GetKeyName(int(second_value[0])).decode("utf-8") + ")")
+                    else:
+                        widget.set_label(store)
+                    g.m64p_wrapper.ConfigSetParameter(param, store)
+        else:
+            self.binding(widget, param, device, name, controller, True)
+
+    def binding(self, widget, param, device, name, controller, execute, input_type=None):
+        dialog = BindDialog(self, widget, device, name, controller, input_type)
+
         if dialog.key_pressed != None:
             if dialog.key_pressed.value == 42:
                 widget.set_label("(empty)")
                 store = ""
                 g.m64p_wrapper.ConfigSetParameter(param, store)
+                return [store, None]
             else:
                 value = dialog.key_pressed.value
                 keycode = sdl.SDL_GetKeyFromScancode(value)
-                print(value, keycode)
-                widget.set_label(sdl.SDL_GetKeyName(keycode).decode("utf-8"))
-                #g.m64p_wrapper.ConfigOpenSection(section)
                 store = "key(" + str(keycode) + ")"
-                g.m64p_wrapper.ConfigSetParameter(param, store)
+                if execute == True:
+                    widget.set_label(sdl.SDL_GetKeyName(keycode).decode("utf-8"))
+                    g.m64p_wrapper.ConfigSetParameter(param, store)
+                else:
+                    return [str(keycode), "key"]
+
         elif dialog.gamepad_pressed != None:
+            value = dialog.gamepad_pressed
             if dialog.gamepad_type == "button":
-                value = dialog.gamepad_pressed
                 store = "button(" + str(value) + ")"
-                widget.set_label(store)
-                g.m64p_wrapper.ConfigSetParameter(param, store)
             else:
-                value = dialog.gamepad_pressed
                 if dialog.gamepad_type == "Naxis":
                     store = "axis(" + str(value) + "-)"
                 elif dialog.gamepad_type == "Paxis":
                     store = "axis(" + str(value) + "+)"
+            if execute == True:
                 widget.set_label(store)
                 g.m64p_wrapper.ConfigSetParameter(param, store)
+            else:
+                return [str(value), dialog.gamepad_type]
 
     def on_toggle_button(self, widget):
         status = widget.get_active()
@@ -710,5 +735,22 @@ class PluginDialog(Gtk.Dialog):
             self.pages_list[page][19].set_sensitive(False)
 
     def filter_number(self, string):
+        #alt: int(''.join(c for c in string if c.isdigit()))
         return int(''.join(filter(str.isdigit, string)))
         
+    def purify(self, string):
+        # Workaround: For some reason SDL doesn't return the correct name for those key, so let's correct them.
+        if string == b'\xc4\xb0':
+            return b"Left Shift"
+        elif string == b'\xc4\xb2':
+            return b"Left Ctrl"
+        elif string == b'\xc4\x91':
+            return b"Left"
+        elif string == b'\xc4\x92':
+            return b"Right"
+        elif string == b'\xc4\x93':
+            return b"Down"
+        elif string == b'\xc4\x94':
+            return b"Up"
+        else:
+            return string
