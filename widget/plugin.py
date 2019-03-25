@@ -8,7 +8,7 @@
 ## MODULES ##
 #############
 from gi.repository import Gtk, Gdk, GLib
-import os.path, threading
+import os.path, threading, time
 
 import global_module as g
 import wrapper.callback as cb
@@ -19,12 +19,11 @@ import external.sdl2 as sdl
 ## CLASSES ##
 #############
 class BindDialog(Gtk.MessageDialog):
-    def __init__(self, parent, widget, device, label, controller, input_type=None):
+    def __init__(self, parent, widget, device, label, controller):
         Gtk.MessageDialog.__init__(self)
         text = "Press any key or button for '" + label + "'. \n Press Backspace to erase its value. \n Press Escape to close without bind."
         self.parent = parent
         self.key_pressed = None
-        self.input_type = input_type
         self.desired_gamepad = controller
         self.gamepad_pressed = None
         self.gamepad_type = None
@@ -61,10 +60,9 @@ class BindDialog(Gtk.MessageDialog):
         while self.pending:
             if self.parent.gamepad_input == sdl.SDL_JoystickInstanceID(self.desired_gamepad):
                 if self.parent.gamepad_pressed != None and self.parent.gamepad_type != None:
-                    if self.input_type != None:
-                        self.gamepad_pressed = self.parent.gamepad_pressed
-                        self.gamepad_type = self.parent.gamepad_type
-                        self.pending = False
+                    self.gamepad_pressed = self.parent.gamepad_pressed
+                    self.gamepad_type = self.parent.gamepad_type
+                    self.pending = False
         self.destroy()
 
 class PluginDialog(Gtk.Dialog):
@@ -625,27 +623,42 @@ class PluginDialog(Gtk.Dialog):
                 if this_name == stored_name:
                     controller = self.active_gamepads[joy_id]
         if double == True:
-            # Necessary for binding the estremes of an axis of the controller in a single GUI button
+            # In case we have to bind twice in a single GUI button, e.g. for an axis of the controller
             first_value = self.binding(widget, param, device, name, controller, False)
             if first_value[0] != "":
                 if first_value[1] == "Naxis" or first_value[1] == "Paxis":
                     input_type = "axis"
                 else:
                     input_type = first_value[1]
-
-                second_value = self.binding(widget, param, device, name, controller, False, input_type)
-                if second_value[0] != "":
-                    store = input_type + "(" + first_value[0] + "," + second_value[0] + ")"
-                    if input_type == "key":
-                        widget.set_label("(" + sdl.SDL_GetKeyName(int(first_value[0])).decode("utf-8") + ", " + sdl.SDL_GetKeyName(int(second_value[0])).decode("utf-8") + ")")
+                different = True
+                while different:
+                    # We give some time to the user to reset the control stick to zero.
+                    time.sleep(0.2)
+                    # TODO: About the name...we need to differentiate between two extremes of an axis.
+                    second_value = self.binding(widget, param, device, name, controller, False)
+                    if second_value[1] == "Naxis" or second_value[1] == "Paxis":
+                        input_type2 = "axis"
                     else:
+                        input_type2 = second_value[1]
+                    if input_type == input_type2:
+                        different = False
+
+                if second_value[0] != "":
+                    if input_type == "axis":
+                        store = input_type + "(" + first_value[0] + ("+" if first_value[1] == "Paxis" else "-") + "," + second_value[0] + \
+                            ("+" if second_value[1] == "Paxis" else "-") + ")"
                         widget.set_label(store)
+                    elif input_type == "button":
+                        store = input_type + "(" + first_value[0] + "," + second_value[0] + ")"
+                        widget.set_label(store)
+                    elif input_type == "key":
+                        widget.set_label("(" + sdl.SDL_GetKeyName(int(first_value[0])).decode("utf-8") + ", " + sdl.SDL_GetKeyName(int(second_value[0])).decode("utf-8") + ")")
                     g.m64p_wrapper.ConfigSetParameter(param, store)
         else:
             self.binding(widget, param, device, name, controller, True)
 
-    def binding(self, widget, param, device, name, controller, execute, input_type=None):
-        dialog = BindDialog(self, widget, device, name, controller, input_type)
+    def binding(self, widget, param, device, name, controller, execute):
+        dialog = BindDialog(self, widget, device, name, controller)
 
         if dialog.key_pressed != None:
             if dialog.key_pressed.value == 42:
@@ -677,6 +690,8 @@ class PluginDialog(Gtk.Dialog):
                 g.m64p_wrapper.ConfigSetParameter(param, store)
             else:
                 return [str(value), dialog.gamepad_type]
+        else:
+            return ["", None]
 
     def on_toggle_button(self, widget):
         status = widget.get_active()
