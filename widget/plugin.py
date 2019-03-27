@@ -625,35 +625,47 @@ class PluginDialog(Gtk.Dialog):
         if double == True:
             # In case we have to bind twice in a single GUI button, e.g. for an axis of the controller
             first_value = self.binding(widget, param, device, name, controller, False)
-            if first_value[0] != "":
-                if first_value[1] == "Naxis" or first_value[1] == "Paxis":
-                    input_type = "axis"
-                else:
-                    input_type = first_value[1]
-                different = True
-                while different:
-                    # We give some time to the user to reset the control stick to zero.
-                    time.sleep(0.2)
-                    # TODO: About the name...we need to differentiate between two extremes of an axis.
-                    second_value = self.binding(widget, param, device, name, controller, False)
-                    if second_value[1] == "Naxis" or second_value[1] == "Paxis":
-                        input_type2 = "axis"
+            if first_value[1] != None:
+                if first_value[0] != "" and first_value[1] != "empty":
+                    if first_value[1] == "Naxis" or first_value[1] == "Paxis":
+                        input_type = "axis"
                     else:
-                        input_type2 = second_value[1]
-                    if input_type == input_type2:
-                        different = False
+                        input_type = first_value[1]
+                    different = True
+                    while different:
+                        # We give some time to the user to reset the control stick to zero.
+                        time.sleep(0.2)
+                        # TODO: About the name...we need to differentiate between two extremes of an axis.
+                        second_value = self.binding(widget, param, device, name, controller, False)
+                        if second_value[1] == "Naxis" or second_value[1] == "Paxis":
+                            input_type2 = "axis"
+                        elif second_value[1] == None or second_value[1] == "empty":
+                            break
+                        else:
+                            input_type2 = second_value[1]
 
-                if second_value[0] != "":
-                    if input_type == "axis":
-                        store = input_type + "(" + first_value[0] + ("+" if first_value[1] == "Paxis" else "-") + "," + second_value[0] + \
-                            ("+" if second_value[1] == "Paxis" else "-") + ")"
-                        widget.set_label(store)
-                    elif input_type == "button":
-                        store = input_type + "(" + first_value[0] + "," + second_value[0] + ")"
-                        widget.set_label(store)
-                    elif input_type == "key":
-                        widget.set_label("(" + sdl.SDL_GetKeyName(int(first_value[0])).decode("utf-8") + ", " + sdl.SDL_GetKeyName(int(second_value[0])).decode("utf-8") + ")")
-                    g.m64p_wrapper.ConfigSetParameter(param, store)
+                        if input_type == input_type2:
+                            different = False
+                    if second_value[1] != None:
+                        if second_value[0] != "" and second_value[1] != "empty":
+                            if input_type == "axis":
+                                store = input_type + "(" + first_value[0] + ("+" if first_value[1] == "Paxis" else "-") + "," + second_value[0] + \
+                                    ("+" if second_value[1] == "Paxis" else "-") + ")"
+                                widget.set_label(store)
+                                g.m64p_wrapper.ConfigSetParameter(param, store)
+                            elif input_type == "button":
+                                store = input_type + "(" + first_value[0] + "," + second_value[0] + ")"
+                                widget.set_label(store)
+                                g.m64p_wrapper.ConfigSetParameter(param, store)
+                            elif input_type == "key":
+                                widget.set_label("(" + sdl.SDL_GetKeyName(int(first_value[0])).decode("utf-8") + ", " + sdl.SDL_GetKeyName(int(second_value[0])).decode("utf-8") + ")")
+                        else:
+                            widget.set_label("(empty)")
+                            g.m64p_wrapper.ConfigSetParameter(param, second_value[0])
+
+                else:
+                    widget.set_label("(empty)")
+                    g.m64p_wrapper.ConfigSetParameter(param, first_value[0])
         else:
             self.binding(widget, param, device, name, controller, True)
 
@@ -662,10 +674,11 @@ class PluginDialog(Gtk.Dialog):
 
         if dialog.key_pressed != None:
             if dialog.key_pressed.value == 42:
-                widget.set_label("(empty)")
                 store = ""
-                g.m64p_wrapper.ConfigSetParameter(param, store)
-                return [store, None]
+                if execute == True:
+                    widget.set_label("(empty)")
+                    g.m64p_wrapper.ConfigSetParameter(param, store)
+                return [store, "empty"]
             else:
                 value = dialog.key_pressed.value
                 keycode = sdl.SDL_GetKeyFromScancode(value)
