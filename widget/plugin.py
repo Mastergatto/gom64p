@@ -624,7 +624,14 @@ class PluginDialog(Gtk.Dialog):
                     controller = self.active_gamepads[joy_id]
         if double == True:
             # In case we have to bind twice in a single GUI button, e.g. for an axis of the controller
-            first_value = self.binding(widget, param, device, name, controller, False)
+            if name == "X Axis":
+                first_name = "X Axis (Left)"
+                second_name = "X Axis (Right)"
+            elif name == "Y Axis":
+                first_name = "Y Axis (Up)"
+                second_name = "Y Axis (Down)"
+
+            first_value = self.binding(widget, param, device, first_name, controller, False)
             if first_value[1] != None:
                 if first_value[0] != "" and first_value[1] != "empty":
                     if first_value[1] == "Naxis" or first_value[1] == "Paxis":
@@ -635,8 +642,7 @@ class PluginDialog(Gtk.Dialog):
                     while different:
                         # We give some time to the user to reset the control stick to zero.
                         time.sleep(0.2)
-                        # TODO: About the name...we need to differentiate between two extremes of an axis.
-                        second_value = self.binding(widget, param, device, name, controller, False)
+                        second_value = self.binding(widget, param, device, second_name, controller, False)
                         if second_value[1] == "Naxis" or second_value[1] == "Paxis":
                             input_type2 = "axis"
                         elif second_value[1] == None or second_value[1] == "empty":
@@ -773,12 +779,12 @@ class PluginDialog(Gtk.Dialog):
         elif string == b'\xc4\xb2':
             return b"Left Ctrl"
         elif string == b'\xc4\x91':
-            return b"Left"
-        elif string == b'\xc4\x92':
-            return b"Right"
-        elif string == b'\xc4\x93':
-            return b"Down"
-        elif string == b'\xc4\x94':
             return b"Up"
+        elif string == b'\xc4\x92':
+            return b"Down"
+        elif string == b'\xc4\x93':
+            return b"Right"
+        elif string == b'\xc4\x94':
+            return b"Left"
         else:
             return string
