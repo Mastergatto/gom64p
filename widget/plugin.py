@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
 import os.path, threading, time
 
 import global_module as g
@@ -280,41 +280,43 @@ class PluginDialog(Gtk.Dialog):
         #buttons_grid.set_vexpand(True)
 
         #empty = Gtk.Label.new("")
-        label_a = Gtk.Label("A")
+        #label_a = Gtk.Label("A")
+        size = 50
+        label_a = self.insert_image("ui/icons/ButtonIcon-N64-A.svg", size)
         button_a = self.insert_bind_button('A Button', section, "A button")
-        label_b = Gtk.Label("B")
+        label_b = self.insert_image("ui/icons/ButtonIcon-N64-B.svg", size)
         button_b = self.insert_bind_button('B Button',  section, "B button")
-        label_z = Gtk.Label("Z")
+        label_z = self.insert_image("ui/icons/ButtonIcon-N64-Z.svg", size)
         button_z = self.insert_bind_button('Z Trig',  section, "Z trigger")
-        label_l = Gtk.Label("L")
+        label_l = self.insert_image("ui/icons/ButtonIcon-N64-L.svg", size)
         button_l = self.insert_bind_button('L Trig',  section, "L trigger")
-        label_r = Gtk.Label("R")
+        label_r = self.insert_image("ui/icons/ButtonIcon-N64-R.svg", size)
         button_r = self.insert_bind_button('R Trig',  section, "R trigger")
-        label_start = Gtk.Label("START")
+        label_start = self.insert_image("ui/icons/ButtonIcon-N64-Start.svg", size)
         button_start = self.insert_bind_button('Start',  section, "Start button")
-        label_c_up = Gtk.Label("C↑")
+        label_c_up = self.insert_image("ui/icons/ButtonIcon-N64-C-Up.svg", size)
         button_c_up = self.insert_bind_button('C Button U',  section, 'C↑ button')
-        label_c_left = Gtk.Label("C←")
+        label_c_left = self.insert_image("ui/icons/ButtonIcon-N64-C-Left.svg", size)
         button_c_left = self.insert_bind_button('C Button L',  section, 'C← button')
-        label_c_right = Gtk.Label("C→")
+        label_c_right = self.insert_image("ui/icons/ButtonIcon-N64-C-Right.svg", size)
         button_c_right = self.insert_bind_button('C Button R',  section, 'C→ button')
-        label_c_down = Gtk.Label("C↓")
+        label_c_down = self.insert_image("ui/icons/ButtonIcon-N64-C-Down.svg", size)
         button_c_down = self.insert_bind_button('C Button D',  section, 'C↓ button')
-        label_mempak = Gtk.Label("Mempak")
+        label_mempak = Gtk.Label("Mempak ")
         button_mempak = self.insert_bind_button('Mempak switch',  section, "Mempak switch")
-        label_rumble = Gtk.Label("Rumble")
+        label_rumble = Gtk.Label("Rumble ")
         button_rumble = self.insert_bind_button('Rumblepak switch',  section, "Rumblepak switch")
-        label_d_up = Gtk.Label("D↑")
+        label_d_up = self.insert_image("ui/icons/ButtonIcon-N64-D-Pad-U.svg", size)
         button_d_up = self.insert_bind_button("DPad U",  section, 'DPad ↑')
-        label_d_left = Gtk.Label("D←")
+        label_d_left = self.insert_image("ui/icons/ButtonIcon-N64-D-Pad-L.svg", size)
         button_d_left = self.insert_bind_button("DPad L",  section, 'DPad ←')
-        label_d_right = Gtk.Label("D→")
+        label_d_right = self.insert_image("ui/icons/ButtonIcon-N64-D-Pad-R.svg", size)
         button_d_right = self.insert_bind_button("DPad R",  section, 'DPad →')
-        label_d_down = Gtk.Label("D↓")
+        label_d_down = self.insert_image("ui/icons/ButtonIcon-N64-D-Pad-D.svg", size)
         button_d_down = self.insert_bind_button("DPad D",  section, 'DPad ↓')
-        x_axis_label = Gtk.Label("X axis")
+        x_axis_label = self.insert_image("ui/icons/ButtonIcon-N64-Control_Stick-LR.svg", size)
         x_axis_button = self.insert_bind_button("X Axis",  section, 'X Axis', True)
-        y_axis_label = Gtk.Label("Y axis")
+        y_axis_label = self.insert_image("ui/icons/ButtonIcon-N64-Control_Stick-UD.svg", size)
         y_axis_button = self.insert_bind_button("Y Axis",  section, 'Y Axis', True)
 
         buttons_grid.attach(label_a, 0, 0, 1, 1)
@@ -387,11 +389,7 @@ class PluginDialog(Gtk.Dialog):
 
         self.sensitive_mode(section, self.mode_combo.get_active_id())
 
-        scroll = Gtk.ScrolledWindow()
-        scroll.add(grid)
-        scroll.set_propagate_natural_height(True)
-
-        return scroll
+        return grid
 
     def input_config(self):
         self.pages_list = [None, None, None, None, None]
@@ -682,6 +680,11 @@ class PluginDialog(Gtk.Dialog):
                     g.m64p_wrapper.ConfigSetParameter(param, first_value[0])
         else:
             self.binding(widget, param, device, name, controller, True)
+
+    def insert_image(self, file, size):
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(file, size, -1, True)
+        image = Gtk.Image.new_from_pixbuf(pixbuf)
+        return image
 
     def insert_spinbutton_fragment(self, minimum, maximum, adj_step=1.0, spin_climb=1.0):
         adj_value = 0
