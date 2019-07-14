@@ -73,6 +73,7 @@ class PluginDialog(Gtk.Dialog):
         self.is_changed = False
         self.page_check = [False, False, False, False]
         #self.map_controls = {}
+        self.scale_factor = parent.get_scale_factor()
 
         # SDL
         self.pending = True
@@ -102,12 +103,12 @@ class PluginDialog(Gtk.Dialog):
 
         if g.lock == False and g.m64p_wrapper.compatible == True:
             if self.section == 'input-sdl':
-                self.plugin_window.set_default_size(550, 480)
+                self.plugin_window.set_default_size(550 * self.scale_factor, 480 * self.scale_factor)
                 self.input_config()
                 #self.plugin_window.connect("key-press-event", self.on_key_events)
                 #self.plugin_window.connect("key-release-event", self.on_key_events)
             else:
-                self.plugin_window.set_default_size(480, 550)
+                self.plugin_window.set_default_size(480 * self.scale_factor, 550 * self.scale_factor)
                 self.generic(self.section)
         else:
             label = Gtk.Label("Mupen64plus' core library is incompatible, please upgrade it.")
@@ -276,12 +277,9 @@ class PluginDialog(Gtk.Dialog):
         buttons_frame = Gtk.Frame(label="Controller buttons")
 
         buttons_grid = Gtk.Grid()
-        buttons_grid.set_hexpand(True)
-        #buttons_grid.set_vexpand(True)
+        #buttons_grid.set_hexpand(True)
 
-        #empty = Gtk.Label.new("")
-        #label_a = Gtk.Label("A")
-        size = 50
+        size = (50 * self.scale_factor)
         label_a = self.insert_image("ui/icons/ButtonIcon-N64-A.svg", size)
         button_a = self.insert_bind_button('A Button', section, "A button")
         label_b = self.insert_image("ui/icons/ButtonIcon-N64-B.svg", size)
@@ -331,7 +329,7 @@ class PluginDialog(Gtk.Dialog):
         buttons_grid.attach(button_r, 1, 4, 1, 1)
         buttons_grid.attach(label_start, 0, 5, 1, 1)
         buttons_grid.attach(button_start, 1, 5, 1, 1)
-        buttons_grid.attach(Gtk.Label.new("          "), 2, 0, 1, 1) #TODO: There must be a better solution
+        buttons_grid.attach(Gtk.Label.new("          "), 2, 0, 1, 1)
         buttons_grid.attach(label_c_up, 3, 0, 1, 1)
         buttons_grid.attach(button_c_up, 4, 0, 1, 1)
         buttons_grid.attach(label_c_left, 3, 1, 1, 1)
@@ -594,6 +592,7 @@ class PluginDialog(Gtk.Dialog):
 
     def insert_bind_button(self, param, section, name, double=False):
         button = Gtk.Button()
+        button.set_size_request(105 * self.scale_factor, -1)
         raw_value = g.m64p_wrapper.ConfigGetParameter(param)
         #self.map_controls[param] = raw_value
         if raw_value != '':
