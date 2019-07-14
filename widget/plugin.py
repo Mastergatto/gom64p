@@ -72,6 +72,7 @@ class PluginDialog(Gtk.Dialog):
         #self.former_update()
         self.is_changed = False
         self.page_check = [False, False, False, False]
+        #self.map_controls = {}
 
         # SDL
         self.pending = True
@@ -367,9 +368,14 @@ class PluginDialog(Gtk.Dialog):
             mouse_checkbox.set_active(True)
         mouse_checkbox.connect("toggled", self.on_CheckboxToggled, section, "Mouse", None)
         mouse_checkbox.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp("Mouse"))
-        #MouseSensitivity, AnalogDeadzone, AnalogPeak,
+
+        mouse_sensitivity = self.insert_double_spinbutton("MouseSensitivity", section, other_grid)
+        analog_deadzone = self.insert_double_spinbutton("AnalogDeadzone", section, other_grid)
+        analog_peak = self.insert_double_spinbutton("AnalogPeak", section, other_grid)
 
         other_grid.attach(mouse_checkbox, 0, 0, 1, 1)
+        other_grid.attach(Gtk.Label("X"), 0, 1, 1, 1)
+        other_grid.attach(Gtk.Label("Y"), 0, 2, 1, 1)
         other_frame.add(other_grid)
         grid.attach(other_frame, 0, 3, 5, 1)
 
@@ -587,11 +593,11 @@ class PluginDialog(Gtk.Dialog):
                 g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control3')
             elif number == 3:
                 g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control4')
-            # TODO: Should we update self.mode_combo and others....?
 
     def insert_bind_button(self, param, section, name, double=False):
         button = Gtk.Button()
         raw_value = g.m64p_wrapper.ConfigGetParameter(param)
+        #self.map_controls[param] = raw_value
         if raw_value != '':
             if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
                 raw_value = raw_value.split(',')
@@ -622,6 +628,8 @@ class PluginDialog(Gtk.Dialog):
                 this_name = sdl.SDL_JoystickName(instance).decode("utf-8")
                 if this_name == stored_name:
                     controller = self.active_gamepads[joy_id]
+
+        # Now we start preparations for the dialog
         if double == True:
             # In case we have to bind twice in a single GUI button, e.g. for an axis of the controller
             if name == "X Axis":
@@ -674,6 +682,69 @@ class PluginDialog(Gtk.Dialog):
                     g.m64p_wrapper.ConfigSetParameter(param, first_value[0])
         else:
             self.binding(widget, param, device, name, controller, True)
+
+    def insert_spinbutton_fragment(self, minimum, maximum, adj_step=1.0, spin_climb=1.0):
+        adj_value = 0
+        if adj_step < 1.0:
+            digits = 2
+        else:
+            digits = 0
+
+        adjustment = Gtk.Adjustment(value=adj_value, lower=minimum, upper=maximum, step_increment=adj_step)
+        spin = Gtk.SpinButton.new(adjustment, spin_climb, digits)
+        #spin.set_snap_to_ticks(True)
+        return spin
+
+    def insert_double_spinbutton(self, param, section, grid):
+        value = g.m64p_wrapper.ConfigGetParameter(param)
+        if param == "MouseSensitivity":
+            # Due to a possible bug, in this case the comma may be used as decimal separator AND as value separator.
+            workaround = value.split(',')
+            spin_values = [None, None]
+            try:
+                # We try to convert the comma into a period
+                spin_values[0] = format(float('.'.join(workaround[:2])),'.2f')
+                spin_values[1] = format(float('.'.join(workaround[2:])),'.2f')
+            except:
+                spin_values = workaround
+            first_spin = self.insert_spinbutton_fragment(0, 32, 0.01, 0.01)
+            second_spin = self.insert_spinbutton_fragment(0, 32, 0.01, 0.01)
+            first_spin.set_value(float(spin_values[0]))
+            second_spin.set_value(float(spin_values[1]))
+        else:
+            spin_values = value.split(',')
+            first_spin = self.insert_spinbutton_fragment(-32768, 32768)
+            first_spin.set_value(int(spin_values[0]))
+            second_spin = self.insert_spinbutton_fragment(-32768, 32768)
+            second_spin.set_value(int(spin_values[1]))
+
+        first_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param) + "\n This value refers to the axis X.")
+        first_spin.connect("value-changed", self.on_double_spinbutton_changed, section, param, 0, spin_values)
+
+        second_spin.connect("value-changed", self.on_double_spinbutton_changed, section, param, 1, spin_values)
+        second_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param) + "\n This value refers to the axis Y.")
+
+        if param == "MouseSensitivity":
+            label = Gtk.Label("Mouse sensitivity: ")
+            position = 1
+        elif param == "AnalogDeadzone":
+            label = Gtk.Label("Analog deadzone: ")
+            position = 2
+        elif param == "AnalogPeak":
+            label = Gtk.Label("Analog peak: ")
+            position = 3
+        grid.attach(label, position, 0, 1, 1)
+        grid.attach(first_spin, position, 1, 1, 1)
+        grid.attach(second_spin, position, 2, 1, 1)
+
+    def on_double_spinbutton_changed(self, widget, section, param, which, spin):
+        if param == "MouseSensitivity":
+            spin[which] = str(format(round(widget.get_value(),2),'.2f'))
+        else:
+            spin[which] = str(widget.get_value_as_int())
+        if section != None:
+            value = ','.join(str(x) for x in spin) #.replace(".", ",")
+            g.m64p_wrapper.ConfigSetParameter(param, value)
 
     def binding(self, widget, param, device, name, controller, execute):
         dialog = BindDialog(self, widget, device, name, controller)
