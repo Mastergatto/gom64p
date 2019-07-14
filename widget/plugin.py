@@ -267,11 +267,11 @@ class PluginDialog(Gtk.Dialog):
 
 
         grid.attach(mode_label, 0, 0, 1, 1)
-        grid.attach(self.mode_combo, 1, 0, 5, 1) #Gtk.PositionType.RIGHT
+        grid.attach(self.mode_combo, 1, 0, 4, 1) #Gtk.PositionType.RIGHT
         grid.attach(plugged_button, 0, 1, 1, 1)
         grid.attach(pak_combo, 1, 1, 1, 1)
-        grid.attach(device_label, 4, 1, 1, 1)
-        grid.attach(self.device_combo, 5, 1, 1, 1)
+        grid.attach(device_label, 3, 1, 1, 1)
+        grid.attach(self.device_combo, 4, 1, 1, 1)
 
         buttons_frame = Gtk.Frame(label="Controller buttons")
 
