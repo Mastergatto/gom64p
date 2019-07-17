@@ -38,7 +38,6 @@ class List:
             self.rom_list = ast.literal_eval(g.cache.generated_list)
         else:
             self.cache.generate()
-            #self.cache.write()
 
         self.treeview_call()
         self.menu()
@@ -64,7 +63,9 @@ class List:
     def treeview_call(self):
         ## ListStore model ##
         self.romlist_store_model = Gtk.ListStore(str, str, int, str, str)
-        self.generate_liststore()
+        if self.rom_list != None:
+            self.romlist_store_model.clear()
+            self.generate_liststore()
         self.game_search_current = ""
 
         #-Creating the filter, feeding it with the liststore model
@@ -235,6 +236,8 @@ class Cache:
         os.chdir(g.m64p_dir)
         GLib.idle_add(self.progressbar.end)
         self.write()
+        self.parent.browser_list.rom_list = self.rom_list
+        GLib.idle_add(self.parent.browser_list.generate_liststore)
 
     def update(self):
         path_items = g.frontend_conf.config.items('GameDirs')
