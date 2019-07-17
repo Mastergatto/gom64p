@@ -45,7 +45,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         args_m64p_plugins = self.application.args.plugindir
         args_m64p_data = self.application.args.datadir
 
-        #TODO: I feel something isn't right here, check this better later. Also need to write in the conf.
+        #TODO: Check if there's a need to write in the conf.
         if not args_m64p_lib:
             g.parameters['m64plib'] = args_m64p_lib
         if not args_m64p_config:
@@ -275,7 +275,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def on_reload(self, widget):
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...")
         self.browser_list.romlist_store_model.clear()
-        self.browser_list.cache_update()
+        self.browser_list.cache.update()
         self.browser_list.generate_liststore()
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...DONE")
 

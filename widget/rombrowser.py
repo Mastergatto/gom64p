@@ -28,91 +28,30 @@ class List:
         self.rom_list = None
         self.cache_validated = False
         self.total_roms = None
-        self.cache_validate()
-        #print(self.cache_validated)
+
+        self.start_cache()
+
+        self.cache_validated = self.cache.validate()
+
+        # TODO: If validated, proceed as usual, otherwise there should be two cases: if the list is empty (e.g. first time) it should generate, otherwise just update.
         if self.cache_validated == True:
             self.rom_list = ast.literal_eval(g.cache.generated_list)
         else:
-            self.cache_generate()
+            self.cache.generate()
+            #self.cache.write()
+
         self.treeview_call()
         self.menu()
 
-    def cache_generate(self):
-        self.rom_list = self.scan()
-        g.cache.generated_list = self.rom_list
-        g.cache.total_roms = str(self.total_roms)
-        g.cache.write_cache()
-
-    def cache_validate(self):
-        path_items = g.frontend_conf.config.items('GameDirs')
-        self.total_roms = []
-        #TODO: number of files and date?
-        for key, path in path_items:
-            if path != '' and os.path.isdir(path) == True:
-                os.chdir(path)
-                format_allowed = ('.n64', '.v64', '.z64')
-                format64dd_allowed = ('.ndd')
-
-                for onerom in os.listdir(path):
-                    if os.path.isfile(onerom) and onerom.lower().endswith(format_allowed):
-                        self.total_roms += [onerom]
-        os.chdir(g.m64p_dir)
-
-        self.total_roms = len(self.total_roms)
-        #print(self.total_roms, int(g.cache.total_roms))
-        if self.total_roms == int(g.cache.total_roms):
-            self.cache_validated = True
-
-    def cache_update(self):
-        self.rom_list = self.scan()
-        path_items = g.frontend_conf.config.items('GameDirs')
-        self.total_roms = []
-        #TODO: number of files and date?
-        for key, path in path_items:
-            if path != '' and os.path.isdir(path) == True:
-                os.chdir(path)
-                format_allowed = ('.n64', '.v64', '.z64')
-                format64dd_allowed = ('.ndd')
-
-                for onerom in os.listdir(path):
-                    if os.path.isfile(onerom) and onerom.lower().endswith(format_allowed):
-                        self.total_roms += [onerom]
-        os.chdir(g.m64p_dir)
-
-        self.total_roms = len(self.total_roms)
-        #print(self.total_roms, int(g.cache.total_roms))
-
-        g.cache.generated_list = self.rom_list
-        g.cache.total_roms = str(self.total_roms)
-        g.cache.write_cache()
-
-    def scan(self):
-        path_items = g.frontend_conf.config.items('GameDirs')
-        totalfiles = []
-        total64dd = []
-
-        for key, path in path_items:
-            if path != '' and os.path.isdir(path) == True:
-                os.chdir(path)
-                format_allowed = ('.n64', '.v64', '.z64')
-                format64dd_allowed = ('.ndd')
-
-                for onerom in os.listdir(path):
-                    if os.path.isfile(onerom) and onerom.lower().endswith(format_allowed):
-                        g.m64p_wrapper.rom_open(path + onerom)
-                        header = g.m64p_wrapper.rom_get_header()
-                        settings = g.m64p_wrapper.rom_get_settings()
-                        g.m64p_wrapper.rom_close()
-
-                        totalfiles += [(header['country'], settings['name'], settings['status'], path + onerom, settings['md5'])]
-                    elif os.path.isfile(onerom) and onerom.lower().endswith(format64dd_allowed):
-                        total64dd += [(path + onerom , str.upper(self.hashify(onerom)))]
-        os.chdir(g.m64p_dir)
-        return totalfiles
+    def start_cache(self):
+        self.cache = Cache(self.parent)
 
     def generate_liststore(self):
-        for game in self.rom_list:
-            self.romlist_store_model.append(list(game))
+        if self.rom_list != None:
+            for game in self.rom_list:
+                self.romlist_store_model.append(list(game))
+        else:
+            print("Rombrowser:The list is empty!")
 
     def game_filter_func(self, model, iterator, data):
         #in the second brackets the value correspond to that of a column
@@ -201,7 +140,10 @@ class List:
 
         play_item = Gtk.MenuItem("Play this game")
         play_item.connect("activate", self.on_playitem_activated)
+        info_item = Gtk.MenuItem("Informations on this game")
+
         self.treeview_menu.append(play_item)
+        self.treeview_menu.append(info_item)
 
     def mouse_click(self, tv, event):
         if event.button == 3:
@@ -237,14 +179,143 @@ class List:
         g.running = False
 
     #UNUSED
-    def hashify(self,file):
+    def header(self,crc1,crc2):
+        command = g.m64p_wrapper.CoreGetRomSettings(crc1,crc2)
+
+class Cache:
+    def __init__(self, parent):
+        self.parent = parent
+        self.rom_list = None
+        self.event = threading.Event()
+        self.progressbar = ProgressScanning(self.parent)
+        self.thread = threading.Thread(name="scan", target=self.scan)
+
+    def generate(self):
+        #thread = threading.Thread(name="scan", target=self.scan)
+        try:
+            self.thread.start()
+            return self.thread
+        except:
+            print("The scan thread has encountered an unexpected error")
+            threading.main_thread()
+
+    def hashify(self, file):
         hasher = hashlib.md5()
         #r = readable, b = in binary format
         with open(file, 'rb') as afile:
-            buf = afile.read()
-            hasher.update(buf)
+            buffer = afile.read()
+            hasher.update(buffer)
         return hasher.hexdigest()
 
-    def header(self,crc1,crc2):
-        command = g.m64p_wrapper.CoreGetRomSettings(crc1,crc2)
+    def scan(self):
+        GLib.idle_add(self.progressbar.start, "Generating the list...")
+        path_items = g.frontend_conf.config.items('GameDirs')
+        self.rom_list = []
+        total64dd = []
+
+        for key, path in path_items:
+            if path != '' and os.path.isdir(path) == True:
+                os.chdir(path)
+                format_allowed = ('.n64', '.v64', '.z64')
+                format64dd_allowed = ('.ndd')
+                self.amount = len(os.listdir(path)) - 1 # FIXME: Why does it count one more?
+                GLib.idle_add(self.progressbar.set_amount, self.amount)
+
+                for onerom in os.listdir(path):
+                    if os.path.isfile(onerom) and onerom.lower().endswith(format_allowed):
+                        g.m64p_wrapper.rom_open(path + onerom)
+                        header = g.m64p_wrapper.rom_get_header()
+                        settings = g.m64p_wrapper.rom_get_settings()
+                        g.m64p_wrapper.rom_close()
+                        GLib.idle_add(self.progressbar.tick)
+
+                        self.rom_list += [(header['country'], settings['name'], settings['status'], path + onerom, settings['md5'])]
+                    elif os.path.isfile(onerom) and onerom.lower().endswith(format64dd_allowed):
+                        total64dd += [(path + onerom , str.upper(self.hashify(onerom)))]
+        os.chdir(g.m64p_dir)
+        GLib.idle_add(self.progressbar.end)
+        self.write()
+
+    def update(self):
+        path_items = g.frontend_conf.config.items('GameDirs')
+        #TODO: number of files and date?
+        for key, path in path_items:
+            if path != '' and os.path.isdir(path) == True:
+                os.chdir(path)
+                format_allowed = ('.n64', '.v64', '.z64')
+                format64dd_allowed = ('.ndd')
+
+                for onerom in os.listdir(path):
+                    if os.path.isfile(onerom) and onerom.lower().endswith(format_allowed):
+                        self.total_roms += [onerom]
+        os.chdir(g.m64p_dir)
+
+        self.total_roms = len(self.total_roms)
+        #print(self.total_roms, int(g.cache.total_roms))
+
+    def validate(self):
+        path_items = g.frontend_conf.config.items('GameDirs')
+        self.total_roms = []
+        #TODO: what about number of files and date?
+        for key, path in path_items:
+            if path != '' and os.path.isdir(path) == True:
+                os.chdir(path)
+                format_allowed = ('.n64', '.v64', '.z64')
+                format64dd_allowed = ('.ndd')
+
+                for onerom in os.listdir(path):
+                    if os.path.isfile(onerom) and onerom.lower().endswith(format_allowed):
+                        self.total_roms += [onerom]
+        os.chdir(g.m64p_dir)
+
+        self.total_roms = len(self.total_roms)
+        #print(self.total_roms, int(g.cache.total_roms))
+        if self.total_roms == int(g.cache.total_roms):
+            return True
+
+    def write(self):
+        g.cache.generated_list = self.rom_list
+        g.cache.total_roms = str(self.total_roms)
+        print("Pseudo-writing")
+        #g.cache.write_cache()
+
+class ProgressScanning(Gtk.Dialog):
+    def __init__(self, parent):
+        self.parent = parent
+        self.fraction = 0
+        self.dialog = None
+        self.progressbar = None
+
+    def end(self):
+        self.dialog.destroy()
+
+    def message(self, text):
+        if self.progressbar.get_show_text() == False:
+            self.progressbar.set_show_text(True)
+        self.progressbar.set_text(text)
+
+    def start(self, text):
+        self.dialog = Gtk.Dialog.new()
+        self.dialog.set_transient_for(self.parent)
+        content_area = self.dialog.get_content_area()
+
+        self.progressbar = Gtk.ProgressBar()
+        self.message(text)
+
+        content_area.add(self.progressbar)
+
+        self.dialog.show_all()
+        self.dialog.run()
+
+    def set_amount(self, amount):
+        self.amount = amount
+        self.fraction = 1.0 / self.amount
+
+    def tick(self):
+        value = self.progressbar.get_fraction() + self.fraction
+        if value > 1:
+            value = 0
+
+        self.progressbar.set_fraction(value)
+
 
