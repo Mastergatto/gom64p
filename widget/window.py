@@ -80,7 +80,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             #self.lock?
             g.m64p_wrapper.initialise()
 
-            g.cache = u_cache.Cache(g.m64p_wrapper.ConfigGetUserCachePath())
+            g.cache = u_cache.CacheData(g.m64p_wrapper.ConfigGetUserCachePath())
 
 
         # LAYOUT main window: csd,menubar,toolbar,box filter(label,entry),box((treeview,scroll),videoext),statusbar
@@ -274,9 +274,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
     def on_reload(self, widget):
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...")
-        self.browser_list.romlist_store_model.clear()
         self.browser_list.cache.update()
-        self.browser_list.generate_liststore()
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...DONE")
 
     def on_key_events(self, widget, event):

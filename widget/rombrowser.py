@@ -8,7 +8,7 @@
 ## MODULES ##
 #############
 from gi.repository import Gtk, Gdk, GObject, GLib
-import sys, os, os.path, threading, ast, hashlib
+import sys, os, os.path, threading, ast, hashlib, time
 
 import global_module as g
 
@@ -28,8 +28,7 @@ class List:
         self.rom_list = None
         self.cache_validated = False
 
-        self.start_cache()
-
+        self.cache = Cache(self.parent)
         self.cache_validated = self.cache.validate()
 
         # TODO: If validated, proceed as usual, otherwise there should be two cases: if the list is empty (e.g. first time) it should generate, otherwise just update.
@@ -40,11 +39,9 @@ class List:
         self.treeview_call()
         self.menu()
 
-    def start_cache(self):
-        self.cache = Cache(self.parent)
-
     def generate_liststore(self):
         if self.rom_list != None:
+            self.romlist_store_model.clear()
             for game in self.rom_list:
                 self.romlist_store_model.append(list(game))
         else:
@@ -199,7 +196,7 @@ class Cache:
             self.thread.start()
             return self.thread
         except:
-            print("Cache: The \"scan\" thread has encountered an unexpected error.")
+            print("Cache: The 'scan' thread has encountered an unexpected error.")
             threading.main_thread()
 
     def get_total_elements(self):
@@ -237,13 +234,11 @@ class Cache:
 
     def scan(self):
         '''Threaded method to scan those ROMs that are indicated.'''
-        list_cache = []
         self.rom_list = []
         GLib.idle_add(self.progressbar.start, "Generating the list...")
         total_paths = self.get_total_elements()
         self.amount_roms = len(total_paths)
         GLib.idle_add(self.progressbar.set_amount, self.amount_roms)
-        print(total_paths, self.amount_roms)
 
         for rom in total_paths:
             element = self.scan_element(rom)
@@ -252,34 +247,55 @@ class Cache:
 
         GLib.idle_add(self.progressbar.end)
         self.write()
+
+        # Let's tell to the browser that the job is done here.
         self.parent.browser_list.rom_list = self.rom_list
         GLib.idle_add(self.parent.browser_list.generate_liststore)
 
-    def compare_and_add(self):
+    def compare_and_manage(self):
         '''Threaded method to compare the list stored in the cache with this new list,
-        if there are any missing item, those will be scanned and added'''
+        any ROM not present in both lists will be added or removed'''
         list_cache = []
+        self.rom_list = self.parent.browser_list.rom_list
         for i in self.rom_list:
             list_cache += [(i[3])]
 
         total_paths = self.get_total_elements()
         self.amount_roms = len(total_paths)
-        missing_elements = list(set(total_paths).difference(list_cache))
+        new_elements = list(set(sorted(total_paths)).difference(sorted(list_cache)))
+        missing_elements = list(set(sorted(list_cache)).difference(sorted(total_paths)))
+        changed_elements = len(new_elements) + len(missing_elements)
 
-        if missing_elements:
-            print("Cache.compare_and_add: The list is not empty! Scanning those items...")
+        if changed_elements > 0:
             GLib.idle_add(self.progressbar.start, "Updating the list...")
-            GLib.idle_add(self.progressbar.set_amount, len(missing_elements))
-            for rom in missing_elements:
-                element = self.scan_element(rom)
-                GLib.idle_add(self.progressbar.tick)
-                self.rom_list += element
+            GLib.idle_add(self.progressbar.set_amount, changed_elements)
+
+            if new_elements:
+                for rom in new_elements:
+                    element = self.scan_element(rom)
+                    GLib.idle_add(self.progressbar.tick)
+                    self.rom_list += element
+            if missing_elements:
+                for rom in missing_elements:
+                    element = self.scan_element(rom)
+                    GLib.idle_add(self.progressbar.tick)
+                    self.rom_list.remove(element[0])
+
             GLib.idle_add(self.progressbar.end)
             self.write()
+
+            # Let's tell to the browser that the job is done here.
             self.parent.browser_list.rom_list = self.rom_list
+            #GLib.idle_add(self.parent.browser_list.romlist_store_model.clear)
             GLib.idle_add(self.parent.browser_list.generate_liststore)
         else:
-            print("Cache.compare_and_add: The list is empty, do nothing.")
+            # There are no ROMs to be added or removed, but we pretend to update the list just to please the user.
+            GLib.idle_add(self.progressbar.start, "Updating the list...")
+            GLib.idle_add(self.progressbar.set_amount, 1)
+            time.sleep(1)
+            GLib.idle_add(self.progressbar.tick)
+            GLib.idle_add(self.progressbar.end)
+
 
     def hashify(self, file):
         hasher = hashlib.md5()
@@ -290,19 +306,19 @@ class Cache:
         return hasher.hexdigest()
 
     def update(self):
-        ''' It calls the method compare_and_add in a thread '''
-        self.thread = threading.Thread(name="update", target=self.compare_and_add)
+        ''' It calls the method compare_and_manage in a thread '''
+        self.thread = threading.Thread(name="update", target=self.compare_and_manage)
         try:
             self.thread.start()
             return self.thread
         except:
-            print("Cache: The \"update\" thread has encountered an unexpected error")
+            print("Cache: The 'update' thread has encountered an unexpected error")
             threading.main_thread()
 
     def validate(self):
         path_items = g.frontend_conf.config.items('GameDirs')
         self.amount_roms = []
-        #TODO: what about sameness of paths and the date?
+        #TODO: what about sameness of paths and the date? plus cache version
         list_rom = self.get_total_elements()
 
         self.amount_roms = len(list_rom)
@@ -312,8 +328,7 @@ class Cache:
     def write(self):
         g.cache.generated_list = self.rom_list
         g.cache.total_roms = str(self.amount_roms)
-        print("Pseudo-writing")
-        #g.cache.write_cache()
+        g.cache.write_cache()
 
 class ProgressScanning(Gtk.Dialog):
     def __init__(self, parent):

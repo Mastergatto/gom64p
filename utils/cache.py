@@ -7,7 +7,7 @@
 #import global_module as g
 import pathlib
 
-class Cache:
+class CacheData:
     def __init__(self, path):
         filename = path + "gom64p.cache"
         self.cache_fn = pathlib.Path(filename).resolve()
@@ -21,7 +21,7 @@ class Cache:
         if self.cache_fn.is_file() == True and self.cache_fn.exists() == True:
             self.read_cache()
         else:
-            print("cache file not found.")
+            print("Gom64p: Cache file not found.")
             self.create_cache()
             self.read_cache()
 
@@ -42,7 +42,7 @@ class Cache:
             file.write("[]\n")   #11 generated_list
 
     def read_cache(self):
-        print("Reading cache...")
+        print("Gom64p: Reading cache...")
         with open(self.cache_fn, 'r') as file:
             # read a list of lines into data
             self.cache = file.readlines()
@@ -53,7 +53,7 @@ class Cache:
         self.generated_list = self.cache[10].rstrip('\n')
 
     def write_cache(self):
-        print("Writing to cache...")
+        print("Gom64p: Writing to cache...")
         self.cache[0] = self.version + '\n'
         self.cache[3] = str(self.recent_files) + '\n'
         self.cache[6] = self.total_roms + '\n'
