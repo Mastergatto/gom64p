@@ -17,6 +17,7 @@ import widget.rombrowser as w_brw
 import widget.keysym as w_key
 import wrapper.datatypes as wrp_dt
 
+import pathlib
 ###############
 ## VARIABLES ##
 ###############
@@ -60,7 +61,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_default_size(800, 640)
         self.set_size_request(640, 560) # TODO: What's the good looking minimum size for the main window?
-        self.set_default_icon_from_file("ui/mupen64plus.svg")
+        self.set_default_icon_from_file(bytes(pathlib.Path("ui/mupen64plus.svg")))
 
         ##If detected, it will close the application ##
         self.connect("delete-event", self.quit_cb)
@@ -274,7 +275,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
     def on_reload(self, widget):
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...")
-        self.browser_list.cache.update()
+        self.browser_list.cache.generate()
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...DONE")
 
     def on_key_events(self, widget, event):

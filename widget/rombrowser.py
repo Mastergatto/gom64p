@@ -26,17 +26,11 @@ class List:
         self.recent_manager = Gtk.RecentManager.get_default()
         self.selected_game = None
         self.rom_list = None
-        self.cache_validated = False
 
         self.cache = Cache(self.parent)
-        self.cache_validated = self.cache.validate()
-
-        # TODO: If validated, proceed as usual, otherwise there should be two cases: if the list is empty (e.g. first time) it should generate, otherwise just update.
         self.rom_list = ast.literal_eval(g.cache.generated_list)
-        if self.cache_validated != True:
-            self.cache.generate()
+        self.is_cache_validated = self.cache.validate()
 
-        self.treeview_call()
         self.menu()
 
     def generate_liststore(self):
@@ -58,6 +52,18 @@ class List:
     def treeview_call(self):
         ## ListStore model ##
         self.romlist_store_model = Gtk.ListStore(str, str, int, str, str)
+
+        if self.is_cache_validated == False:
+            print("The cache is NOT validated! Checking the list...")
+            if self.rom_list != []:
+                print("Rom list is not empty! Updating...")
+                self.cache.update()
+            else:
+                print("Rom list is empty! Generating....")
+                self.cache.generate()
+        else:
+            print("The cache is validated!")
+
         if self.rom_list != None:
             self.romlist_store_model.clear()
             self.generate_liststore()
@@ -286,7 +292,6 @@ class Cache:
 
             # Let's tell to the browser that the job is done here.
             self.parent.browser_list.rom_list = self.rom_list
-            #GLib.idle_add(self.parent.browser_list.romlist_store_model.clear)
             GLib.idle_add(self.parent.browser_list.generate_liststore)
         else:
             # There are no ROMs to be added or removed, but we pretend to update the list just to please the user.
@@ -316,14 +321,14 @@ class Cache:
             threading.main_thread()
 
     def validate(self):
-        path_items = g.frontend_conf.config.items('GameDirs')
-        self.amount_roms = []
         #TODO: what about sameness of paths and the date? plus cache version
         list_rom = self.get_total_elements()
 
         self.amount_roms = len(list_rom)
         if self.amount_roms == int(g.cache.total_roms):
             return True
+        else:
+            return False
 
     def write(self):
         g.cache.generated_list = self.rom_list
