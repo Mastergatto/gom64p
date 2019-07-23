@@ -321,11 +321,30 @@ class Cache:
             threading.main_thread()
 
     def validate(self):
-        #TODO: what about sameness of paths and the date? plus cache version
+        #TODO: what about creation or modified date of files? Discard the idea if it's too complex to implement
         list_rom = self.get_total_elements()
+
+        #validation = {"version": False, "amount": False, "identical": False}
+        validation = [False, False, False]
+        cache_version = 1
+
+        #TODO
+        if cache_version == 1:
+            validation[0] = True
 
         self.amount_roms = len(list_rom)
         if self.amount_roms == int(g.cache.total_roms):
+            validation[1] = True
+
+        self.rom_list = ast.literal_eval(g.cache.generated_list)
+        list_cache = []
+        for i in self.rom_list:
+            list_cache += [(i[3])]
+        if list_rom == list_cache:
+            validation[2] = True
+
+
+        if  validation.count(True) == len(validation):
             return True
         else:
             return False
