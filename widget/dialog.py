@@ -236,7 +236,7 @@ class DialogAbout(Gtk.Dialog):
         elif whichtype == 'frontend':
             self.on_frontend_clicked(parent)
 
-    def on_core_clicked(self,parent):
+    def on_core_clicked(self, parent):
         about_core = Gtk.AboutDialog()
         about_core.set_authors(["Richard Goedeken (Richard42)","John Chadwick (NMN)",
                               "James Hood (Ebenblues)","Scott Gorman (okaygo)",
@@ -265,13 +265,14 @@ class DialogAbout(Gtk.Dialog):
 
         about_core.destroy()
 
-    def on_frontend_clicked(self,parent):
+    def on_frontend_clicked(self, parent):
         about_frontend = Gtk.AboutDialog()
         about_frontend.set_authors(["Mastergatto"])
         about_frontend.set_license_type(Gtk.License(2)) #GPL2
         about_frontend.set_program_name("Good Old M64+")
         about_frontend.set_version("0.1")
         about_frontend.set_copyright("©2019 Mastergatto")
+        about_frontend.set_artists(["Freepik (The flags are designed by Freepik from Flaticon (www.flaticon.com))"])
         about_frontend.set_website("https://github.com/Mastergatto/gom64p")
         about_frontend.set_website_label("Github repository")
         about_frontend.set_transient_for(parent)

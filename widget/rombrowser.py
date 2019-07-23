@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk, Gdk, GObject, GLib
+from gi.repository import Gtk, Gdk, GObject, GLib, GdkPixbuf
 import sys, os, os.path, threading, ast, hashlib, time
 
 import global_module as g
@@ -33,9 +33,50 @@ class List:
 
         self.menu()
 
+    def convert(self):
+        size = 24 * self.parent.get_scale_factor()
+        new_list = []
+        for i in self.rom_list:
+            flag = i[0]
+            j = list(i)
+            if flag == "U":
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/united-states.svg", size, -1, True)
+            elif flag == "J":
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/japan.svg", size, -1, True)
+            elif flag == "JU":
+                # TODO: We need a special flag for USA and Japan combined
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/united-states.svg", size, -1, True)
+            elif flag == "E":
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/european-union.svg", size, -1, True)
+            elif flag == "A":
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/australia.svg", size, -1, True)
+            elif flag == "F":
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/france.svg", size, -1, True)
+            elif flag == "G":
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/germany.svg", size, -1, True)
+            elif flag == "I":
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/italy.svg", size, -1, True)
+            elif flag == "S":
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/spain.svg", size, -1, True)
+            else:
+                # TODO: Need a new flag for unknown country
+                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/austria.svg", size, -1, True)
+
+            #stars = i[2]
+            #rating = [GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/star-grey.svg", size, -1, True)] * 5
+            #for i in range(stars):
+            #    rating.pop()
+            #    rating.insert(0, GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/united-states.svg", size, -1, True))
+            #j[2] = rating
+
+            i = tuple(j)
+            new_list += [i]
+        self.rom_list = new_list
+
     def generate_liststore(self):
         if self.rom_list != None:
             self.romlist_store_model.clear()
+            self.convert()
             for game in self.rom_list:
                 self.romlist_store_model.append(list(game))
         else:
@@ -51,7 +92,7 @@ class List:
 
     def treeview_call(self):
         ## ListStore model ##
-        self.romlist_store_model = Gtk.ListStore(str, str, int, str, str)
+        self.romlist_store_model = Gtk.ListStore(GdkPixbuf.Pixbuf, str, int, str, str)
 
         if self.is_cache_validated == False:
             print("The cache is NOT validated! Checking the list...")
@@ -64,9 +105,7 @@ class List:
         else:
             print("The cache is validated!")
 
-        if self.rom_list != None:
-            self.romlist_store_model.clear()
-            self.generate_liststore()
+        self.generate_liststore()
         self.game_search_current = ""
 
         #-Creating the filter, feeding it with the liststore model
@@ -78,14 +117,19 @@ class List:
         self.treeview = Gtk.TreeView.new_with_model(self.game_search_filter_sorted)
         self.treeview.set_activate_on_single_click(False)
         for i, column_title in enumerate(["Country", "Game", "Status", "Filename", "MD5 hash"]):
-            renderer_text = Gtk.CellRendererText()
-            column = Gtk.TreeViewColumn(column_title, renderer_text, text=i)
+            if i == 0: #Country and 2 for Status
+                renderer_pixbuf = Gtk.CellRendererPixbuf()
+                column = Gtk.TreeViewColumn("", renderer_pixbuf, pixbuf=i)
+
+            else:
+             renderer_text = Gtk.CellRendererText()
+             column = Gtk.TreeViewColumn(column_title, renderer_text, text=i)
             column.set_min_width(20)
             column.set_sort_column_id(i)
             column.set_sort_indicator(True)
             column.set_reorderable(True)
             column.set_resizable(True)
-            if i == 1:
+            if i == 1: # "Game"
                 self.romlist_store_model.set_sort_column_id(1,0)
                 #column.set_sort_order(1)
             self.treeview.append_column(column)
