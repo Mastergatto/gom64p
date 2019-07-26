@@ -34,40 +34,65 @@ class List:
         self.menu()
 
     def convert(self):
-        size = 24 * self.parent.get_scale_factor()
+        size_flag = 24 * self.parent.get_scale_factor()
+        size_rating = 76 * self.parent.get_scale_factor()
         new_list = []
+
+        usa = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/united-states.svg", size_flag, -1, True)
+        japan = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/japan.svg", size_flag, -1, True)
+        jpn_usa = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/us-jp.svg", size_flag, -1, True)
+        europe = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/european-union.svg", size_flag, -1, True)
+        australia = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/australia.svg", size_flag, -1, True)
+        france = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/france.svg", size_flag, -1, True)
+        germany = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/germany.svg", size_flag, -1, True)
+        italy = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/italy.svg", size_flag, -1, True)
+        spain = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/spain.svg", size_flag, -1, True)
+        unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/unknown.svg", size_flag, -1, True)
+
+        zero = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating0.svg", size_rating, -1, True)
+        one = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating1.svg", size_rating, -1, True)
+        two = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating2.svg", size_rating, -1, True)
+        three = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating3.svg", size_rating, -1, True)
+        four = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating4.svg", size_rating, -1, True)
+        five = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating5.svg", size_rating, -1, True)
+
         for i in self.rom_list:
             flag = i[0]
             j = list(i)
             if flag == "U":
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/united-states.svg", size, -1, True)
+                j[0] = usa
             elif flag == "J":
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/japan.svg", size, -1, True)
+                j[0] = japan
             elif flag == "JU":
-                # TODO: We need a special flag for USA and Japan combined
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/united-states.svg", size, -1, True)
+                j[0] = jpn_usa
             elif flag == "E":
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/european-union.svg", size, -1, True)
+                j[0] = europe
             elif flag == "A":
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/australia.svg", size, -1, True)
+                j[0] = australia
             elif flag == "F":
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/france.svg", size, -1, True)
+                j[0] = france
             elif flag == "G":
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/germany.svg", size, -1, True)
+                j[0] = germany
             elif flag == "I":
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/italy.svg", size, -1, True)
+                j[0] = italy
             elif flag == "S":
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/spain.svg", size, -1, True)
+                j[0] = spain
             else:
-                # TODO: Need a new flag for unknown country
-                j[0] = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/austria.svg", size, -1, True)
+                j[0] = unknown
 
-            #stars = i[2]
-            #rating = [GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/star-grey.svg", size, -1, True)] * 5
-            #for i in range(stars):
-            #    rating.pop()
-            #    rating.insert(0, GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/united-states.svg", size, -1, True))
-            #j[2] = rating
+            stars = i[2]
+            if stars == 0:
+                j[2] = zero
+            elif stars == 1:
+                j[2] = one
+            elif stars == 2:
+                j[2] = two
+            elif stars == 3:
+                j[2] = three
+            elif stars == 4:
+                j[2] = four
+            elif stars == 5:
+                j[2] = five
 
             i = tuple(j)
             new_list += [i]
@@ -92,7 +117,7 @@ class List:
 
     def treeview_call(self):
         ## ListStore model ##
-        self.romlist_store_model = Gtk.ListStore(GdkPixbuf.Pixbuf, str, int, str, str)
+        self.romlist_store_model = Gtk.ListStore(GdkPixbuf.Pixbuf, str, GdkPixbuf.Pixbuf, str, str)
 
         if self.is_cache_validated == False:
             print("The cache is NOT validated! Checking the list...")
@@ -117,18 +142,21 @@ class List:
         self.treeview = Gtk.TreeView.new_with_model(self.game_search_filter_sorted)
         self.treeview.set_activate_on_single_click(False)
         for i, column_title in enumerate(["Country", "Game", "Status", "Filename", "MD5 hash"]):
-            if i == 0: #Country and 2 for Status
+            if i == 0: # Country
                 renderer_pixbuf = Gtk.CellRendererPixbuf()
                 column = Gtk.TreeViewColumn("", renderer_pixbuf, pixbuf=i)
+            elif i == 2: # Status
+                renderer_pixbuf = Gtk.CellRendererPixbuf()
+                column = Gtk.TreeViewColumn("Status", renderer_pixbuf, pixbuf=i)
 
             else:
-             renderer_text = Gtk.CellRendererText()
-             column = Gtk.TreeViewColumn(column_title, renderer_text, text=i)
-            column.set_min_width(20)
-            column.set_sort_column_id(i)
-            column.set_sort_indicator(True)
+                renderer_text = Gtk.CellRendererText()
+                column = Gtk.TreeViewColumn(column_title, renderer_text, text=i)
+                column.set_sort_column_id(i)
+                column.set_sort_indicator(True)
+                column.set_resizable(True)
             column.set_reorderable(True)
-            column.set_resizable(True)
+            column.set_min_width(24)
             if i == 1: # "Game"
                 self.romlist_store_model.set_sort_column_id(1,0)
                 #column.set_sort_order(1)
@@ -436,3 +464,4 @@ class ProgressScanning(Gtk.Dialog):
             value = 0
 
         self.progressbar.set_fraction(value)
+
