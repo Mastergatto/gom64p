@@ -9,6 +9,7 @@
 #############
 from gi.repository import Gtk, GLib
 import threading
+import logging as log
 
 import global_module as g
 import widget.cheats as w_cheats
@@ -297,9 +298,7 @@ class Menu:
             name = item.get_display_name()
             uri = item.get_uri()
 
-            print("Item selected:")
-            print("Name:\t %s" % name)
-            print("URI:\t %s" % uri)
+            log.debug(f"Recent item selected: {name}, {uri}")
 
     def add_filters(self, dialog):
         filter_text = Gtk.FileFilter()
@@ -345,7 +344,7 @@ class Menu:
                     thread.start()
                     return thread
                 except:
-                    print("The emulation thread has encountered an unexpected error")
+                    log.error("The emulation thread has encountered an unexpected error")
                     threading.main_thread()
             #except (KeyboardInterrupt, SystemExit):
             #    #https://docs.python.org/3/library/signal.html
@@ -520,5 +519,5 @@ class Menu:
                 thread.start()
                 return thread
             except:
-                print("The emulation thread has encountered an unexpected error")
+                log.error("The emulation thread has encountered an unexpected error")
                 threading.main_thread()

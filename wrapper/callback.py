@@ -8,30 +8,22 @@ import ctypes as c
 
 import wrapper.datatypes as wrp_dt
 import global_module as g
+import logging as log
 
 ###void (*DebugCallback)(void *Context, int level, const char *message)
 DEBUGPROTO = c.CFUNCTYPE(None, c.c_void_p, c.c_int, c.c_char_p)
 
-#TODO: logging
 def debug_callback(context, level, message):
     context_dec = c.cast(context, c.c_char_p).value.decode("utf-8")
     if level <= wrp_dt.m64p_msg_level.M64MSG_ERROR.value:
         #sys.stderr.write("%s: %s\n" % (context, message))
-        #print(m64p_msg_level(level),"(",context,"):", message.decode())
-        print("ERROR(" + context_dec + "):", message.decode("utf-8"))
-        #pass
+        log.error(f'{context_dec}: {message.decode("utf-8")}')
     elif level == wrp_dt.m64p_msg_level.M64MSG_WARNING.value:
-        #sys.stderr.write("%s: %s\n" % (context.decode(), message.decode()))
-        #print("WARNING(" + context_dec + "):", message.decode())
-        pass
+        log.warning(f'{context_dec}: {message.decode("utf-8")}')
     elif level == wrp_dt.m64p_msg_level.M64MSG_INFO.value or level == wrp_dt.m64p_msg_level.M64MSG_STATUS.value:
-        #sys.stderr.write("%s: %s\n" % (context.decode(), message.decode()))
-        #print("INFO(" + context_dec +"):", message.decode())
-        pass
+        log.info(f'{context_dec}: {message.decode("utf-8")}')
     elif level == wrp_dt.m64p_msg_level.M64MSG_VERBOSE.value:
-        #sys.stderr.write("%s: %s\n" % (context, message.decode()))
-        #print("VERBOSE(" + context_dec +"):", message.decode())
-        pass
+        log.debug(f'{context_dec}: {message.decode("utf-8")}')
 
 CB_DEBUG = DEBUGPROTO(debug_callback)
 
@@ -82,7 +74,7 @@ sections = []
 def list_sections_callback(context, section_name):
     """Callback function for enumerating sections."""
     sections.append(section_name)
-    #print(sections)
+    #log.debug(sections)
 
 CB_SECTIONS = SECTIONSPROTO(list_sections_callback)
 
@@ -94,13 +86,14 @@ section_cb = None
 def list_param_callback(context, param_name, param_type):
     """Callback function for enumerating parameters."""
     parameters[section_cb][param_name.decode()] = param_type
-    #print(parameters)
+    #log.debug(parameters)
 
 CB_PARAMETERS = PARAMETERSPROTO(list_param_callback)
 
 
 
 #FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend (segfault, double free or corruption(out), invalid pointer)
+#GLib.strdup(str) ?
 class Media_callback(object):
     cart_rom_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)
     cart_ram_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)
@@ -119,7 +112,7 @@ class Media_callback(object):
         elif controller_id == 3:
             filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-4")
         else:
-            print("Unknown controller")
+            log.warning("Unknown controller")
         if filename != '':
             return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
         else:
@@ -137,7 +130,7 @@ class Media_callback(object):
         elif controller_id == 3:
             filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-4")
         else:
-            print("Unknown controller")
+            log.warning("Unknown controller")
         if filename != '':
             return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
         else:
@@ -153,7 +146,7 @@ class Media_callback(object):
             else:
                 return None
         except:
-            print("IPL-ROM parameter not found. Creating it.")
+            log.warning("IPL-ROM parameter not found. Creating it.")
             g.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
             return None
 
@@ -167,7 +160,7 @@ class Media_callback(object):
             else:
                 return None
         except:
-            print("Disk image parameter not found. Creating it.")
+            log.warning("Disk image parameter not found. Creating it.")
             g.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
             return None
 

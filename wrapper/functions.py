@@ -6,6 +6,7 @@
 
 import sys, pathlib, binascii, platform
 import ctypes as c
+import logging as log
 
 import wrapper.callback as wrp_cb
 import wrapper.datatypes as wrp_dt
@@ -140,9 +141,9 @@ class API():
         status = function()
 
         if context != None:
-            print("ERROR(" + c.cast(context, c.c_char_p).value.decode("utf-8") + "):", status.decode("utf-8"))
+            log.error(f"ERROR({c.cast(context, c.c_char_p).value.decode('utf-8')}): {status.decode('utf-8')}")
         else:
-            print("ERROR: ", status)
+            log.error(f"ERROR: {status}")
 
     ### Frontend functions
     ## Startup/Shutdown
@@ -153,7 +154,7 @@ class API():
                    ("APIVersion", c.c_int, 1, version),
                    ("ConfigPath", c.c_char_p, 1, c.c_char_p(self.config_dir)),
                    ("DataPath", c.c_char_p, 1, c.c_char_p(self.data_dir)),
-                   ("Context", c.c_void_p, 1, c.cast(b"Debug", c.c_void_p)),
+                   ("Context", c.c_void_p, 1, c.cast(b"Core", c.c_void_p)),
                    ("DebugCallback", c.c_void_p , 2, wrp_cb.CB_DEBUG),
                    ("Context2", c.c_void_p, 1, c.cast(b"State", c.c_void_p)),
                    ("StateCallback", c.c_void_p , 2, g.CB_STATE))
@@ -209,7 +210,6 @@ class API():
     ## Command
     def CoreDoCommand(self, command, arg1=None, arg2=None):
         #m64p_error CoreDoCommand(m64p_command Command, int ParamInt, void *ParamPtr)
-        print(wrp_dt.m64p_command(command).name)
         function = wrp_dt.cfunc("CoreDoCommand", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("Command", c.c_int, 1, command),
                         ("ParamInt", c.c_int, 1, arg1),
@@ -219,6 +219,7 @@ class API():
         status = function()
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            log.debug(f"CoreDoCommand: {wrp_dt.m64p_command(command).name}")
             return status
         else:
             self.CoreErrorMessage(status, wrp_dt.m64p_command(command).name.encode("utf-8"))
@@ -915,7 +916,7 @@ class API():
             maxsize = 256
             paramvalue = c.create_string_buffer(maxsize)
         else:
-            print("ConfigGetParameter: Unknown parameter type")
+            log.warning("ConfigGetParameter: Unknown parameter type")
 
         function = wrp_dt.cfunc("ConfigGetParameter", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("ConfigSectionHandle", c.c_void_p, 2, self.config_handle),
@@ -1216,7 +1217,7 @@ class API():
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_OPEN.value, self.rom_size, c.byref(self.rom_buffer))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Open ROM file failed!")
+            log.error("CoreDoCommand: Open ROM file failed!")
 
         return status
 
@@ -1232,7 +1233,7 @@ class API():
         self.rom_buffer = None
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Close ROM file failed!")
+            log.error("CoreDoCommand: Close ROM file failed!")
         return status
 
     def rom_get_header(self):
@@ -1291,7 +1292,7 @@ class API():
                   "manufacturer": manufacturer, "cartridge": cartridge, "country": country}
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Couldn't retrieve the ROM's header.")
+            log.error("CoreDoCommand: Couldn't retrieve the ROM's header.")
             return status
         else:
             #print(header)
@@ -1315,7 +1316,7 @@ class API():
                     "status": m64pstatus, "players": players, "rumble": rumble}
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Couldn't retrieve the ROM's settings.")
+            log.error("CoreDoCommand: Couldn't retrieve the ROM's settings.")
             return status
         else:
             #print(settings)
@@ -1325,28 +1326,28 @@ class API():
         #M64CMD_EXECUTE = 5
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_EXECUTE.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to execute")
+            log.error("CoreDoCommand: Unable to execute")
         return status
 
     def stop(self):
         #M64CMD_STOP = 6
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STOP.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to stop emulation")
+            log.error("CoreDoCommand: Unable to stop emulation")
         return status
 
     def pause(self):
         #M64CMD_PAUSE = 7
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_PAUSE.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to pause emulation")
+            log.error("CoreDoCommand: Unable to pause emulation")
         return status
 
     def resume(self):
         #M64CMD_RESUME = 8
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_RESUME.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to resume emulation")
+            log.error("CoreDoCommand: Unable to resume emulation")
         return status
 
     def core_state_query(self, query):
@@ -1356,7 +1357,7 @@ class API():
         state_param = c.c_void_p()
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_QUERY.value, c.c_int(query), c.byref(state_param))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to query the core")
+            log.error("CoreDoCommand: Unable to query the core")
         return state_param.value
 
     def state_load(self, path=None):
@@ -1367,7 +1368,7 @@ class API():
             path_param = c.c_char_p()
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_LOAD.value, c.c_int(), path_param)
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to load the state save")
+            log.error("CoreDoCommand: Unable to load the state save")
         return status
 
     def state_save(self, path=None, save_type=1):
@@ -1379,7 +1380,7 @@ class API():
             path_param = c.c_char_p()
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_SAVE.value, c.c_int(save_type), path_param)
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to make a state save")
+            log.error("CoreDoCommand: Unable to make a state save")
         return status
 
     def state_set_slot(self, slot):
@@ -1387,7 +1388,7 @@ class API():
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_SET_SLOT.value, c.c_int(slot), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to change the state save slot")
+            log.error("CoreDoCommand: Unable to change the state save slot")
         else:
             self.current_slot = slot
         return status
@@ -1396,14 +1397,14 @@ class API():
         #M64CMD_SEND_SDL_KEYDOWN = 13
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYDOWN.value, c.c_int(key), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to send SDL key down signal")
+            log.error("CoreDoCommand: Unable to send SDL key down signal")
         return status
 
     def send_sdl_keyup(self, key):
         #M64CMD_SEND_SDL_KEYUP = 14
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYUP.value, c.c_int(key), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to send SDL key up signal")
+            log.error("CoreDoCommand: Unable to send SDL key up signal")
         return status
 
     def set_frame_callback(self, frame_cb):
@@ -1411,7 +1412,7 @@ class API():
         #TODO: UNTESTED, int is ignored, pointer to m64p_frame_callback object
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SET_FRAME_CALLBACK.value, c.c_int(), c.byref(frame_cb))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to set up the frame callback")
+            log.error("CoreDoCommand: Unable to set up the frame callback")
         return status
 
     def take_next_screenshot(self):
@@ -1419,7 +1420,7 @@ class API():
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_TAKE_NEXT_SCREENSHOT.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to take screenshot")
+            log.error("CoreDoCommand: Unable to take screenshot")
         return status
 
     def core_state_set(self, query, value):
@@ -1429,7 +1430,7 @@ class API():
         valueptr = c.byref(c.c_int(value))
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_SET.value, c.c_int(query), valueptr)
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to set the core state")
+            log.error("CoreDoCommand: Unable to set the core state")
         return status
 
     def read_screen(self, buffer_type, buffer_ptr):
@@ -1437,7 +1438,7 @@ class API():
         #TODO: UNTESTED
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_READ_SCREEN.value, c.c_int(buffer_type), c.byref(c.c_void_p(buffer_ptr)))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to read the screen")
+            log.error("CoreDoCommand: Unable to read the screen")
         return status
 
     def reset(self, reset):
@@ -1445,7 +1446,7 @@ class API():
         #reset: soft = 0, hard = 1
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_RESET.value, c.c_int(reset))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to reset emulation")
+            log.error("CoreDoCommand: Unable to reset emulation")
         return status
 
     def advance_frame(self):
@@ -1453,7 +1454,7 @@ class API():
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ADVANCE_FRAME.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to advance by one frame")
+            log.error("CoreDoCommand: Unable to advance by one frame")
         return status
 
     def set_media_loader(self):
@@ -1461,7 +1462,7 @@ class API():
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SET_MEDIA_LOADER.value, c.c_int(c.sizeof(self.media_loader)), c.byref(self.media_loader))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            print("CoreDoCommand: Unable to set the media loader. This means that the Transfer Pak or the 64DD won't work.")
+            log.error("CoreDoCommand: Unable to set the media loader. This means that the Transfer Pak or the 64DD won't work.")
         return status
 
     ####################
@@ -1475,7 +1476,7 @@ class API():
                 self.compatible = True
 
         except:
-            print("Core: mupen64plus library hasn't been found")
+            log.error("Core: mupen64plus library hasn't been found")
             self.lock = True
 
     def plugins_startup(self):
@@ -1517,45 +1518,45 @@ class API():
             try:
                 self.m64p_lib_gfx = c.cdll.LoadLibrary(self.plugins_dir + self.gfx_filename)
             except:
-                print(self.gfx_filename + ": Plugin cannot be used. Dummy plugin is used instead, which means no video.")
+                log.error(f"{self.gfx_filename}: Plugin cannot be used. Dummy plugin is used instead, which means no video.")
                 self.gfx_filename = "dummy"
 
         try:
             self.m64p_lib_audio = c.cdll.LoadLibrary(self.plugins_dir + self.audio_filename)
         except:
-            print(self.audio_filename + ": Plugin not found, cannot be used. Default plugin is used instead.")
+            log.error(f"{self.audio_filename }: Plugin not found, cannot be used. Default plugin is used instead.")
             self.m64p_lib_audio = c.cdll.LoadLibrary(self.plugins_dir + 'mupen64plus-audio-hle' + self.extension_filename)
         try:
             self.m64p_lib_input = c.cdll.LoadLibrary(self.plugins_dir + self.input_filename)
         except:
-            print(self.input_filename + ": Plugin not found, cannot be used. Default plugin is used instead.")
+            log.error(f"{self.input_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
             self.m64p_lib_input = c.cdll.LoadLibrary(self.plugins_dir + 'mupen64plus-input-sdl.so' + self.extension_filename)
         try:
             self.m64p_lib_rsp = c.cdll.LoadLibrary(self.plugins_dir + self.rsp_filename)
         except:
-            print(self.rsp_filename + ": Plugin not found, cannot be used. Default plugin is used instead.")
+            log.error(f"{self.rsp_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
             self.m64p_lib_rsp = c.cdll.LoadLibrary(self.plugins_dir + 'mupen64plus-rsp-hle.so' + self.extension_filename)
 
     def initialise(self):
         if self.compatible == True:
             self.CoreStartup(self.frontend_api_version)
-            print(self.ConfigGetSharedDataFilepath("mupen64plus.ini"))
-            print(self.ConfigGetUserConfigPath())
-            print(self.ConfigGetUserDataPath())
-            print(self.ConfigGetUserCachePath())
+            log.debug(self.ConfigGetSharedDataFilepath("mupen64plus.ini"))
+            log.debug(self.ConfigGetUserConfigPath())
+            log.debug(self.ConfigGetUserDataPath())
+            log.debug(self.ConfigGetUserCachePath())
 
             self.plugins_preload()
             self.plugins_startup()
 
         else:
-            print("Error! Either the actual core is not compatible or something has gone wrong.")
+            log.error("Error! Either the actual core is not compatible or something has gone wrong.")
 
     def run(self, rom):
         if self.vext_override == True:
             self.CoreOverrideVidExt()
-            print("Core: Vidext is now enabled!")
+            log.debug("Core: Vidext is now enabled!")
         else:
-            print("Core: Vidext should be disabled.")
+            log.debug("Core: Vidext should be disabled.")
 
         retval = self.rom_open(rom)
         if retval == 0:
@@ -1592,7 +1593,7 @@ class API():
             self.extension_filename = ".dylib"
             directory = p.glob('*.dylib')
         else:
-            print("Warning: Your system is not supported")
+            log.warning("Warning: Your system is not supported")
             self.extension_filename = ".so"
             directory = p.glob('*.so*')
 
@@ -1613,4 +1614,4 @@ class API():
                 else:
                     print("Unknown plugin")
             except:
-                print(filename + ": Plugin not working or not compatible, skipping it.")
+                log.warning(f"{filename}: Plugin not working or not compatible, skipping it.")

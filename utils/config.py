@@ -9,6 +9,7 @@
 #############
 
 import configparser, os.path
+import logging as log
 
 ###############
 ## VARIABLES ##
@@ -50,10 +51,10 @@ class Configuration():
             try:
                 self.load()
             except:
-                print("Cannot load", self.config_file)
+                log.warning("Cannot load", self.config_file)
         else:
             self.default()
-            print(self.config_file, " NOT found! Creating new config file.")
+            log.warning(f"{self.config_file} NOT found! Creating new config file.")
 
     def open_section(self, section):
         self.section = section
@@ -83,7 +84,8 @@ class FrontendConf(Configuration):
                             'AudioPlugin': 'mupen64plus-audio-sdl.so',
                             'InputPlugin': 'mupen64plus-input-sdl.so',
                             'RSPPlugin': 'mupen64plus-rsp-hle.so',
-                            'VidExt': 'False',
+                            'VidExt': 'True',
+                            'LogLevel': '20',
                             'TrueFullscreen': 'False'
                             }
         self.config['GameDirs'] = {'path1': '',

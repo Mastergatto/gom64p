@@ -9,7 +9,8 @@
 #############
 import ctypes as c
 from gi.repository import Gtk
-import sys
+import sys, time
+import logging as log
 
 import external.sdl2 as sdl
 import wrapper.datatypes as wrp_dt
@@ -40,7 +41,7 @@ class Vidext():
         self.window = window
 
     def video_init(self):
-        print("Vidext: video_init()")
+        log.debug("Vidext: video_init()")
         #source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L34
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO)
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK) #TODO: Is it really necessary?
@@ -50,11 +51,11 @@ class Vidext():
             if (display.w, display.h) not in self.modes:
                 self.modes.append((display.w, display.h))
 
-        print(self.modes)
+        log.debug(self.modes)
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_quit(self):
-        print("Vidext: video_quit()")
+        log.debug("Vidext: video_quit()")
         sdl.SDL_GL_DeleteContext(self.sdl_context)
         sdl.SDL_DestroyWindow(self.foreign_window)
         sdl.SDL_Quit()
@@ -62,11 +63,12 @@ class Vidext():
             self.window.set_title(self.title)
         self.window.set_resizable(True)
         self.window.canvas.set_size_request(1, 1) # First we must lift the restriction on the minimum size of the widget
+        time.sleep(0.1) #Workaround?
         self.window.resize(self.former_size[0], self.former_size[1])
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_list_modes(self, sizearray, numsizes):
-        print("Vidext: video_list_modes(sizearray:", sizearray, "numsizes", numsizes,")")
+        log.debug(f"Vidext: video_list_modes(sizearray: {sizearray}, {numsizes}, {numsizes}")
         # source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L80
         numsizes.contents.value = len(self.modes)
         for num, mode in enumerate(self.modes):
@@ -76,8 +78,7 @@ class Vidext():
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_set_mode(self, width, height, bits, screenmode, flags):
-        print("Vidext: video_set_mode(width:" + str(width) + ", height:" + str(height) + ", bits:" + str(bits) +
-               ", screenmode:" + wrp_dt.m64p_video_mode(screenmode).name + ", flags:" + wrp_dt.m64p_video_flags(flags).name + ")")
+        log.debug(f"Vidext: video_set_mode(width: {str(width)}, height: {str(height)}, bits: {str(bits)}, screenmode: {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
 
         self.width = width
         self.height = height
@@ -105,27 +106,29 @@ class Vidext():
             drawingareawnd = self.window.canvas.get_property("window")
             # make sure to call ensure_native before e.g. on realize
             if not drawingareawnd.has_native():
-                print("Your window is gonna freeze as soon as you move or resize it...")
+                log.warning("Vidext: Your window is gonna freeze as soon as you move or resize it...")
             c.pythonapi.PyCapsule_GetPointer.restype = c.c_void_p
             c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
             drawingarea_gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareawnd.__gpointer__, None)
             # get the win32 handle
-            gdkdll = ctypes.CDLL("libgdk-3-0.dll")
-            hnd = gdkdll.gdk_win32_window_get_handle(drawingarea_gpointer)
-            self.foreign_window = sdl.SDL_CreateWindowFrom(hdn)
+            libgdk = ctypes.CDLL("libgdk-3-0.dll")
+            handle = libgdk.gdk_win32_window_get_handle(drawingarea_gpointer)
+            self.foreign_window = sdl.SDL_CreateWindowFrom(handle)
         elif sys.platform == 'darwin':
             # https://gitlab.gnome.org/GNOME/pygobject/issues/112
             drawingareawnd = self.window.canvas.get_property("window")
             # make sure to call ensure_native before e.g. on realize
             if not drawingareawnd.has_native():
-                print("Your window is gonna freeze as soon as you move or resize it...")
-            c.pythonapi.PyCapsule_GetPointer.restype = c.c_void_p
-            c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
-            drawingarea_gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareawnd.__gpointer__, None)
-            # get the win32 handle
-            gdkdll = ctypes.CDLL("libgdk-3-0.dylib")
-            hnd = gdkdll.gdk_quartz_window_get_nswindow(drawingarea_gpointer)
-            self.foreign_window = sdl.SDL_CreateWindowFrom(hdn)
+                log.warning("Vidext: Your window is gonna freeze as soon as you move or resize it...")
+            ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
+            ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object]
+            gpointer = ctypes.pythonapi.PyCapsule_GetPointer(window.__gpointer__, None)
+            libgdk = ctypes.CDLL ("libgdk-3.dylib")
+            libgdk.gdk_quartz_window_get_nsview.restype = ctypes.c_void_p
+            libgdk.gdk_quartz_window_get_nsview.argtypes = [ctypes.c_void_p]
+            handle = libgdk.gdk_quartz_window_get_nsview(gpointer)
+
+            self.foreign_window = sdl.SDL_CreateWindowFrom(handle)
 
         # XXX: since SDL_window is a pointer, we can't set flags normally with Python, so we use the special function pointer() so that we can modify directly it.
         ### HACK: we have to wrapper SDL_Window struct so that we can make it expose its fields to be modified. Thus we add the SDL_WINDOW_OPENGL flag to it.
@@ -141,10 +144,10 @@ class Vidext():
         sdl.SDL_GL_MakeCurrent(self.foreign_window, self.sdl_context)
         #print(sdl.SDL_GetError())
 
-        print("video_set_mode context:", self.sdl_context)
+        log.debug(f"video_set_mode context: {self.sdl_context}")
         if self.sdl_context != None:
             self.sdl_context2 = sdl.SDL_GL_GetCurrentContext()
-            print("Context SDL:", self.sdl_context, self.sdl_context2)
+            log.debug(f"Context SDL: {self.sdl_context}, {self.sdl_context2}")
 
             self.info = sdl.SDL_SysWMinfo()
             #version = sdl.SDL_VERSION(c.byref(info.version))
@@ -165,7 +168,7 @@ class Vidext():
             #print(sdl.SDL_GetError())
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            print("Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL")
+            log.error("Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_get_proc(self, proc):
@@ -173,11 +176,11 @@ class Vidext():
         if address is not None:
             return address
         else:
-            print("Vidext: gl_get_proc(" + proc.decode() + ") returns None")
+            log.error(f"Vidext: gl_get_proc({proc.decode()}) returns None")
 
     def gl_get_attr(self, attr, pvalue):
         attr = wrp_dt.m64p_GLattr(attr).name
-        print("Vidext: gl_get_attr(attr:" + attr + ", pvalue:" + str(pvalue.contents.value) + ")")
+        log.info(f"Vidext: gl_get_attr(attr:{attr}, pvalue:{str(pvalue.contents.value)})")
         value = None
 
         if attr == 'M64P_GL_DOUBLEBUFFER':
@@ -212,12 +215,12 @@ class Vidext():
         if value == pvalue.contents.value:
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            print("Vidext: gl_get_attr() has reported M64ERR_SYSTEM_FAIL, value is", value)
+            log.error(f"Vidext: gl_get_attr() has reported M64ERR_SYSTEM_FAIL, value is: {value}")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_set_attr(self, attr, value):
         attr = wrp_dt.m64p_GLattr(attr).name
-        print("Vidext: gl_set_attr(attr: "+ str(attr) + ", value:" + str(value) + ")")
+        log.info(f"INFO - Vidext.gl_set_attr(): attr '{str(attr)}'; value '{str(value)}'")
 
         if attr == 'M64P_GL_DOUBLEBUFFER':
             sdl.SDL_GL_SetAttribute(sdl.SDL_GL_DOUBLEBUFFER, value)
@@ -252,7 +255,7 @@ class Vidext():
 
     def gl_swap_buffer(self):
         #XXX: It can spam this message in the output, better turn off it.
-        #print("Vidext: gl_swap_buffer()")
+        #log.debug("Vidext: gl_swap_buffer()")
         if self.fullscreen == 1:
             sdl.SDL_GL_SwapWindow(self.fullscreen_window)
         else:
@@ -261,20 +264,23 @@ class Vidext():
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_set_caption(self, title):
-        print("Vidext: video_set_caption(" + title.decode("utf-8") + ")")
+        log.debug(f"Vidext: video_set_caption({title.decode('utf-8')})")
         self.title = self.window.get_title()
         self.window.set_title(title.decode("utf-8"))
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_toggle_fs(self):
-        print("Vidext: video_toggle_fs()")
+        log.debug("Vidext: video_toggle_fs()")
         if self.fullscreen == 0:
+            # Makes it fullscreen
             self.fullscreen = 1
             # XXX: SDL_WINDOW_FULLSCREEN is a bit overkill, because it changes the desktop's resolution too.
+            #self.fullscreen_window = sdl.SDL_CreateWindow(b"Fullscreen", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED, 1920, 1080, sdl.SDL_WINDOW_OPENGL)
             self.fullscreen_window = sdl.SDL_CreateWindow(b"Fullscreen", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED, self.width, self.height, sdl.SDL_WINDOW_OPENGL)
             sdl.SDL_SetWindowFullscreen(self.fullscreen_window, sdl.SDL_WINDOW_FULLSCREEN_DESKTOP)
             sdl.SDL_GL_MakeCurrent(self.fullscreen_window, self.sdl_context)
         else:
+            # Makes the screen back to normal size.
             # FIXME: Investigate why it doesn't set back the resolution
             self.fullscreen = 0
             #sdl.SDL_SetWindowSize(self.fullscreen_window, 1920, 1080)
@@ -287,11 +293,11 @@ class Vidext():
 
     def video_resize_window(self, width, height):
         #This reacts to the resizing of the window with the cursor
-        print("Vidext: video_resize_window(width:" + str(width) + " height:" + str(height) + ")")
+        log.debug("Vidext: video_resize_window(width: {str(width)}, height: {str(height)})")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_get_fb_name(self):
-        print("Vidext: video_get_fb_name()")
+        log.debug("Vidext: video_get_fb_name()")
         return 0
 
 

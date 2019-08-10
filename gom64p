@@ -39,6 +39,8 @@ from gettext import gettext as _
 
 import widget.window as w_main
 import global_module as g
+import logging as log
+import utils.logging as u_log
 
 ###############
 ## FUNCTIONS ##
@@ -64,6 +66,8 @@ class GoodOldM64pApp(Gtk.Application):
         self.args = None
         #g.m64p_dir = os.getcwd()
         g.m64p_dir = os.path.dirname(os.path.abspath(__file__))
+        self.logger = u_log.Logger()
+        log.debug(f"GTK+ version: {str(Gtk.MAJOR_VERSION)}.{str(Gtk.MINOR_VERSION)}.{str(Gtk.MICRO_VERSION)}")
 
     def do_startup(self):
         '''
@@ -86,7 +90,7 @@ class GoodOldM64pApp(Gtk.Application):
         this is triggered when self.quit() is called.
         '''
 
-        print("Closing...")
+        log.debug("Closing...")
         g.frontend_conf.write()
         #TODO: There's anything left to do?
         Gtk.Application.do_shutdown(self)
@@ -123,14 +127,11 @@ class GoodOldM64pApp(Gtk.Application):
 
 
 if __name__ == "__main__":
-    print("GTK+ version: " + str(Gtk.MAJOR_VERSION) + "." +
-                          str(Gtk.MINOR_VERSION) + "." + str(Gtk.MICRO_VERSION))
     # Keep GTK+ from mixing languages
     #Locale.setlocale(Locale.LC_MESSAGES, "C")
 
     # Since GTK+ does not support KeyboardInterrupt, reset SIGINT to default.
     #Signal.signal(Signal.SIGINT, Signal.SIG_DFL)
-
     application = GoodOldM64pApp()
     exit_status = application.run(sys.argv)
     sys.exit(exit_status)

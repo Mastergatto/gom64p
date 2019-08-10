@@ -10,6 +10,7 @@
 from gi.repository import Gtk
 import os.path
 import ctypes as c
+import logging as log
 
 import global_module as g
 import widget.dialog as w_dialog
@@ -206,7 +207,7 @@ class MediaDialog(Gtk.Dialog):
             if g.m64p_wrapper.ConfigGetParameter(param) != None:
                 entry.set_text(g.m64p_wrapper.ConfigGetParameter(param))
         except KeyError:
-            print(param, "not found. Creating it.")
+            log.warning(f"{param} not found. Creating it.")
             g.m64p_wrapper.ConfigSetDefaultString(param, "", help)
 
         entry.connect("changed", self.on_entry_changed, param)
@@ -235,7 +236,7 @@ class MediaDialog(Gtk.Dialog):
             self.apply_button.set_sensitive(True)
             entry.set_text(self.filename)
         else:
-            print('Dialog is canceled.')
+            log.debug('Media dialog is canceled.')
 
     def on_search_64dd_path(self, widget, entry, mem):
         dialog = w_dialog.FileChooserDialog(self.media_window, "64dd", mem)
@@ -245,7 +246,7 @@ class MediaDialog(Gtk.Dialog):
             self.apply_button.set_sensitive(True)
             entry.set_text(self.filename)
         else:
-            print('Dialog is canceled.')
+            log.debug('Media dialog is canceled.')
 
 class N64DD_Dialog(Gtk.Dialog):
     #TODO: Unused, maybe delete later?

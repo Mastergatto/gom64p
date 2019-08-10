@@ -8,7 +8,7 @@
 ## MODULES ##
 #############
 from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
-import os.path, threading, time
+import os.path, threading, time, pathlib
 
 import global_module as g
 import wrapper.callback as cb
@@ -681,7 +681,7 @@ class PluginDialog(Gtk.Dialog):
             self.binding(widget, param, device, name, controller, True)
 
     def insert_image(self, file, size):
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(file, size, -1, True)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(file)), size, -1, True)
         image = Gtk.Image.new_from_pixbuf(pixbuf)
         return image
 

@@ -9,6 +9,7 @@
 #############
 import platform, pathlib
 import ctypes.util as cu
+import logging as log
 
 import global_module as g
 
@@ -46,7 +47,7 @@ class Platform:
             library = cu.find_library("mupen64plus")
             print(library)
         else:
-            print("Platform not supported.")
+            log.warning("Platform not supported.")
 
 
     def find_library_so(self, name):

@@ -8,9 +8,10 @@
 ## MODULES ##
 #############
 from gi.repository import Gtk, Gdk, GObject, GLib, GdkPixbuf
-import sys, os, os.path, threading, ast, hashlib, time
+import sys, os, os.path, threading, ast, hashlib, time, pathlib
 
 import global_module as g
+import logging as log
 
 ###############
 ## VARIABLES ##
@@ -26,6 +27,7 @@ class List:
         self.recent_manager = Gtk.RecentManager.get_default()
         self.selected_game = None
         self.rom_list = None
+        self.parsed_list = None
 
         self.cache = Cache(self.parent)
         self.rom_list = ast.literal_eval(g.cache.generated_list)
@@ -38,23 +40,23 @@ class List:
         size_rating = 76 * self.parent.get_scale_factor()
         new_list = []
 
-        usa = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/united-states.svg", size_flag, -1, True)
-        japan = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/japan.svg", size_flag, -1, True)
-        jpn_usa = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/us-jp.svg", size_flag, -1, True)
-        europe = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/european-union.svg", size_flag, -1, True)
-        australia = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/australia.svg", size_flag, -1, True)
-        france = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/france.svg", size_flag, -1, True)
-        germany = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/germany.svg", size_flag, -1, True)
-        italy = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/italy.svg", size_flag, -1, True)
-        spain = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/spain.svg", size_flag, -1, True)
-        unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/unknown.svg", size_flag, -1, True)
+        usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/united-states.svg")), size_flag, -1, True)
+        japan = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/japan.svg")), size_flag, -1, True)
+        jpn_usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/us-jp.svg")), size_flag, -1, True)
+        europe = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/european-union.svg")), size_flag, -1, True)
+        australia = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/australia.svg")), size_flag, -1, True)
+        france = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/france.svg")), size_flag, -1, True)
+        germany = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/germany.svg")), size_flag, -1, True)
+        italy = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/italy.svg")), size_flag, -1, True)
+        spain = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/spain.svg")), size_flag, -1, True)
+        unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/unknown.svg")), size_flag, -1, True)
 
-        zero = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating0.svg", size_rating, -1, True)
-        one = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating1.svg", size_rating, -1, True)
-        two = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating2.svg", size_rating, -1, True)
-        three = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating3.svg", size_rating, -1, True)
-        four = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating4.svg", size_rating, -1, True)
-        five = GdkPixbuf.Pixbuf.new_from_file_at_scale("ui/icons/rating5.svg", size_rating, -1, True)
+        zero = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating0.svg")), size_rating, -1, True)
+        one = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating1.svg")), size_rating, -1, True)
+        two = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating2.svg")), size_rating, -1, True)
+        three = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating3.svg")), size_rating, -1, True)
+        four = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating4.svg")), size_rating, -1, True)
+        five = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating5.svg")), size_rating, -1, True)
 
         for i in self.rom_list:
             flag = i[0]
@@ -96,16 +98,16 @@ class List:
 
             i = tuple(j)
             new_list += [i]
-        self.rom_list = new_list
+        self.parsed_list = new_list
 
     def generate_liststore(self):
         if self.rom_list != None:
             self.romlist_store_model.clear()
             self.convert()
-            for game in self.rom_list:
+            for game in self.parsed_list:
                 self.romlist_store_model.append(list(game))
         else:
-            print("Rombrowser:The list is empty!")
+            log.warning("Rombrowser:The list is empty!")
 
     def game_filter_func(self, model, iterator, data):
         #in the second brackets the value correspond to that of a column
@@ -120,15 +122,15 @@ class List:
         self.romlist_store_model = Gtk.ListStore(GdkPixbuf.Pixbuf, str, GdkPixbuf.Pixbuf, str, str)
 
         if self.is_cache_validated == False:
-            print("The cache is NOT validated! Checking the list...")
+            log.info("The cache is NOT validated! Checking the list...")
             if self.rom_list != []:
-                print("Rom list is not empty! Updating...")
+                log.info("Rom list is not empty! Updating...")
                 self.cache.update()
             else:
-                print("Rom list is empty! Generating....")
+                log.info("Rom list is empty! Generating....")
                 self.cache.generate()
         else:
-            print("The cache is validated!")
+            log.info("The cache is validated!")
 
         self.generate_liststore()
         self.game_search_current = ""
@@ -161,7 +163,7 @@ class List:
                 self.romlist_store_model.set_sort_column_id(1,0)
                 #column.set_sort_order(1)
             self.treeview.append_column(column)
-        #self.treeview.get_selection().connect('changed', self.on_row_select)
+        self.treeview.get_selection().connect('changed', self.on_row_select)
         self.treeview.connect('row-activated', self.on_row_activated)
         self.treeview.connect('button_press_event', self.mouse_click)
 
@@ -171,10 +173,9 @@ class List:
         return self.treeview_win_scrollable
 
     def on_row_select(self, selection):
-        #TODO: UNUSED, to be deleted in future
         model, treeiter = selection.get_selected()
         if treeiter != None:
-            print("You selected", model[treeiter][0])
+            log.debug(f'You selected {model[treeiter][3]}')
 
     def on_row_activated(self, treeview, treepath, column):
         model = treeview.get_model()
@@ -190,7 +191,7 @@ class List:
                 thread.start()
                 return thread
             except:
-                print("The emulation thread has encountered an unexpected error")
+                log.error("The emulation thread has encountered an unexpected error")
                 threading.main_thread()
 
     def on_playitem_activated(self, widget):
@@ -205,7 +206,7 @@ class List:
                 thread.start()
                 return thread
             except:
-                print("The emulation thread has encountered an unexpected error")
+                log.error("The emulation thread has encountered an unexpected error")
                 threading.main_thread()
 
     def menu(self):
@@ -231,7 +232,7 @@ class List:
 
                 selection = tv.get_selection()
                 (model, treeiter) = selection.get_selected()
-                print("You selected", model[treeiter][3])
+                log.debug(f"You selected {model[treeiter][3]}")
                 self.selected_game = model[treeiter][3]
 
                 self.treeview_menu.show_all()
@@ -274,7 +275,7 @@ class Cache:
             self.thread.start()
             return self.thread
         except:
-            print("Cache: The 'scan' thread has encountered an unexpected error.")
+            log.error("Cache: The 'scan' thread has encountered an unexpected error.")
             threading.main_thread()
 
     def get_total_elements(self):
@@ -389,7 +390,7 @@ class Cache:
             self.thread.start()
             return self.thread
         except:
-            print("Cache: The 'update' thread has encountered an unexpected error")
+            log.error("Cache: The 'update' thread has encountered an unexpected error")
             threading.main_thread()
 
     def validate(self):

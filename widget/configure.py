@@ -9,6 +9,7 @@
 #############
 from gi.repository import Gtk
 import os.path
+import logging as log
 
 import global_module as g
 import widget.dialog as w_dialog
@@ -540,7 +541,7 @@ class ConfigDialog(Gtk.Dialog):
             g.m64p_wrapper.ConfigOpenSection('Video-General')
             g.m64p_wrapper.ConfigSetParameter('Rotate', int(widget_id))
         else:
-            print("Config: Unknown parameter.")
+            log.warning(f"Config: Unknown parameter '{param}'")
 
     def on_checkbox_toggled(self, widget, section, param):
         self.is_changed = True
@@ -552,7 +553,7 @@ class ConfigDialog(Gtk.Dialog):
             elif widget.get_active() == False:
                 g.frontend_conf.set(param, "False")
             else:
-                print("Config: Unexpected error")
+                log.error("Config: Unexpected error")
         else:
             g.m64p_wrapper.ConfigOpenSection(section)
             if widget.get_active() == True:
@@ -560,7 +561,7 @@ class ConfigDialog(Gtk.Dialog):
             elif widget.get_active() == False:
                 g.m64p_wrapper.ConfigSetParameter(param, False)
             else:
-                print("Config: Unexpected error")
+                log.error("Config: Unexpected error")
 
     def on_spinbutton_changed(self, widget, section, param):
         self.is_changed = True
@@ -598,7 +599,7 @@ class ConfigDialog(Gtk.Dialog):
         else:
             g.m64p_wrapper.ConfigOpenSection(section)
             g.m64p_wrapper.ConfigSetParameter(param, value)
-        #print(section, param, value)
+        log.debug(f"{section}, {param}, {value}")
 
     def revert(self):
         self.is_changed = False

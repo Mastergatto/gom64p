@@ -9,6 +9,7 @@
 #############
 from gi.repository import Gtk
 import global_module as g
+import logging as log
 
 #############
 ## CLASSES ##
@@ -48,7 +49,7 @@ class FileChooserDialog(Gtk.FileChooserDialog):
                 self.path = dialog.get_filename() + "\\" #Untested
             else:
                 self.path = dialog.get_filename() + "/"
-            print("Directory selected: " + self.path)
+            log.debug(f"Directory selected: {self.path}")
         dialog.destroy()
 
     def rom_chooser(self, parent):
@@ -75,7 +76,7 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         response = dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
-            print("File selected: " + self.path)
+            log.debug(f"File selected: {self.path}")
             #return self.path
         elif response == Gtk.ResponseType.CANCEL:
             pass
@@ -106,7 +107,7 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         response = dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
-            print("File selected: " + self.path)
+            log.debug(f"File selected: {self.path}")
             #return self.path
         dialog.destroy()
 
@@ -136,7 +137,7 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         response = dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
-            print("File selected: " + self.path)
+            log.debug(f"File selected: {self.path}")
             #return self.path
         dialog.destroy()
 
@@ -163,7 +164,7 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         response = dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
-            print("File selected: " + self.path)
+            log.debug(f"File selected: {self.path}")
             #return self.path
         dialog.destroy()
 
@@ -198,7 +199,7 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
             #self.ret_type =
-            print("File selected: " + self.path)
+            log.debug(f"File selected: {self.path}")
             #return self.path
         dialog.destroy()
 
@@ -225,7 +226,7 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         response = dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
-            print("File selected: " + self.path)
+            log.debug(f"File selected: {self.path}")
             #return self.path
         dialog.destroy()
 
