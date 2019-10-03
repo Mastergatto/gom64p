@@ -279,7 +279,7 @@ class Scancodes(Enum):
 def keysym2sdl(param):
     switch = {
         ### https://github.com/xkbcommon/libxkbcommon/blob/master/test/evdev-scancodes.h
-        ### <gtk keycode value>: <sdl scancode value>, #<character present on US keyboard>
+        ### <gtk keycode value + 8>: <sdl scancode value>, #<character present on US keyboard>
         0: 'SDL_SCANCODE_UNKNOWN',
         9: 'SDL_SCANCODE_ESCAPE', # Escape
         10: 'SDL_SCANCODE_1', # 1
@@ -420,20 +420,47 @@ def keysym2sdl(param):
         #146: '', # AL Integrated Help Center
         #147: '', # Menu (show menu)
         148: 'SDL_SCANCODE_CALCULATOR', # Calculator
-
+        #149: '', # Setup?
+        #150: '', # SC System Sleep
+        #151: '', # System Wake Up
+        #152: '', # AL Local Machine Browser
+        #153: '', # SENDFILE
+        #154: '', # DELETEFILE
+        #155: '', # XFER
+        #156: '', # PROG1
+        #157: '', # PROG2
+        #158: '', # WWW
+        #159: '', # MSDOS
+        #160: '', # AL Terminal Lock/Screensaver
+        #161: '', # DIRECTION
+        #162: '', # CYCLEWINDOWS
         163: 'SDL_SCANCODE_MAIL', # Email
         164: 'SDL_SCANCODE_AC_BOOKMARKS', # Bookmark
         166: 'SDL_SCANCODE_AC_BACK', # Back
         167: 'SDL_SCANCODE_AC_FORWARD', # Forward
-
+        #168: '', # CLOSECD
+        #169: '', # EJECTCD
+        #170: '', # EJECTCLODECD
         171: 'SDL_SCANCODE_AUDIONEXT', # Next, or it was SDL_SCANCODE_AUDIOFASTFORWARD?
-        172: 'SDL_SCANCODE_AUDIOPLAY', # Play
-        173: 'SDL_SCANCODE_AUDIOPREV', # Previous, or it was SDL_SCANCODE_AUDIOREWIND?
+        172: 'SDL_SCANCODE_AUDIOPLAY', # Play/Pause
+        173: 'SDL_SCANCODE_AUDIOPREV', # Previous
         174: 'SDL_SCANCODE_AUDIOSTOP', # Stop
-
-
+        #175: '', # RECORD
+        #176: 'SDL_SCANCODE_AUDIOREWIND', # REWIND
+        #177: '', # Media Select Telephone
+        #178: '', # ISO
+        #179: '', # AL Consumer Control Configuration
         180: 'SDL_SCANCODE_AC_HOME', # Home
-
+        #181: '', # AC Refresh
+        #182: '', # AC Exit
+        #183: '', # MOVE
+        #184: '', # EDIT
+        #185: '', # SCROLLUP
+        #186: '', # SCROLLDOWN
+        #187: '', # KPLEFTPAREN
+        #188: '', # KPRIGHTPAREN
+        #189: '', # AC New
+        #190: '', # AC Redo/Repeat
         191: 'SDL_SCANCODE_F13', #F13
         192: 'SDL_SCANCODE_F14', #F14
         193: 'SDL_SCANCODE_F15', #F15
@@ -446,10 +473,60 @@ def keysym2sdl(param):
         200: 'SDL_SCANCODE_F22', #F22
         201: 'SDL_SCANCODE_F23', #F23
         202: 'SDL_SCANCODE_F24', #F24
-
-        #213: 'SDL_SCANCODE_SLEEP', # Sleep
+        #203: '', #
+        #204: '', #
+        #205: '', #
+        #206: '', #
+        #207: '', #
+        #208: '', # PLAYCD
+        #209: '', # PAUSECD
+        #210: '', # PROG3
+        #211: '', # PROG4
+        #212: '', # AL Dashboard
+        #213: 'SDL_SCANCODE_SLEEP', # Sleep/suspend
+        #214: '', # AC Close
+        #215: '', # PLAY
+        #216: '', # FASTFORWARD
+        #217: '', # BASSBOOST
+        #218: '', # AC Print
+        #219: '', # HP
+        #220: '', # CAMERA
+        #221: '', # SOUND
+        #222: '', # QUESTION
+        #223: '', # EMAIL
+        #224: '', # CHAT
         225: 'SDL_SCANCODE_AC_SEARCH', # Search
+        #226: '', # CONNECT
+        #227: '', # AL Checkbook/Finance
+        #228: '', # SPORT
+        #229: '', # SHOP
+        #230: '', # ALTERASE
+        #231: '', # AC Cancel
+        #232: '', # BRIGHTNESSDOWN
+        #233: '', # BRIGHTNESSUP
         234: 'SDL_SCANCODE_MEDIASELECT', # Media
+        #235: '', # SWITCHVIDEOMODE
+        #236: '', # KBDILLUMTOGGLE
+        #237: '', # KBDILLUMDOWN
+        #238: '', # KBDILLUMUP
+        #239: '', # AC Send
+        #240: '', # AC Reply
+        #241: '', # AC Forward Msg
+        #242: '', # AC Save
+        #243: '', # DOCUMENTS
+        #244: '', # BATTERY
+        #245: '', # BLUETOOTH
+        #246: '', # WLAN
+        #247: '', # UWB
+        #248: '', # UNKNOWN
+        #249: '', # VIDEO_NEXT
+        #250: '', # VIDEO_PREV
+        #251: '', # BRIGHTNESS_CYCLE
+        #252: '', # BRIGHTNESS_ZERO
+        #253: '', # DISPLAY_OFF
+        #254: '', # WWAN/WIMAX
+        #255: '', # RFKILL
+        #256: '', # MICMUTE
     }
 
     return Scancodes[switch.get(param, 'SDL_SCANCODE_UNKNOWN')]
