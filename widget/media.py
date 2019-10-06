@@ -12,7 +12,6 @@ import os.path
 import ctypes as c
 import logging as log
 
-import global_module as g
 import widget.dialog as w_dialog
 import widget.plugin as w_plugin
 import wrapper.datatypes as wrp_dt
@@ -24,6 +23,7 @@ import wrapper.datatypes as wrp_dt
 
 class MediaDialog(Gtk.Dialog):
     def __init__(self, parent):
+        self.parent = parent
         self.filename = None
         self.num_controller = None
         self.cb_data = None
@@ -44,7 +44,7 @@ class MediaDialog(Gtk.Dialog):
 
         tpak_grid = Gtk.Grid()
 
-        g.m64p_wrapper.ConfigOpenSection("Transferpak")
+        self.parent.m64p_wrapper.ConfigOpenSection("Transferpak")
 
         player1_rom_label = Gtk.Label("GB game (1):")
         player1_rom = self.insert_entry("GB-rom-1", "Filename of the GB ROM to load into TP 1", "Filename of the GB ROM to load into transferpak 1")
@@ -142,7 +142,7 @@ class MediaDialog(Gtk.Dialog):
 
         n64dd_grid = Gtk.Grid()
 
-        g.m64p_wrapper.ConfigOpenSection("64DD")
+        self.parent.m64p_wrapper.ConfigOpenSection("64DD")
 
         ipl_rom_label = Gtk.Label("IPL ROM:")
         ipl_rom = self.insert_entry("IPL-ROM", "Filename of the IPL ROM, required for 64DD games to work", "Filename of the IPL ROM, required for 64DD games to work")
@@ -180,22 +180,22 @@ class MediaDialog(Gtk.Dialog):
         while response == Gtk.ResponseType.APPLY:
             response = self.media_window.run()
             if response == Gtk.ResponseType.OK:
-                if g.m64p_wrapper.ConfigHasUnsavedChanges("Transferpak") == True:
-                    g.m64p_wrapper.ConfigSaveSection("Transferpak")
-                if g.m64p_wrapper.ConfigHasUnsavedChanges("64DD") == True:
-                    g.m64p_wrapper.ConfigSaveSection("64DD")
+                if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Transferpak") == True:
+                    self.parent.m64p_wrapper.ConfigSaveSection("Transferpak")
+                if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("64DD") == True:
+                    self.parent.m64p_wrapper.ConfigSaveSection("64DD")
 
-                g.m64p_wrapper.set_media_loader()
+                self.parent.m64p_wrapper.set_media_loader()
                 self.media_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 if self.is_changed == True:
                     pass
 
             else:
-                if g.m64p_wrapper.ConfigHasUnsavedChanges("Transferpak") == True:
-                    g.m64p_wrapper.ConfigRevertChanges("Transferpak")
-                if g.m64p_wrapper.ConfigHasUnsavedChanges("64DD") == True:
-                    g.m64p_wrapper.ConfigRevertChanges("64DD")
+                if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Transferpak") == True:
+                    self.parent.m64p_wrapper.ConfigRevertChanges("Transferpak")
+                if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("64DD") == True:
+                    self.parent.m64p_wrapper.ConfigRevertChanges("64DD")
                 self.media_window.destroy()
 
     def insert_entry(self, param, placeholder, help):
@@ -204,11 +204,11 @@ class MediaDialog(Gtk.Dialog):
         entry.set_hexpand(True)
 
         try:
-            if g.m64p_wrapper.ConfigGetParameter(param) != None:
+            if self.parent.m64p_wrapper.ConfigGetParameter(param) != None:
                 entry.set_text(g.m64p_wrapper.ConfigGetParameter(param))
         except KeyError:
             log.warning(f"{param} not found. Creating it.")
-            g.m64p_wrapper.ConfigSetDefaultString(param, "", help)
+            self.parent.m64p_wrapper.ConfigSetDefaultString(param, "", help)
 
         entry.connect("changed", self.on_entry_changed, param)
         return entry
@@ -218,11 +218,11 @@ class MediaDialog(Gtk.Dialog):
         self.apply_button.set_sensitive(True)
         value = widget.get_text()
         if param != "IPL-ROM" and param != "Disk":
-            g.m64p_wrapper.ConfigOpenSection("Transferpak")
+            self.parent.m64p_wrapper.ConfigOpenSection("Transferpak")
         else:
-            g.m64p_wrapper.ConfigOpenSection("64DD")
+            self.parent.m64p_wrapper.ConfigOpenSection("64DD")
 
-        g.m64p_wrapper.ConfigSetParameter(param, value)
+        self.parent.m64p_wrapper.ConfigSetParameter(param, value)
 
     def on_clear_entry(self, widget, entry):
         entry.set_text("")
@@ -268,7 +268,7 @@ class N64DD_Dialog(Gtk.Dialog):
 
         n64dd_grid = Gtk.Grid()
 
-        g.m64p_wrapper.ConfigOpenSection("64DD")
+        self.parent.m64p_wrapper.ConfigOpenSection("64DD")
 
         ipl_rom_label = Gtk.Label("IPL ROM:")
         ipl_rom = self.insert_entry("IPL-ROM", "Filename of the IPL ROM, required for 64DD games to work", "Filename of the IPL ROM, required for 64DD games to work")

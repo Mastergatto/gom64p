@@ -11,7 +11,6 @@ from gi.repository import Gtk, GLib
 import threading
 import logging as log
 
-import global_module as g
 import widget.cheats as w_cheats
 import widget.configure as w_conf
 import widget.dialog as w_dialog
@@ -30,9 +29,9 @@ import wrapper.datatypes as wrp_dt
 
 class Menu:
     def __init__(self, parent):
+        self.parent = parent
         self.rom = None
-        self.active_slot = g.m64p_wrapper.current_slot # Don't ever remove it!
-        self.m64p_window = parent
+        self.active_slot = self.parent.m64p_wrapper.current_slot # Don't ever remove it!
         self.toolbar_call()
         self.menubar_call()
 
@@ -48,7 +47,7 @@ class Menu:
         self.toolbar_load_state = self.insert_toolbar_item("document-revert", False, self.on_LoadStateAction)
 
         self.toolbar_configure = Gtk.ToolButton(icon_name="preferences-system")
-        self.toolbar_configure.connect_object("clicked", w_conf.ConfigDialog, self.m64p_window)
+        self.toolbar_configure.connect_object("clicked", w_conf.ConfigDialog, self.parent)
 
         self.toolbar_fullscreen = self.insert_toolbar_item("view-fullscreen", False, self.on_fullscreen_action)
         self.toolbar_screenshot = self.insert_toolbar_item("camera-photo", False, self.on_screenshot_action)
@@ -155,8 +154,8 @@ class Menu:
             menu_item.connect("activate", self.on_slot_select, i)
 
         self.emulation_menu_current_slot = self.insert_menu_item("Current save state slot", False, None, self.save_slot_menu)
-        self.emulation_menu_cheats = self.insert_menu_item_obj("Cheats", self.return_state_lock(), w_cheats.CheatsDialog, self.m64p_window) #TODO: desensitive it
-        self.emulation_menu_transfer_pak = self.insert_menu_item_obj("Media Loader", self.return_state_lock(), w_media.MediaDialog, self.m64p_window)
+        self.emulation_menu_cheats = self.insert_menu_item_obj("Cheats", self.return_state_lock(), w_cheats.CheatsDialog, self.parent) #TODO: desensitive it
+        self.emulation_menu_transfer_pak = self.insert_menu_item_obj("Media Loader", self.return_state_lock(), w_media.MediaDialog, self.parent)
 
 
         self.emulation_menu.append(self.emulation_menu_play)
@@ -212,11 +211,11 @@ class Menu:
         self.options_menu_label = Gtk.MenuItem(label="Options")
         self.options_menu_label.set_submenu(self.options_menu)
 
-        self.options_menu_configure = self.insert_menu_item_obj("Configure", True, w_conf.ConfigDialog, self.m64p_window)
-        self.options_menu_gfx_configure = self.insert_menu_item_obj("Graphics Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.m64p_window, 'gfx')
-        self.options_menu_audio_configure = self.insert_menu_item_obj("Audio Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.m64p_window, 'audio')
-        self.options_menu_input_configure = self.insert_menu_item_obj("Input Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.m64p_window, 'input')
-        self.options_menu_rsp_configure = self.insert_menu_item_obj("RSP Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.m64p_window, 'rsp')
+        self.options_menu_configure = self.insert_menu_item_obj("Configure", True, w_conf.ConfigDialog, self.parent)
+        self.options_menu_gfx_configure = self.insert_menu_item_obj("Graphics Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.parent, 'gfx')
+        self.options_menu_audio_configure = self.insert_menu_item_obj("Audio Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.parent, 'audio')
+        self.options_menu_input_configure = self.insert_menu_item_obj("Input Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.parent, 'input')
+        self.options_menu_rsp_configure = self.insert_menu_item_obj("RSP Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.parent, 'rsp')
         self.options_menu_fullscreen = self.insert_menu_item("Full screen", False, self.on_fullscreen_action, None)
 
         self.options_menu.append(self.options_menu_configure)
@@ -274,8 +273,8 @@ class Menu:
         self.help_menu_label = Gtk.MenuItem(label="Help")
         self.help_menu_label.set_submenu(self.help_menu)
 
-        self.help_menu_about_core = self.insert_menu_item_obj("About mupen64plus", True, w_dialog.DialogAbout, self.m64p_window, "core")
-        self.help_menu_about_frontend = self.insert_menu_item_obj("About the frontend", True, w_dialog.DialogAbout, self.m64p_window, "frontend")
+        self.help_menu_about_core = self.insert_menu_item_obj("About mupen64plus", True, w_dialog.DialogAbout, self.parent, "core")
+        self.help_menu_about_frontend = self.insert_menu_item_obj("About the frontend", True, w_dialog.DialogAbout, self.parent, "frontend")
 
         self.help_menu.append(self.help_menu_about_core)
         self.help_menu.append(self.help_menu_about_frontend)
@@ -286,10 +285,10 @@ class Menu:
     def on_EnableToolbar_toggle(self, *args):
         if self.view_menu_toolbar.get_active() == True:
             self.toolbar.show_all()
-            g.frontend_conf.set('ToolbarConfig', 'True')
+            self.parent.frontend_conf.set('ToolbarConfig', 'True')
         else:
             self.toolbar.hide()
-            g.frontend_conf.set('ToolbarConfig', 'False')
+            self.parent.frontend_conf.set('ToolbarConfig', 'False')
 
     def item_activated(self, recentchoosermenu):
         item = recentchoosermenu.get_current_item()
@@ -315,30 +314,30 @@ class Menu:
         dialog.add_filter(filter_any)
 
     def rom_startup(self):
-        GLib.idle_add(self.m64p_window.add_video_tab)
-        g.running = True
-        g.frontend_conf.open_section("Frontend")
-        #print("Rombrowser:", g.frontend_conf.get_bool("Vidext"))
-        if g.frontend_conf.get_bool("Vidext") == True:
-            g.m64p_wrapper.vext_override = True
+        GLib.idle_add(self.parent.add_video_tab)
+        self.parent.running = True
+        self.parent.frontend_conf.open_section("Frontend")
+        #print("Rombrowser:", self.parent.frontend_conf.get_bool("Vidext"))
+        if self.parent.frontend_conf.get_bool("Vidext") == True:
+            self.parent.m64p_wrapper.vext_override = True
         else:
-            g.m64p_wrapper.vext_override = False
-        g.m64p_wrapper.run(self.rom)
+            self.parent.m64p_wrapper.vext_override = False
+        self.parent.m64p_wrapper.run(self.rom)
 
         # Clean everything
-        GLib.idle_add(self.m64p_window.remove_video_tab)
-        g.running = False
+        GLib.idle_add(self.parent.remove_video_tab)
+        self.parent.running = False
 
     def on_ChoosingRom(self, *args):
-        dialog = w_dialog.FileChooserDialog(self.m64p_window, "rom")
-        self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "Selecting the ROM...")
+        dialog = w_dialog.FileChooserDialog(self.parent, "rom")
+        self.parent.Statusbar.push(self.parent.StatusbarContext, "Selecting the ROM...")
         self.rom = dialog.path
         if dialog.path != None:
             rom_uri = GLib.filename_to_uri(self.rom, None)
             if self.recent_manager.has_item(rom_uri) == False:
                 self.recent_manager.add_item(rom_uri)
 
-            if self.rom != None and g.m64p_wrapper.compatible == True:
+            if self.rom != None and self.parent.m64p_wrapper.compatible == True:
                 thread = threading.Thread(name="Emulation", target=self.rom_startup)
                 try:
                     thread.start()
@@ -352,50 +351,50 @@ class Menu:
             #    sys.exit()
 
     def on_action_stop(self, *args):
-        g.m64p_wrapper.stop()
-        g.running = False
+        self.parent.m64p_wrapper.stop()
+        self.parent.running = False
 
     def on_PauseAction(self, *args):
-        g.m64p_wrapper.pause()
-        #self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "*** Emulation PAUSED ***")
+        self.parent.m64p_wrapper.pause()
+        #self.parent.Statusbar.push(self.parent.StatusbarContext, "*** Emulation PAUSED ***")
 
     def on_ResumeAction(self, *args):
-        g.m64p_wrapper.resume()
-        #self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "*** Emulation RESUMED ***")
+        self.parent.m64p_wrapper.resume()
+        #self.parent.Statusbar.push(self.parent.StatusbarContext, "*** Emulation RESUMED ***")
 
     def on_SResetAction(self, *args):
-        g.m64p_wrapper.reset(0)
-        self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "*** Emulation RESETTED ***")
+        self.parent.m64p_wrapper.reset(0)
+        self.parent.Statusbar.push(self.parent.StatusbarContext, "*** Emulation RESETTED ***")
 
     def on_HResetAction(self, *args):
-        g.m64p_wrapper.reset(1)
-        self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "*** Emulation RESETTED ***")
+        self.parent.m64p_wrapper.reset(1)
+        self.parent.Statusbar.push(self.parent.StatusbarContext, "*** Emulation RESETTED ***")
 
     def on_SaveStateAction(self, widget, path=False, *args):
         if path == True:
-            dialog = w_dialog.FileChooserDialog(self.m64p_window, "snapshot", 1) # Gtk.FileChooserAction for save
+            dialog = w_dialog.FileChooserDialog(self.parent, "snapshot", 1) # Gtk.FileChooserAction for save
             file = dialog.path
-            g.m64p_wrapper.state_save(file) #TODO:Currently hardcoded to always create a m64+ save state.
+            self.parent.m64p_wrapper.state_save(file) #TODO:Currently hardcoded to always create a m64+ save state.
         else:
-            g.m64p_wrapper.state_save()
-        self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "Saved")
+            self.parent.m64p_wrapper.state_save()
+        self.parent.Statusbar.push(self.parent.StatusbarContext, "Saved")
 
     def on_LoadStateAction(self, widget, path=False, *args):
         if path == True:
-            dialog = w_dialog.FileChooserDialog(self.m64p_window, "snapshot", 0) #Gtk.FileChooserAction for load
+            dialog = w_dialog.FileChooserDialog(self.parent, "snapshot", 0) #Gtk.FileChooserAction for load
             file = dialog.path
-            g.m64p_wrapper.state_load(file)
+            self.parent.m64p_wrapper.state_load(file)
         else:
-            g.m64p_wrapper.state_load()
-        self.m64p_window.Statusbar.push(self.m64p_window.StatusbarContext, "Loaded")
+            self.parent.m64p_wrapper.state_load()
+        self.parent.Statusbar.push(self.parent.StatusbarContext, "Loaded")
 
     def on_slot_select(self, widget, slot):
         if self.active_slot != slot:
             self.active_slot = slot
-            g.m64p_wrapper.state_set_slot(slot)
+            self.parent.m64p_wrapper.state_set_slot(slot)
 
     def on_fullscreen_action(self, widget):
-        g.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value, wrp_dt.m64p_video_mode.M64VIDEO_FULLSCREEN.value)
+        self.parent.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value, wrp_dt.m64p_video_mode.M64VIDEO_FULLSCREEN.value)
 
     def sensitive_menu_run(self, *args):
         self.file_menu_loadrom.set_sensitive(False)
@@ -497,13 +496,13 @@ class Menu:
         return item
 
     def on_screenshot_action(self, widget):
-        g.m64p_wrapper.take_next_screenshot()
+        self.parent.m64p_wrapper.take_next_screenshot()
 
     def on_advance_action(self, widget):
-        g.m64p_wrapper.advance_frame()
+        self.parent.m64p_wrapper.advance_frame()
 
     def return_state_lock(self):
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             return False
         else:
             return True
@@ -513,7 +512,7 @@ class Menu:
         raw_path = GLib.filename_from_uri(rom_uri)
         self.rom = raw_path[0]
 
-        if self.rom != None and g.m64p_wrapper.compatible == True:
+        if self.rom != None and self.parent.m64p_wrapper.compatible == True:
             thread = threading.Thread(name="Emulation", target=self.rom_startup)
             try:
                 thread.start()

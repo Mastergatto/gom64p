@@ -11,14 +11,15 @@ import logging as log
 import wrapper.callback as wrp_cb
 import wrapper.datatypes as wrp_dt
 import wrapper.vidext as wrp_vext
-import global_module as g
 
 class API():
     """Wrapper for calling libmupen64plus.so's functions into python code"""
-    def __init__(self, params):
+    def __init__(self, parent, params):
         #Latest API version supported by this wrapper.
         self.core_version = 0x020509 # 2.5.9 BETA
 
+        self.parent = parent
+        self.platform = params['platform']
         self.m64p_lib_core_path = params['m64plib']
         self.plugins_dir = params['pluginsdir']
         self.frontend_api_version = params['api_version']
@@ -40,7 +41,6 @@ class API():
         else:
             self.data_dir = None
 
-        #self.core_filename = "libmupen64plus.so.2.0.0" #LINUX ONLY
         self.gfx_filename = params['gfx']
         self.audio_filename = params['audio']
         self.input_filename = params['input']
@@ -157,7 +157,7 @@ class API():
                    ("Context", c.c_void_p, 1, c.cast(b"Core", c.c_void_p)),
                    ("DebugCallback", c.c_void_p , 2, wrp_cb.CB_DEBUG),
                    ("Context2", c.c_void_p, 1, c.cast(b"State", c.c_void_p)),
-                   ("StateCallback", c.c_void_p , 2, g.CB_STATE))
+                   ("StateCallback", c.c_void_p , 2, self.parent.CB_STATE))
 
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
@@ -1664,14 +1664,13 @@ class API():
 
     def plugins_validate(self):
         p = pathlib.Path(self.plugins_dir)
-        self.system = platform.system()
-        if self.system == "Linux":
+        if self.platform == "Linux":
             self.extension_filename = ".so"
             directory = p.glob('*.so*')
-        elif self.system == "Windows":
+        elif self.platform == "Windows":
             self.extension_filename = ".dll"
             directory = p.glob('*.dll')
-        elif self.system == "Darwin":
+        elif self.platform == "Darwin":
             self.extension_filename = ".dylib"
             directory = p.glob('*.dylib')
         else:

@@ -10,7 +10,7 @@
 from gi.repository import Gtk, Gdk, GObject, GLib, GdkPixbuf
 import sys, os, os.path, threading, ast, hashlib, time, pathlib
 
-import global_module as g
+import global_module as g #TODO: Remove
 import logging as log
 import widget.gameprop as w_gprop
 
@@ -31,7 +31,7 @@ class List:
         self.parsed_list = None
 
         self.cache = Cache(self.parent)
-        self.rom_list = ast.literal_eval(g.cache.generated_list)
+        self.rom_list = ast.literal_eval(self.parent.cache.generated_list)
         self.is_cache_validated = self.cache.validate()
 
         self.menu()
@@ -186,7 +186,7 @@ class List:
         if self.recent_manager.has_item(rom_uri) == False:
             self.recent_manager.add_item(rom_uri)
 
-        if self.rom != None and g.m64p_wrapper.compatible == True:
+        if self.rom != None and self.parent.m64p_wrapper.compatible == True:
             thread = threading.Thread(name="Emulation", target=self.rom_startup)
             try:
                 thread.start()
@@ -201,7 +201,7 @@ class List:
         if self.recent_manager.has_item(rom_uri) == False:
             self.recent_manager.add_item(rom_uri)
 
-        if self.rom != None and g.m64p_wrapper.compatible == True:
+        if self.rom != None and self.parent.m64p_wrapper.compatible == True:
             thread = threading.Thread(name="Emulation", target=self.rom_startup)
             try:
                 thread.start()
@@ -247,22 +247,22 @@ class List:
 
     def rom_startup(self):
         GLib.idle_add(self.parent.add_video_tab)
-        g.running = True
-        g.frontend_conf.open_section("Frontend")
-        #print("Rombrowser:", g.frontend_conf.get_bool("Vidext"))
-        if g.frontend_conf.get_bool("Vidext") == True:
-            g.m64p_wrapper.vext_override = True
+        self.parent.running = True
+        self.parent.frontend_conf.open_section("Frontend")
+        #print("Rombrowser:", self.parent.frontend_conf.get_bool("Vidext"))
+        if self.parent.frontend_conf.get_bool("Vidext") == True:
+            self.parent.m64p_wrapper.vext_override = True
         else:
-            g.m64p_wrapper.vext_override = False
-        g.m64p_wrapper.run(self.rom)
+            self.parent.m64p_wrapper.vext_override = False
+        self.parent.m64p_wrapper.run(self.rom)
 
         # Clean everything
         GLib.idle_add(self.parent.remove_video_tab)
-        g.running = False
+        self.parent.running = False
 
     #UNUSED
     def header(self,crc1,crc2):
-        command = g.m64p_wrapper.CoreGetRomSettings(crc1,crc2)
+        command = self.parent.m64p_wrapper.CoreGetRomSettings(crc1,crc2)
 
 class Cache:
     def __init__(self, parent):
@@ -288,7 +288,7 @@ class Cache:
     def get_total_elements(self):
         '''Method that enlist and returns ROMs that are present in selected
          directories.'''
-        path_items = g.frontend_conf.config.items('GameDirs')
+        path_items = self.parent.frontend_conf.config.items('GameDirs')
         total_paths = []
         total64dd = []
 
@@ -303,17 +303,17 @@ class Cache:
                         total_paths += [(path + onerom)]
                     elif os.path.isfile(onerom) and onerom.lower().endswith(format64dd_allowed):
                         total64dd += [(path + onerom , str.upper(self.hashify(onerom)))]
-        os.chdir(g.m64p_dir)
+        os.chdir(g.m64p_dir) #TODO: remove
 
         return total_paths
 
     def scan_element(self, rom):
         '''Method that opens and reads a ROM, and finally returns valuable
          informations that are in it'''
-        g.m64p_wrapper.rom_open(rom)
-        header = g.m64p_wrapper.rom_get_header()
-        settings = g.m64p_wrapper.rom_get_settings()
-        g.m64p_wrapper.rom_close()
+        self.parent.m64p_wrapper.rom_open(rom)
+        header = self.parent.m64p_wrapper.rom_get_header()
+        settings = self.parent.m64p_wrapper.rom_get_settings()
+        self.parent.m64p_wrapper.rom_close()
 
         element = [(header['country'], settings['goodname'], settings['status'], rom, settings['md5'])]
         return element
@@ -413,10 +413,10 @@ class Cache:
             validation[0] = True
 
         self.amount_roms = len(list_rom)
-        if self.amount_roms == int(g.cache.total_roms):
+        if self.amount_roms == int(self.parent.cache.total_roms):
             validation[1] = True
 
-        self.rom_list = ast.literal_eval(g.cache.generated_list)
+        self.rom_list = ast.literal_eval(self.parent.cache.generated_list)
         list_cache = []
         for i in self.rom_list:
             list_cache += [(i[3])]
@@ -430,9 +430,9 @@ class Cache:
             return False
 
     def write(self):
-        g.cache.generated_list = self.rom_list
-        g.cache.total_roms = str(self.amount_roms)
-        g.cache.write_cache()
+        self.parent.cache.generated_list = self.rom_list
+        self.parent.cache.total_roms = str(self.amount_roms)
+        self.parent.cache.write_cache()
 
 class ProgressScanning(Gtk.Dialog):
     def __init__(self, parent):

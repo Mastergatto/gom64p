@@ -11,13 +11,16 @@ from gi.repository import Gtk, Gdk
 import ctypes as c
 import logging as log
 
-import global_module as g
+import global_module as g #TODO: remove
 import utils.cache as u_cache
+import utils.config as u_conf
 #import utils.logging as u_log
+import utils.environment as u_env
 import widget.menu as w_m
 import widget.rombrowser as w_brw
 import widget.keysym as w_key
 import wrapper.datatypes as wrp_dt
+import wrapper.functions as wrp
 
 import pathlib
 ###############
@@ -38,25 +41,33 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         ### Frontend
         self.application = app
-        #self.running = 0
+        self.running = False
+        self.lock = True
         self.canvas = None
+        self.parameters = {}
+        self.args = self.application.args
+        self.cache = None
 
         args_debug = self.application.args.debug
         args_csd = self.application.args.enable_csd
-        args_m64p_lib = self.application.args.lib
-        args_m64p_config = self.application.args.configdir
-        args_m64p_plugins = self.application.args.plugindir
-        args_m64p_data = self.application.args.datadir
 
-        #TODO: Check if there's a need to write in the conf.
-        if not args_m64p_lib:
-            g.parameters['m64plib'] = args_m64p_lib
-        if not args_m64p_config:
-            g.parameters['configdir'] = args_m64p_config
-        if not args_m64p_plugins:
-            g.parameters['pluginsdir'] = args_m64p_plugins
-        if not args_m64p_data:
-            g.parameters['datadir'] = args_m64p_data
+        # config
+        self.frontend_conf = u_conf.FrontendConf()
+        g.parameters = self.parameters #TODO: Legacy, to be removed soon
+
+        # platform
+        self.environment = u_env.Environment()
+        self.environment.set(self.m64p_window)
+        self.platform = self.environment.query()
+        self.parameters['platform'] = self.platform
+
+        self.m64p_wrapper = wrp.API(self.m64p_window, self.parameters)
+        self.lock = self.m64p_wrapper.lock
+
+        # TODO: Legacy, to be removed soon
+        g.frontend_conf = self.frontend_conf
+        g.m64p_wrapper = self.m64p_wrapper
+        #g.m64p_wrapper.lock = self.m64p_wrapper.lock
 
         if args_debug == True:
             self.application.logger.set_level(log.DEBUG)
@@ -75,20 +86,21 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         # NOTE: This callback code has to be declared before launching the wrapper
         STATEPROTO = c.CFUNCTYPE(None, c.POINTER(c.c_void_p), c.c_int, c.c_int)
-        g.CB_STATE = STATEPROTO(self.state_callback)
+        self.CB_STATE = STATEPROTO(self.state_callback)
 
         try:
-            g.m64p_wrapper.preload()
+            self.m64p_wrapper.preload()
 
         except:
             log.error('mupen64plus library not found')
-            g.lock = True
+            self.lock = True
 
-        if g.m64p_wrapper.compatible == True:
+        if self.m64p_wrapper.compatible == True:
             #self.lock?
-            g.m64p_wrapper.initialise()
+            self.m64p_wrapper.initialise()
 
-            g.cache = u_cache.CacheData(g.m64p_wrapper.ConfigGetUserCachePath())
+            self.cache = u_cache.CacheData(g.m64p_wrapper.ConfigGetUserCachePath())
+            g.cache = self.cache #TODO: Legacy, to be removed soon
 
 
         # LAYOUT main window: csd,menubar,toolbar,box filter(label,entry),box((treeview,scroll),videoext),statusbar
@@ -134,7 +146,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         browser_tab = Gtk.Label(label="browser")
 
         ## Filter entry ##
-        if g.lock == False and g.m64p_wrapper.compatible == True:
+        if self.lock == False and self.m64p_wrapper.compatible == True:
             self.filter_label = Gtk.Label(label="Filter:")
             self.filter_entry = Gtk.SearchEntry()
             self.filter_entry.set_placeholder_text("Type to filter...")
@@ -148,7 +160,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
             self.browser_box.add(treeview)
         else:
-            if g.lock == True:
+            if self.lock == True:
                 warning = Gtk.Label(label="Mupen64Plus's core library hasn't been found. \n Please check it in Options > Configure")
                 self.browser_box.add(warning)
                 self.browser_box.show_all()

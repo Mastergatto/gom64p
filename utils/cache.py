@@ -4,7 +4,6 @@
 # This code is covered under GPLv2+, see LICENSE
 #####################
 
-#import global_module as g
 import pathlib
 import logging as log
 

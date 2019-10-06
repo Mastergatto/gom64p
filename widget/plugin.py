@@ -10,7 +10,6 @@
 from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
 import os.path, threading, time, pathlib
 
-import global_module as g
 import wrapper.callback as cb
 import widget.keysym as w_key
 import external.sdl2 as sdl
@@ -67,6 +66,7 @@ class BindDialog(Gtk.MessageDialog):
 
 class PluginDialog(Gtk.Dialog):
     def __init__(self, parent, section):
+        self.parent = parent
         self.section = None
         self.former_values = None
         #self.former_update()
@@ -101,7 +101,7 @@ class PluginDialog(Gtk.Dialog):
         self.plugin_window.add_button("Cancel",Gtk.ResponseType.CANCEL)
         self.plugin_window.add_button("OK",Gtk.ResponseType.OK)
 
-        if g.lock == False and g.m64p_wrapper.compatible == True:
+        if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
             if self.section == 'input-sdl':
                 self.plugin_window.set_default_size(550 * self.scale_factor, 480 * self.scale_factor)
                 self.input_config()
@@ -121,7 +121,7 @@ class PluginDialog(Gtk.Dialog):
         while response == Gtk.ResponseType.APPLY:
             response = self.plugin_window.run()
             if response == Gtk.ResponseType.OK:
-                g.m64p_wrapper.ConfigSaveFile()
+                self.parent.m64p_wrapper.ConfigSaveFile()
                 #sdl.SDL_JoystickUpdate()
                 self.pending = False
                 if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
@@ -133,17 +133,17 @@ class PluginDialog(Gtk.Dialog):
                 pass
             else:
                 if self.section == 'input-sdl':
-                    if g.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control1") == 1:
-                        g.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control1")
-                    if g.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control2") == 1:
-                        g.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control2")
-                    if g.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control3") == 1:
-                        g.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control3")
-                    if g.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control4") == 1:
-                        g.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control4")
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control1") == 1:
+                        self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control1")
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control2") == 1:
+                        self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control2")
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control3") == 1:
+                        self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control3")
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control4") == 1:
+                        self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control4")
                 else:
-                    if g.m64p_wrapper.ConfigHasUnsavedChanges(self.section) == 1:
-                        g.m64p_wrapper.ConfigRevertChanges(self.section)
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges(self.section) == 1:
+                        self.parent.m64p_wrapper.ConfigRevertChanges(self.section)
                 self.pending = False
                 if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
                     sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
@@ -156,13 +156,13 @@ class PluginDialog(Gtk.Dialog):
         value_param = {}
         counter = 0
 
-        g.m64p_wrapper.ConfigOpenSection(section)
-        g.m64p_wrapper.ConfigListParameters()
+        self.parent.m64p_wrapper.ConfigOpenSection(section)
+        self.parent.m64p_wrapper.ConfigListParameters()
         parameters = cb.parameters[section]
         for parameter in parameters:
             param_type = parameters[parameter]
             if param_type == 1 or param_type == 2: #int
-                value = g.m64p_wrapper.ConfigGetParameter(parameter)
+                value = self.parent.m64p_wrapper.ConfigGetParameter(parameter)
                 value_param[parameter] = value
                 label = Gtk.Label(parameter)
                 entry = Gtk.Entry()
@@ -175,7 +175,7 @@ class PluginDialog(Gtk.Dialog):
             #elif param_type == 2: #float
             #    pass
             elif param_type == 3: #bool
-                value = g.m64p_wrapper.ConfigGetParameter(parameter)
+                value = self.parent.m64p_wrapper.ConfigGetParameter(parameter)
                 value_param[parameter] = value
                 checkbox = Gtk.CheckButton.new_with_label(parameter)
                 if value == True:
@@ -185,7 +185,7 @@ class PluginDialog(Gtk.Dialog):
                 grid.attach(checkbox, 0, counter, 1, 1)
                 counter += 1
             elif param_type == 4: #str
-                value = g.m64p_wrapper.ConfigGetParameter(parameter)
+                value = self.parent.m64p_wrapper.ConfigGetParameter(parameter)
                 value_param[parameter] = value
                 label = Gtk.Label(parameter)
                 entry = Gtk.Entry()
@@ -216,8 +216,8 @@ class PluginDialog(Gtk.Dialog):
         grid.set_hexpand(True)
         #grid.set_halign(Gtk.Align.FILL)
 
-        g.m64p_wrapper.ConfigOpenSection(section)
-        g.m64p_wrapper.ConfigListParameters()
+        self.parent.m64p_wrapper.ConfigOpenSection(section)
+        self.parent.m64p_wrapper.ConfigListParameters()
         parameters = cb.parameters[section]
 
         mode_label = Gtk.Label("Mode:")
@@ -228,13 +228,13 @@ class PluginDialog(Gtk.Dialog):
         self.mode_combo.append('1',"Auto with named SDL Device")
         self.mode_combo.append('2',"Fully automatic")
 
-        if g.m64p_wrapper.ConfigGetParameter('mode') != None:
+        if self.parent.m64p_wrapper.ConfigGetParameter('mode') != None:
             self.mode_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('mode')))
             self.mode_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('mode'))
         self.mode_combo.connect('changed', self.on_combobox_changed, section, 'mode')
 
         plugged_button = Gtk.ToggleButton()
-        if g.m64p_wrapper.ConfigGetParameter('plugged') == True:
+        if self.parent.m64p_wrapper.ConfigGetParameter('plugged') == True:
             plugged_button.set_label("Plugged")
             plugged_button.set_active(True)
         else:
@@ -249,7 +249,7 @@ class PluginDialog(Gtk.Dialog):
         pak_combo.append('4',"Transfer Pak")
         pak_combo.append('5',"Rumble Pak")
 
-        if g.m64p_wrapper.ConfigGetParameter('plugin') != None:
+        if self.parent.m64p_wrapper.ConfigGetParameter('plugin') != None:
             pak_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('plugin')))
             pak_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('plugin'))
         pak_combo.connect('changed', self.on_combobox_changed, section, 'plugin')
@@ -259,9 +259,9 @@ class PluginDialog(Gtk.Dialog):
         self.device_combo.insert(-1, '-1',"Keyboard")
 
         # For gamepads let's wait for the SDL polling, which will happen later. Meanwhile we retrieve device and name of gamepad for each player from the configuration.
-        if g.m64p_wrapper.ConfigGetParameter('device') != None:
-            gamepad = [g.m64p_wrapper.ConfigGetParameter('device'), g.m64p_wrapper.ConfigGetParameter('name')]
-            if g.m64p_wrapper.ConfigGetParameter('device') == -1:
+        if self.parent.m64p_wrapper.ConfigGetParameter('device') != None:
+            gamepad = [g.m64p_wrapper.ConfigGetParameter('device'), self.parent.m64p_wrapper.ConfigGetParameter('name')]
+            if self.parent.m64p_wrapper.ConfigGetParameter('device') == -1:
                 self.device_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('device')))
             self.device_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('device'))
         self.device_combo.connect('changed', self.on_combobox_changed, section, 'device')
@@ -364,7 +364,7 @@ class PluginDialog(Gtk.Dialog):
         other_grid.set_hexpand(True)
 
         mouse_checkbox = Gtk.CheckButton.new_with_label("Mouse")
-        if g.m64p_wrapper.ConfigGetParameter("Mouse") == True:
+        if self.parent.m64p_wrapper.ConfigGetParameter("Mouse") == True:
             mouse_checkbox.set_active(True)
         mouse_checkbox.connect("toggled", self.on_CheckboxToggled, section, "Mouse", None)
         mouse_checkbox.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp("Mouse"))
@@ -506,29 +506,29 @@ class PluginDialog(Gtk.Dialog):
                     print("Current active controllers: ", sdl.SDL_NumJoysticks())
 
     def on_EntryChanged(self, widget, param, param_type, array, section):
-        g.m64p_wrapper.ConfigOpenSection(section)
+        self.parent.m64p_wrapper.ConfigOpenSection(section)
         value = widget.get_text()
         if param_type == 1:
             if value != '':
                 array[param] = int(value)
-                g.m64p_wrapper.ConfigSetParameter(param, int(value))
+                self.parent.m64p_wrapper.ConfigSetParameter(param, int(value))
         elif param_type == 2:
             if value != '':
                 array[param] = float(value)
-                g.m64p_wrapper.ConfigSetParameter(param, float(value))
+                self.parent.m64p_wrapper.ConfigSetParameter(param, float(value))
         else:
             array[param] = value
-            g.m64p_wrapper.ConfigSetParameter(param, value)
+            self.parent.m64p_wrapper.ConfigSetParameter(param, value)
         print(section, array)
 
     def on_CheckboxToggled(self, widget, section, param, array):
         #self.is_changed = True
         #self.apply_button.set_sensitive(True)
-        g.m64p_wrapper.ConfigOpenSection(section)
+        self.parent.m64p_wrapper.ConfigOpenSection(section)
         value = widget.get_active()
         if array != None:
             array[param] = value
-        g.m64p_wrapper.ConfigSetParameter(param, value)
+        self.parent.m64p_wrapper.ConfigSetParameter(param, value)
         print(section, array)
 
     def on_combobox_changed(self, widget, section, param):
@@ -536,8 +536,8 @@ class PluginDialog(Gtk.Dialog):
         #self.widget.set_sensitive(True)
         widget_id = widget.get_active_id()
 
-        g.m64p_wrapper.ConfigOpenSection(section)
-        g.m64p_wrapper.ConfigSetParameter(param, int(widget_id))
+        self.parent.m64p_wrapper.ConfigOpenSection(section)
+        self.parent.m64p_wrapper.ConfigSetParameter(param, int(widget_id))
         if param == "mode":
             self.sensitive_mode(section, int(widget_id))
             # Something there to reset binding?
@@ -545,11 +545,11 @@ class PluginDialog(Gtk.Dialog):
             if int(self.pages_list[self.filter_number(section)][0].get_active_id()) < 2:
                 if int(widget_id) != -1:
                     text = widget.get_active_text()
-                    g.m64p_wrapper.ConfigSetParameter("name", text[3:]) # Hopefully there won't ever be more than 10 joysticks attached!
+                    self.parent.m64p_wrapper.ConfigSetParameter("name", text[3:]) # Hopefully there won't ever be more than 10 joysticks attached!
                 else:
-                    g.m64p_wrapper.ConfigSetParameter("name", "Keyboard")
+                    self.parent.m64p_wrapper.ConfigSetParameter("name", "Keyboard")
                 #Something there to reset binding?
-                g.m64p_wrapper.ConfigSaveSection(section)
+                self.parent.m64p_wrapper.ConfigSaveSection(section)
         #else:
         #    print("Config: Unknown parameter.")
 
@@ -557,8 +557,8 @@ class PluginDialog(Gtk.Dialog):
         self.is_changed = True
         #self.apply_button.set_sensitive(True)
         if section != None:
-            g.m64p_wrapper.ConfigOpenSection(section)
-            g.m64p_wrapper.ConfigSetParameter(param, widget.get_value_as_int())
+            self.parent.m64p_wrapper.ConfigOpenSection(section)
+            self.parent.m64p_wrapper.ConfigSetParameter(param, widget.get_value_as_int())
 
     def revert(self):
         self.is_changed = False
@@ -582,21 +582,21 @@ class PluginDialog(Gtk.Dialog):
             self.page_check[number] = True
         else:
             if number == 0:
-                g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control1')
+                self.parent.m64p_wrapper.ConfigOpenSection('Input-SDL-Control1')
             elif number == 1:
-                g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control2')
+                self.parent.m64p_wrapper.ConfigOpenSection('Input-SDL-Control2')
             elif number == 2:
-                g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control3')
+                self.parent.m64p_wrapper.ConfigOpenSection('Input-SDL-Control3')
             elif number == 3:
-                g.m64p_wrapper.ConfigOpenSection('Input-SDL-Control4')
+                self.parent.m64p_wrapper.ConfigOpenSection('Input-SDL-Control4')
 
     def insert_bind_button(self, param, section, name, double=False):
         button = Gtk.Button()
         button.set_size_request(105 * self.scale_factor, -1)
-        raw_value = g.m64p_wrapper.ConfigGetParameter(param)
+        raw_value = self.parent.m64p_wrapper.ConfigGetParameter(param)
         #self.map_controls[param] = raw_value
         if raw_value != '':
-            if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
+            if self.parent.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
                 raw_value = raw_value.split(',')
                 if len(raw_value) == 2:
                     first_value = sdl.SDL_GetKeyName(self.filter_number(raw_value[0]))
@@ -616,11 +616,11 @@ class PluginDialog(Gtk.Dialog):
 
     def on_bind_key(self, widget, param, section, name, double):
         controller = None
-        if g.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
+        if self.parent.m64p_wrapper.ConfigGetParameter('name') == "Keyboard":
             device = "keyboard"
         else:
             device = "gamepad"
-            stored_name = g.m64p_wrapper.ConfigGetParameter('name')
+            stored_name = self.parent.m64p_wrapper.ConfigGetParameter('name')
             for joy_id, instance in self.active_gamepads.items():
                 this_name = sdl.SDL_JoystickName(instance).decode("utf-8")
                 if this_name == stored_name:
@@ -663,20 +663,20 @@ class PluginDialog(Gtk.Dialog):
                                 store = input_type + "(" + first_value[0] + ("+" if first_value[1] == "Paxis" else "-") + "," + second_value[0] + \
                                     ("+" if second_value[1] == "Paxis" else "-") + ")"
                                 widget.set_label(store)
-                                g.m64p_wrapper.ConfigSetParameter(param, store)
+                                self.parent.m64p_wrapper.ConfigSetParameter(param, store)
                             elif input_type == "button":
                                 store = input_type + "(" + first_value[0] + "," + second_value[0] + ")"
                                 widget.set_label(store)
-                                g.m64p_wrapper.ConfigSetParameter(param, store)
+                                self.parent.m64p_wrapper.ConfigSetParameter(param, store)
                             elif input_type == "key":
                                 widget.set_label("(" + sdl.SDL_GetKeyName(int(first_value[0])).decode("utf-8") + ", " + sdl.SDL_GetKeyName(int(second_value[0])).decode("utf-8") + ")")
                         else:
                             widget.set_label("(empty)")
-                            g.m64p_wrapper.ConfigSetParameter(param, second_value[0])
+                            self.parent.m64p_wrapper.ConfigSetParameter(param, second_value[0])
 
                 else:
                     widget.set_label("(empty)")
-                    g.m64p_wrapper.ConfigSetParameter(param, first_value[0])
+                    self.parent.m64p_wrapper.ConfigSetParameter(param, first_value[0])
         else:
             self.binding(widget, param, device, name, controller, True)
 
@@ -698,7 +698,7 @@ class PluginDialog(Gtk.Dialog):
         return spin
 
     def insert_double_spinbutton(self, param, section, grid):
-        value = g.m64p_wrapper.ConfigGetParameter(param)
+        value = self.parent.m64p_wrapper.ConfigGetParameter(param)
         if param == "MouseSensitivity":
             # Due to a possible bug, in this case the comma may be used as decimal separator AND as value separator.
             workaround = value.split(',')
@@ -746,7 +746,7 @@ class PluginDialog(Gtk.Dialog):
             spin[which] = str(widget.get_value_as_int())
         if section != None:
             value = ','.join(str(x) for x in spin) #.replace(".", ",")
-            g.m64p_wrapper.ConfigSetParameter(param, value)
+            self.parent.m64p_wrapper.ConfigSetParameter(param, value)
 
     def binding(self, widget, param, device, name, controller, execute):
         dialog = BindDialog(self, widget, device, name, controller)
@@ -756,7 +756,7 @@ class PluginDialog(Gtk.Dialog):
                 store = ""
                 if execute == True:
                     widget.set_label("(empty)")
-                    g.m64p_wrapper.ConfigSetParameter(param, store)
+                    self.parent.m64p_wrapper.ConfigSetParameter(param, store)
                 return [store, "empty"]
             else:
                 value = dialog.key_pressed.value
@@ -764,7 +764,7 @@ class PluginDialog(Gtk.Dialog):
                 store = "key(" + str(keycode) + ")"
                 if execute == True:
                     widget.set_label(sdl.SDL_GetKeyName(keycode).decode("utf-8"))
-                    g.m64p_wrapper.ConfigSetParameter(param, store)
+                    self.parent.m64p_wrapper.ConfigSetParameter(param, store)
                 else:
                     return [str(keycode), "key"]
 
@@ -779,7 +779,7 @@ class PluginDialog(Gtk.Dialog):
                     store = "axis(" + str(value) + "+)"
             if execute == True:
                 widget.set_label(store)
-                g.m64p_wrapper.ConfigSetParameter(param, store)
+                self.parent.m64p_wrapper.ConfigSetParameter(param, store)
             else:
                 return [str(value), dialog.gamepad_type]
         else:
@@ -791,7 +791,7 @@ class PluginDialog(Gtk.Dialog):
             widget.set_label("Plugged")
         else:
             widget.set_label("Unplugged")
-        g.m64p_wrapper.ConfigSetParameter("plugged", status)
+        self.parent.m64p_wrapper.ConfigSetParameter("plugged", status)
 
     def sensitive_mode(self, section, mode):
         page = self.filter_number(section)

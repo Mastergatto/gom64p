@@ -9,14 +9,13 @@
 #############
 from gi.repository import Gtk
 
-import global_module as g
-
 #############
 ## CLASSES ##
 #############
 
 class PropertiesDialog(Gtk.Dialog):
     def __init__(self, parent, path, tab):
+        self.parent = parent
         self.game = path
         self.header = None
         self.settings = None
@@ -44,7 +43,7 @@ class PropertiesDialog(Gtk.Dialog):
         self.game_window.add_button("Cancel", Gtk.ResponseType.CANCEL)
         self.game_window.add_button("OK", Gtk.ResponseType.OK)
 
-        if g.lock == False and g.m64p_wrapper.compatible == True:
+        if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
             notebook = Gtk.Notebook()
             notebook.set_vexpand(True)
             #notebook.connect("switch-page", self.on_change_page)
@@ -70,7 +69,7 @@ class PropertiesDialog(Gtk.Dialog):
         while response == Gtk.ResponseType.APPLY:
             response = self.game_window.run()
             if response == Gtk.ResponseType.OK:
-                g.m64p_wrapper.ConfigSaveFile()
+                self.parent.m64p_wrapper.ConfigSaveFile()
                 self.game_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 pass
@@ -132,10 +131,10 @@ class PropertiesDialog(Gtk.Dialog):
     def scan_element(self, rom):
         '''Method that opens and reads a ROM, and finally returns valuable
          informations that are in it'''
-        g.m64p_wrapper.rom_open(rom)
-        self.header = g.m64p_wrapper.rom_get_header()
-        self.settings = g.m64p_wrapper.rom_get_settings()
-        g.m64p_wrapper.rom_close()
+        self.parent.m64p_wrapper.rom_open(rom)
+        self.header = self.parent.m64p_wrapper.rom_get_header()
+        self.settings = self.parent.m64p_wrapper.rom_get_settings()
+        self.parent.m64p_wrapper.rom_close()
 
         #element = [(header['country'], settings['name'], settings['status'], rom, settings['md5'])]
         #return element

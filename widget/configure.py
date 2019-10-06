@@ -11,7 +11,6 @@ from gi.repository import Gtk
 import os.path
 import logging as log
 
-import global_module as g
 import widget.dialog as w_dialog
 import widget.plugin as w_plugin
 
@@ -21,14 +20,14 @@ import widget.plugin as w_plugin
 
 class ConfigDialog(Gtk.Dialog):
     def __init__(self, parent):
-        self.parent_widget = parent
+        self.parent = parent
         self.former_values = {}
         self.former_update()
         self.is_changed = False
 
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            g.m64p_wrapper.plugins_shutdown()
-            g.m64p_wrapper.ConfigOpenSection('Core')
+        if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+            self.parent.m64p_wrapper.plugins_shutdown()
+            self.parent.m64p_wrapper.ConfigOpenSection('Core')
 
         self.config_window = Gtk.Dialog()
         self.config_window.set_properties(self, title="Configure")
@@ -48,7 +47,7 @@ class ConfigDialog(Gtk.Dialog):
         config_notebook.set_vexpand(True)
 
         ## Frontend tab ##
-        g.frontend_conf.open_section("Frontend")
+        self.parent.frontend_conf.open_section("Frontend")
         frontend_tab = Gtk.Label(label="Frontend")
 
         m64plib_frame = Gtk.Frame(label="mupen64plus library", shadow_type=1)
@@ -98,8 +97,8 @@ class ConfigDialog(Gtk.Dialog):
         for key,lang in enumerate(language_combo_choices):
             language_combo.append(str(key),lang)
 
-        if g.frontend_conf.get('Language') != None:
-            language_combo.set_active_id(str(g.frontend_conf.get('Language')))
+        if self.parent.frontend_conf.get('Language') != None:
+            language_combo.set_active_id(str(self.parent.frontend_conf.get('Language')))
 
         language_combo.connect('changed', self.on_combobox_changed, 'Language')
 
@@ -134,10 +133,10 @@ class ConfigDialog(Gtk.Dialog):
         cpu_core_combo.append('0',"Pure Interpreter")
         cpu_core_combo.append('1',"Interpreter")
         cpu_core_combo.append('2',"Dynamic Recompiler")
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            if g.m64p_wrapper.ConfigGetParameter('R4300Emulator') != None:
-                cpu_core_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('R4300Emulator')))
-                cpu_core_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('R4300Emulator'))
+        if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+            if self.parent.m64p_wrapper.ConfigGetParameter('R4300Emulator') != None:
+                cpu_core_combo.set_active_id(str(self.parent.m64p_wrapper.ConfigGetParameter('R4300Emulator')))
+                cpu_core_combo.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp('R4300Emulator'))
         else:
             cpu_core_combo.set_sensitive(False)
         cpu_core_combo.connect('changed', self.on_combobox_changed, 'R4300Emulator')
@@ -161,12 +160,12 @@ class ConfigDialog(Gtk.Dialog):
 
         sidma_spin = self.insert_spinbutton("SiDmaDuration", "Core", "m64p", -1, 5) #TODO: Check if exists a maximum value here
         sidma_label = Gtk.Label(label="Duration of SI DMA (-1: use per game settings)")
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             sidma_label.set_sensitive(False)
 
         countxop_spin = self.insert_spinbutton("CountPerOp", "Core", "m64p", 0, 5) #TODO: Check if exists a maximum value here
         countxop_label = Gtk.Label(label="Force n° of cycles per emulated instruction (if > 0)")
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             countxop_label.set_sensitive(False)
 
         emu_miscellaneous_grid.attach(auto_saveslot_chkbox, 0, 0, 2, 1)
@@ -195,14 +194,14 @@ class ConfigDialog(Gtk.Dialog):
         video_general_box = Gtk.VBox()
         video_width_height_box = Gtk.HBox()
 
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            g.m64p_wrapper.ConfigOpenSection('Video-General')
+        if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+            self.parent.m64p_wrapper.ConfigOpenSection('Video-General')
         fullscreen_chkbox = self.insert_checkbox('Fullscreen', 'Video-General', 'm64p', "Always start in fullscreen mode", None)
         vsync_chkbox = self.insert_checkbox('VerticalSync', 'Video-General', 'm64p', "Enable VerticalSync", None)
         vidext_chkbox = self.insert_checkbox('VidExt', 'Frontend', 'frontend', "Enable Vidext", "This option will allow to play the game inside frontend's window")
 
         widthxheight_label = Gtk.Label(label="Screen width x height: ")
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             widthxheight_label.set_sensitive(False)
         width_spin = self.insert_spinbutton("ScreenWidth", "Video-General", "m64p", 1, 4096) #TODO: Check if exists a maximum value here
         height_spin = self.insert_spinbutton("ScreenHeight", "Video-General", "m64p", 1, 4096) #TODO: Check if exists a maximum value here
@@ -223,9 +222,9 @@ class ConfigDialog(Gtk.Dialog):
         rotate_combo.append('1',"(90°)")
         rotate_combo.append('2',"Flipped (180°)")
         rotate_combo.append('3',"(270°)")
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            if g.m64p_wrapper.ConfigGetParameter('Rotate') != None:
-                rotate_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('Rotate')))
+        if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+            if self.parent.m64p_wrapper.ConfigGetParameter('Rotate') != None:
+                rotate_combo.set_active_id(str(self.parent.m64p_wrapper.ConfigGetParameter('Rotate')))
         else:
             rotate_combo.set_sensitive(False)
 
@@ -234,8 +233,8 @@ class ConfigDialog(Gtk.Dialog):
 
         webcam_box = Gtk.VBox() #TODO: Change with Gtk.Grid()
 
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            g.m64p_wrapper.ConfigOpenSection('Core')
+        if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+            self.parent.m64p_wrapper.ConfigOpenSection('Core')
         webcam1_entry = self.insert_entry('GbCameraVideoCaptureBackend1', 'Core', 'm64p', "Gameboy Camera Video Capture backend", None)
         #webcam1_button = Gtk.Button.new_with_label("Open")
         #webcam_button.connect("clicked", self.on_search_path_lib, webcam1_entry)
@@ -263,22 +262,22 @@ class ConfigDialog(Gtk.Dialog):
         input_box = Gtk.HBox()
         rsp_box = Gtk.HBox()
 
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            g.m64p_wrapper.ConfigOpenSection('Core')
+        if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+            self.parent.m64p_wrapper.ConfigOpenSection('Core')
 
         gfx_combo = Gtk.ComboBoxText()
         gfx_combo.append("dummy", "No video")
-        for key,val in g.m64p_wrapper.gfx_plugins.items():
+        for key,val in self.parent.m64p_wrapper.gfx_plugins.items():
             gfx_combo.append(key, val)
 
-        if g.frontend_conf.get('GfxPlugin') != None:
-            gfx_combo.set_active_id(g.frontend_conf.get('GfxPlugin'))
+        if self.parent.frontend_conf.get('GfxPlugin') != None:
+            gfx_combo.set_active_id(self.parent.frontend_conf.get('GfxPlugin'))
 
         gfx_combo.connect('changed', self.on_combobox_changed, 'GfxPlugin')
 
         self.gfx_configure_button = Gtk.Button(label="Configure")
-        self.gfx_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'gfx')
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        self.gfx_configure_button.connect("clicked", self.on_configure_button, self.parent, 'gfx')
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             gfx_combo.set_sensitive(False)
             self.gfx_configure_button.set_sensitive(False)
 
@@ -288,16 +287,16 @@ class ConfigDialog(Gtk.Dialog):
 
         audio_combo = Gtk.ComboBoxText()
         audio_combo.append("dummy", "No audio")
-        for key,val in g.m64p_wrapper.audio_plugins.items():
+        for key,val in self.parent.m64p_wrapper.audio_plugins.items():
              audio_combo.append(key, val)
 
-        if g.frontend_conf.get('AudioPlugin') != None:
-            audio_combo.set_active_id(g.frontend_conf.get('AudioPlugin'))
+        if self.parent.frontend_conf.get('AudioPlugin') != None:
+            audio_combo.set_active_id(self.parent.frontend_conf.get('AudioPlugin'))
 
         audio_combo.connect('changed', self.on_combobox_changed, 'AudioPlugin')
         self.audio_configure_button = Gtk.Button(label="Configure")
-        self.audio_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'audio')
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        self.audio_configure_button.connect("clicked", self.on_configure_button, self.parent, 'audio')
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             audio_combo.set_sensitive(False)
             self.audio_configure_button.set_sensitive(False)
 
@@ -307,18 +306,18 @@ class ConfigDialog(Gtk.Dialog):
 
         input_combo = Gtk.ComboBoxText()
         input_combo.append("dummy", "No input")
-        for key,val in g.m64p_wrapper.input_plugins.items():
+        for key,val in self.parent.m64p_wrapper.input_plugins.items():
              input_combo.append(key, val)
 
-        if g.frontend_conf.get('InputPlugin') != None:
-            input_combo.set_active_id(g.frontend_conf.get('InputPlugin'))
+        if self.parent.frontend_conf.get('InputPlugin') != None:
+            input_combo.set_active_id(self.parent.frontend_conf.get('InputPlugin'))
 
         input_combo.connect('changed', self.on_combobox_changed, 'InputPlugin')
         self.input_configure_button = Gtk.Button(label="Configure")
-        self.input_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'input')
-        if g.frontend_conf.get('InputPlugin') == "mupen64plus-input-raphnetraw.so": #TODO: Is still necessary?
+        self.input_configure_button.connect("clicked", self.on_configure_button, self.parent, 'input')
+        if self.parent.frontend_conf.get('InputPlugin') == "mupen64plus-input-raphnetraw.so": #TODO: Is still necessary?
             self.input_configure_button.set_sensitive(False)
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             input_combo.set_sensitive(False)
             self.input_configure_button.set_sensitive(False)
 
@@ -328,16 +327,16 @@ class ConfigDialog(Gtk.Dialog):
 
         rsp_combo = Gtk.ComboBoxText()
         rsp_combo.append("dummy", "No RSP")
-        for key,val in g.m64p_wrapper.rsp_plugins.items():
+        for key,val in self.parent.m64p_wrapper.rsp_plugins.items():
              rsp_combo.append(key, val)
 
-        if g.frontend_conf.get('RSPPlugin') != None:
-            rsp_combo.set_active_id(g.frontend_conf.get('RSPPlugin'))
+        if self.parent.frontend_conf.get('RSPPlugin') != None:
+            rsp_combo.set_active_id(self.parent.frontend_conf.get('RSPPlugin'))
 
         rsp_combo.connect('changed', self.on_combobox_changed, 'RSPPlugin')
         self.rsp_configure_button = Gtk.Button(label="Configure")
-        self.rsp_configure_button.connect("clicked", self.on_configure_button, self.parent_widget, 'rsp')
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        self.rsp_configure_button.connect("clicked", self.on_configure_button, self.parent, 'rsp')
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             rsp_combo.set_sensitive(False)
             self.rsp_configure_button.set_sensitive(False)
 
@@ -353,8 +352,8 @@ class ConfigDialog(Gtk.Dialog):
         config_notebook.append_page(plugins_box, plugins_tab)
 
         ## Paths ##
-        if g.lock == False and g.m64p_wrapper.compatible == True:
-            g.m64p_wrapper.ConfigOpenSection('Core')
+        if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+            self.parent.m64p_wrapper.ConfigOpenSection('Core')
         paths_tab = Gtk.Label(label="Paths")
 
         paths_box = Gtk.VBox()
@@ -369,25 +368,25 @@ class ConfigDialog(Gtk.Dialog):
         sram_dir_entry = self.insert_entry('SaveSRAMPath', 'Core', 'm64p', "Choose a dir where SRAM/EEPROM/FlashRAM saves will be stored", None)
         sram_dir_button = Gtk.Button.new_with_label("Open")
         sram_dir_button.connect("clicked", self.on_search_path_dir, sram_dir_entry)
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             sram_dir_button.set_sensitive(False)
 
         shared_dir_entry = self.insert_entry('SharedDataPath', 'Core', 'm64p', "Choose a dir where shared data will be stored", None)
         shared_data_dir_button = Gtk.Button.new_with_label("Open")
         shared_data_dir_button.connect("clicked", self.on_search_path_dir, shared_dir_entry)
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             shared_data_dir_button.set_sensitive(False)
 
         save_dir_entry = self.insert_entry('SaveStatePath', 'Core', 'm64p', "Choose a dir where save states will be stored", None)
         save_dir_button = Gtk.Button.new_with_label("Open")
         save_dir_button.connect("clicked", self.on_search_path_dir, save_dir_entry)
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             save_dir_button.set_sensitive(False)
 
         screenshot_entry = self.insert_entry('ScreenshotPath', 'Core', 'm64p', "Choose a dir where screenshots will be stored", None)
         screenshot_button = Gtk.Button.new_with_label("Open")
         screenshot_button.connect("clicked", self.on_search_path_dir, screenshot_entry)
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             screenshot_button.set_sensitive(False)
 
         # Path to directory where SRAM/EEPROM data (in-game saves) are stored. If this is blank, the default value of
@@ -406,7 +405,7 @@ class ConfigDialog(Gtk.Dialog):
         m64p_frame.add(m64p_paths_grid2)
 
         # TODO: Replace with ListStore or CellRenderer? to allow multi directories
-        g.frontend_conf.open_section("GameDirs")
+        self.parent.frontend_conf.open_section("GameDirs")
         gamedir_entry = self.insert_entry('path1', 'GameDirs', 'frontend', "Choose the dir where game images are found", None)
         gamedir_button = Gtk.Button.new_with_label("Open")
         gamedir_button.connect("clicked", self.on_search_path_dir, gamedir_entry)
@@ -425,7 +424,7 @@ class ConfigDialog(Gtk.Dialog):
 
         paths_box.pack_start(m64p_frame, False, False, 0)
         paths_box.pack_start(gamedir_frame, False, False, 0)
-        g.frontend_conf.open_section("Frontend")
+        self.parent.frontend_conf.open_section("Frontend")
 
         config_notebook.append_page(paths_box, paths_tab)
 
@@ -441,48 +440,45 @@ class ConfigDialog(Gtk.Dialog):
         while response == Gtk.ResponseType.APPLY:
             response = self.config_window.run()
             if response == Gtk.ResponseType.OK:
-                g.frontend_conf.write()
+                self.parent.frontend_conf.write()
 
-                if g.lock == False and g.m64p_wrapper.compatible == True:
-                    g.m64p_wrapper.plugins_preload()
-                    g.m64p_wrapper.plugins_startup()
-                    g.m64p_wrapper.ConfigSaveFile()
-
-                    #g.m64p_wrapper.restart(g.frontend_conf.get('CoreLib'))
+                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                    self.parent.m64p_wrapper.plugins_preload()
+                    self.parent.m64p_wrapper.plugins_startup()
+                    self.parent.m64p_wrapper.ConfigSaveFile()
 
                 self.config_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
-                g.frontend_conf.write()
+                self.parent.frontend_conf.write()
                 if self.is_changed == True:
                     self.apply_button.set_sensitive(False)
                     self.former_update()
 
-                    if g.lock == False and g.m64p_wrapper.compatible == True:
-                        if g.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
-                            g.m64p_wrapper.ConfigSaveSection("Core")
-                        if g.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
-                            g.m64p_wrapper.ConfigSaveSection("CoreEvents")
-                        if g.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
-                            g.m64p_wrapper.ConfigSaveSection("Video-General")
+                    if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
+                            self.parent.m64p_wrapper.ConfigSaveSection("Core")
+                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
+                            self.parent.m64p_wrapper.ConfigSaveSection("CoreEvents")
+                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
+                            self.parent.m64p_wrapper.ConfigSaveSection("Video-General")
 
-                if g.lock == False and g.m64p_wrapper.compatible == True:
-                    g.m64p_wrapper.plugins_preload()
-                    #g.m64p_wrapper.restart(g.frontend_conf.get('CoreLib'))
+                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                    self.parent.m64p_wrapper.plugins_preload()
 
             else:
                 if self.is_changed == True:
                     self.revert()
 
-                    if g.lock == False and g.m64p_wrapper.compatible == True:
-                        if g.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
-                            g.m64p_wrapper.ConfigRevertChanges("Core")
-                        if g.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
-                            g.m64p_wrapper.ConfigRevertChanges("CoreEvents")
-                        if g.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
-                            g.m64p_wrapper.ConfigRevertChanges("Video-General")
+                    if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
+                            self.parent.m64p_wrapper.ConfigRevertChanges("Core")
+                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
+                            self.parent.m64p_wrapper.ConfigRevertChanges("CoreEvents")
+                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
+                            self.parent.m64p_wrapper.ConfigRevertChanges("Video-General")
 
-                if g.lock == False and g.m64p_wrapper.compatible == True:
-                    g.m64p_wrapper.plugins_startup()
+                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                    self.parent.m64p_wrapper.plugins_startup()
                 self.config_window.destroy()
 
     def on_combobox_changed(self, widget, param):
@@ -491,13 +487,13 @@ class ConfigDialog(Gtk.Dialog):
         widget_id = widget.get_active_id()
         active_plugin = os.path.splitext(widget_id)[0]
         if param == 'R4300Emulator':
-            g.m64p_wrapper.ConfigOpenSection('Core')
-            g.m64p_wrapper.ConfigSetParameter('R4300Emulator', int(widget_id))
+            self.parent.m64p_wrapper.ConfigOpenSection('Core')
+            self.parent.m64p_wrapper.ConfigSetParameter('R4300Emulator', int(widget_id))
         elif param == 'Language':
-            g.frontend_conf.set('Language', str(widget_id))
+            self.parent.frontend_conf.set('Language', str(widget_id))
         elif param == 'GfxPlugin':
-            g.frontend_conf.set('GfxPlugin', widget_id)
-            g.m64p_wrapper.gfx_filename = widget_id
+            self.parent.frontend_conf.set('GfxPlugin', widget_id)
+            self.parent.m64p_wrapper.gfx_filename = widget_id
             if active_plugin == 'mupen64plus-video-GLideN64':
                 self.gfx_configure_button.set_sensitive(True)
             elif active_plugin == 'mupen64plus-video-angrylion-plus':
@@ -511,15 +507,15 @@ class ConfigDialog(Gtk.Dialog):
             else:
                 self.gfx_configure_button.set_sensitive(False)
         elif param == 'AudioPlugin':
-            g.frontend_conf.set('AudioPlugin', widget_id)
-            g.m64p_wrapper.audio_filename = widget_id
+            self.parent.frontend_conf.set('AudioPlugin', widget_id)
+            self.parent.m64p_wrapper.audio_filename = widget_id
             if active_plugin == 'mupen64plus-audio-sdl':
                 self.audio_configure_button.set_sensitive(True)
             else:
                 self.audio_configure_button.set_sensitive(False)
         elif param == 'InputPlugin':
-            g.frontend_conf.set('InputPlugin', widget_id)
-            g.m64p_wrapper.input_filename = widget_id
+            self.parent.frontend_conf.set('InputPlugin', widget_id)
+            self.parent.m64p_wrapper.input_filename = widget_id
             if active_plugin == 'mupen64plus-input-sdl':
                 self.input_configure_button.set_sensitive(True)
             elif active_plugin == 'mupen64plus-input-raphnetraw':
@@ -527,8 +523,8 @@ class ConfigDialog(Gtk.Dialog):
             else:
                 self.input_configure_button.set_sensitive(False)
         elif param == 'RSPPlugin':
-            g.frontend_conf.set('RSPPlugin', widget_id)
-            g.m64p_wrapper.rsp_filename = widget_id
+            self.parent.frontend_conf.set('RSPPlugin', widget_id)
+            self.parent.m64p_wrapper.rsp_filename = widget_id
             if active_plugin == 'mupen64plus-rsp-hle':
                 self.rsp_configure_button.set_sensitive(True)
             elif active_plugin == 'mupen64plus-rsp-cxd4':
@@ -538,8 +534,8 @@ class ConfigDialog(Gtk.Dialog):
             else:
                 self.rsp_configure_button.set_sensitive(False)
         elif param == 'Rotate':
-            g.m64p_wrapper.ConfigOpenSection('Video-General')
-            g.m64p_wrapper.ConfigSetParameter('Rotate', int(widget_id))
+            self.parent.m64p_wrapper.ConfigOpenSection('Video-General')
+            self.parent.m64p_wrapper.ConfigSetParameter('Rotate', int(widget_id))
         else:
             log.warning(f"Config: Unknown parameter '{param}'")
 
@@ -547,19 +543,19 @@ class ConfigDialog(Gtk.Dialog):
         self.is_changed = True
         self.apply_button.set_sensitive(True)
         if section == "Frontend" or section == "GameDirs":
-            g.frontend_conf.open_section(section)
+            self.parent.frontend_conf.open_section(section)
             if widget.get_active() == True:
-                g.frontend_conf.set(param, "True")
+                self.parent.frontend_conf.set(param, "True")
             elif widget.get_active() == False:
-                g.frontend_conf.set(param, "False")
+                self.parent.frontend_conf.set(param, "False")
             else:
                 log.error("Config: Unexpected error")
         else:
-            g.m64p_wrapper.ConfigOpenSection(section)
+            self.parent.m64p_wrapper.ConfigOpenSection(section)
             if widget.get_active() == True:
-                g.m64p_wrapper.ConfigSetParameter(param, True)
+                self.parent.m64p_wrapper.ConfigSetParameter(param, True)
             elif widget.get_active() == False:
-                g.m64p_wrapper.ConfigSetParameter(param, False)
+                self.parent.m64p_wrapper.ConfigSetParameter(param, False)
             else:
                 log.error("Config: Unexpected error")
 
@@ -567,8 +563,8 @@ class ConfigDialog(Gtk.Dialog):
         self.is_changed = True
         self.apply_button.set_sensitive(True)
         if section != None:
-            g.m64p_wrapper.ConfigOpenSection(section)
-            g.m64p_wrapper.ConfigSetParameter(param, widget.get_value_as_int())
+            self.parent.m64p_wrapper.ConfigOpenSection(section)
+            self.parent.m64p_wrapper.ConfigSetParameter(param, widget.get_value_as_int())
 
     def on_search_path_lib(self, widget, entry):
         dialog = w_dialog.FileChooserDialog(self.config_window, "library")
@@ -594,63 +590,63 @@ class ConfigDialog(Gtk.Dialog):
         self.apply_button.set_sensitive(True)
         value = widget.get_text()
         if section == "Frontend" or section == "GameDirs":
-            g.frontend_conf.open_section(section)
-            g.frontend_conf.set(param, value)
+            self.parent.frontend_conf.open_section(section)
+            self.parent.frontend_conf.set(param, value)
         else:
-            g.m64p_wrapper.ConfigOpenSection(section)
-            g.m64p_wrapper.ConfigSetParameter(param, value)
+            self.parent.m64p_wrapper.ConfigOpenSection(section)
+            self.parent.m64p_wrapper.ConfigSetParameter(param, value)
         log.debug(f"{section}, {param}, {value}")
 
     def revert(self):
         self.is_changed = False
         self.apply_button.set_sensitive(False)
-        g.frontend_conf.open_section("Frontend")
-        g.frontend_conf.set('M64pLib', self.former_values['library'])
-        g.frontend_conf.set('PluginsDir', self.former_values['plugins_dir'])
-        g.frontend_conf.set('ConfigDir', self.former_values['config_dir'])
-        g.frontend_conf.set('DataDir', self.former_values['data_dir'])
-        #g.frontend_conf.set('GameDirs', self.former_values['game_directories'])
-        g.frontend_conf.set('GfxPlugin', self.former_values['gfx_plugin'])
-        g.frontend_conf.set('AudioPlugin', self.former_values['audio_plugin'])
-        g.frontend_conf.set('InputPlugin', self.former_values['input_plugin'])
-        g.frontend_conf.set('RSPPlugin', self.former_values['rsp_plugin'])
-        g.frontend_conf.set('Vidext', self.former_values['vidext'])
-        g.frontend_conf.open_section("GameDirs")
-        g.frontend_conf.set('path1', self.former_values['path1'])
-        g.frontend_conf.set('path2', self.former_values['path2'])
-        g.frontend_conf.set('path3', self.former_values['path3'])
+        self.parent.frontend_conf.open_section("Frontend")
+        self.parent.frontend_conf.set('M64pLib', self.former_values['library'])
+        self.parent.frontend_conf.set('PluginsDir', self.former_values['plugins_dir'])
+        self.parent.frontend_conf.set('ConfigDir', self.former_values['config_dir'])
+        self.parent.frontend_conf.set('DataDir', self.former_values['data_dir'])
+        #self.parent.frontend_conf.set('GameDirs', self.former_values['game_directories'])
+        self.parent.frontend_conf.set('GfxPlugin', self.former_values['gfx_plugin'])
+        self.parent.frontend_conf.set('AudioPlugin', self.former_values['audio_plugin'])
+        self.parent.frontend_conf.set('InputPlugin', self.former_values['input_plugin'])
+        self.parent.frontend_conf.set('RSPPlugin', self.former_values['rsp_plugin'])
+        self.parent.frontend_conf.set('Vidext', self.former_values['vidext'])
+        self.parent.frontend_conf.open_section("GameDirs")
+        self.parent.frontend_conf.set('path1', self.former_values['path1'])
+        self.parent.frontend_conf.set('path2', self.former_values['path2'])
+        self.parent.frontend_conf.set('path3', self.former_values['path3'])
 
     def former_update(self):
         self.is_changed = False
-        g.frontend_conf.open_section("Frontend")
-        self.former_values['library'] = g.frontend_conf.get('M64pLib')
-        self.former_values['plugins_dir'] = g.frontend_conf.get('PluginsDir')
-        self.former_values['config_dir'] = g.frontend_conf.get('ConfigDir')
-        self.former_values['data_dir'] = g.frontend_conf.get('DataDir')
-        #self.former_values['game_directories'] = g.frontend_conf.get('GameDirs')
-        self.former_values['gfx_plugin'] = g.frontend_conf.get('GfxPlugin')
-        self.former_values['audio_plugin'] = g.frontend_conf.get('AudioPlugin')
-        self.former_values['input_plugin'] = g.frontend_conf.get('InputPlugin')
-        self.former_values['rsp_plugin'] = g.frontend_conf.get('RSPPlugin')
-        self.former_values['vidext'] = g.frontend_conf.get('Vidext')
-        g.frontend_conf.open_section("GameDirs")
-        self.former_values['path1'] = g.frontend_conf.get('path1')
-        self.former_values['path2'] = g.frontend_conf.get('path2')
-        self.former_values['path3'] = g.frontend_conf.get('path3')
+        self.parent.frontend_conf.open_section("Frontend")
+        self.former_values['library'] = self.parent.frontend_conf.get('M64pLib')
+        self.former_values['plugins_dir'] = self.parent.frontend_conf.get('PluginsDir')
+        self.former_values['config_dir'] = self.parent.frontend_conf.get('ConfigDir')
+        self.former_values['data_dir'] = self.parent.frontend_conf.get('DataDir')
+        #self.former_values['game_directories'] = self.parent.frontend_conf.get('GameDirs')
+        self.former_values['gfx_plugin'] = self.parent.frontend_conf.get('GfxPlugin')
+        self.former_values['audio_plugin'] = self.parent.frontend_conf.get('AudioPlugin')
+        self.former_values['input_plugin'] = self.parent.frontend_conf.get('InputPlugin')
+        self.former_values['rsp_plugin'] = self.parent.frontend_conf.get('RSPPlugin')
+        self.former_values['vidext'] = self.parent.frontend_conf.get('Vidext')
+        self.parent.frontend_conf.open_section("GameDirs")
+        self.former_values['path1'] = self.parent.frontend_conf.get('path1')
+        self.former_values['path2'] = self.parent.frontend_conf.get('path2')
+        self.former_values['path3'] = self.parent.frontend_conf.get('path3')
 
     def insert_entry(self, param, section, config, placeholder, help=None):
         entry = Gtk.Entry()
         entry.set_placeholder_text(placeholder)
         entry.set_hexpand(True)
         if config == "frontend":
-            if g.frontend_conf.get(param) != None:
+            if self.parent.frontend_conf.get(param) != None:
                 entry.set_text(g.frontend_conf.get(param))
             entry.set_tooltip_text(help)
         elif config == "m64p":
-            if g.lock == False and g.m64p_wrapper.compatible == True:
-                if g.m64p_wrapper.ConfigGetParameter(param) != None:
-                    entry.set_text(g.m64p_wrapper.ConfigGetParameter(param))
-                entry.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param))
+            if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                if self.parent.m64p_wrapper.ConfigGetParameter(param) != None:
+                    entry.set_text(self.parent.m64p_wrapper.ConfigGetParameter(param))
+                entry.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
             else:
                 entry.set_sensitive(False)
         entry.connect("changed", self.on_entry_changed, section, param)
@@ -659,14 +655,14 @@ class ConfigDialog(Gtk.Dialog):
     def insert_checkbox(self, param, section, config, label, help=None):
         checkbox = Gtk.CheckButton.new_with_label(label)
         if config == "frontend":
-            if g.frontend_conf.get(param) == "True":
+            if self.parent.frontend_conf.get(param) == "True":
                 checkbox.set_active(True)
             checkbox.set_tooltip_text(help)
         elif config == "m64p":
-            if g.lock == False and g.m64p_wrapper.compatible == True:
-                if g.m64p_wrapper.ConfigGetParameter(param) == True:
+            if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                if self.parent.m64p_wrapper.ConfigGetParameter(param) == True:
                     checkbox.set_active(True)
-                checkbox.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param))
+                checkbox.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
             else:
                 checkbox.set_sensitive(False)
         checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
@@ -680,12 +676,12 @@ class ConfigDialog(Gtk.Dialog):
         adjustment = Gtk.Adjustment(value=adj_value, lower=minimum, upper=maximum, step_increment=adj_step)
         spin = Gtk.SpinButton.new(adjustment, spin_climb, 0)
         if config == "frontend":
-            spin.set_value(g.frontend_conf.get(param))
+            spin.set_value(self.parent.frontend_conf.get(param))
             spin.set_tooltip_text(help)
         elif config == "m64p":
-            if g.lock == False and g.m64p_wrapper.compatible == True:
-                spin.set_value(g.m64p_wrapper.ConfigGetParameter(param))
-                spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param))
+            if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                spin.set_value(self.parent.m64p_wrapper.ConfigGetParameter(param))
+                spin.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
             else:
                 spin.set_sensitive(False)
         spin.set_snap_to_ticks(True)
@@ -693,7 +689,7 @@ class ConfigDialog(Gtk.Dialog):
         return spin
 
     def return_state_lock(self): #TODO: Use this for all m64p widgets
-        if g.lock == True or g.m64p_wrapper.compatible == False:
+        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             return False
         else:
             return True

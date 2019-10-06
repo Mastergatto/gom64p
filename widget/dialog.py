@@ -8,7 +8,6 @@
 ## MODULES ##
 #############
 from gi.repository import Gtk
-import global_module as g
 import logging as log
 
 #############

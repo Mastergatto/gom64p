@@ -7,7 +7,7 @@
 import ctypes as c
 
 import wrapper.datatypes as wrp_dt
-import global_module as g
+import global_module as g # TODO: remove
 import logging as log
 
 ###void (*DebugCallback)(void *Context, int level, const char *message)
