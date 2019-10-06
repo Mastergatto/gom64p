@@ -1252,15 +1252,26 @@ class API():
         clockrate = self.rom_header.ClockRate
         pc = self.rom_header.PC
         release = self.rom_header.Release
-        crc1 = self.rom_header.CRC1
-        crc2 = self.rom_header.CRC2
+        # Since mupen64plus reads the rom in little endian order, and the ROM could be in big endian order, so let's byteswap the CRCs in that order.
+        crc1 = hex(int.from_bytes(self.rom_header.CRC1.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L")
+        crc2 = hex(int.from_bytes(self.rom_header.CRC2.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L")
 
+        # The internal name is NUL-terminated. For the sake of completeness, we currently remove this NUL bit. Or should we not?
         raw_name = self.rom_header.Name[:]
-        name = bytes(raw_name).decode('cp932','replace')
+        i = 0
+        for value in raw_name:
+            if raw_name[i] == 0:
+                raw_name[i] = 32
+            i += 1
 
-        manufacturer = self.rom_header.Manufacturer_ID
-        cartridge = self.rom_header.Cartridge_ID
+        # The internal name is also codified in ms-kanji, so let's decode this way.
+        name = bytes(raw_name).decode('cp932', 'replace')
+
+        manufacturer = bytes(c.cast(self.rom_header.Manufacturer_ID, c.c_char_p)).decode("cp932", "replace").lstrip("\x00\x00\x00").rstrip("\x00\x00\x00\x00")
+        cartridge = bytes(c.cast(self.rom_header.Cartridge_ID, c.c_char_p)).decode("cp932", "replace")
         country_raw = self.rom_header.Country_code
+
+        # Map the codes with known regions
         if country_raw == 69 or country_raw == 325 or country_raw == 581:
             # 69 = 1.0, 325 = 1.1, 581 = 1.2
             country = 'U'
@@ -1288,7 +1299,7 @@ class API():
 
 
         header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2, "clockrate": clockrate,
-                  "pc": pc, "release": release, "crc1": crc1, "crc2": crc2, "name": name,
+                  "pc": pc, "release": release, "crc1": crc1, "crc2": crc2, "internalname": name,
                   "manufacturer": manufacturer, "cartridge": cartridge, "country": country}
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
@@ -1298,21 +1309,92 @@ class API():
             #print(header)
             return header
 
+    def rom_get_header_raw(self):
+        #M64CMD_ROM_GET_HEADER = 3
+        # XXX: In case anyone needs or prefer the raw values of the header...
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_HEADER.value, c.c_int(c.sizeof(self.rom_header)), c.pointer(self.rom_header))
+
+        header = None
+
+        lat = self.rom_header.init_PI_BSB_DOM1_LAT_REG
+        pgs1 = self.rom_header.init_PI_BSB_DOM1_PGS_REG
+        pwd = self.rom_header.init_PI_BSB_DOM1_PWD_REG
+        pgs2 =self.rom_header.init_PI_BSB_DOM1_PGS_REG2
+        clockrate = self.rom_header.ClockRate
+        pc = self.rom_header.PC
+        release = self.rom_header.Release
+        crc1 = self.rom_header.CRC1
+        crc2 = self.rom_header.CRC2
+        name = self.rom_header.Name
+        manufacturer = self.rom_header.Manufacturer_ID
+        cartridge = self.rom_header.Cartridge_ID
+        country = self.rom_header.Country_code
+
+        header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2, "clockrate": clockrate,
+                  "pc": pc, "release": release, "crc1": crc1, "crc2": crc2, "internalname": name,
+                  "manufacturer": manufacturer, "cartridge": cartridge, "country": country}
+
+        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            log.error("CoreDoCommand: Couldn't retrieve the ROM's header.")
+            return status
+        else:
+            return header
+
     def rom_get_settings(self):
         #M64CMD_ROM_GET_SETTINGS = 4
-        #TODO: savetype needs to be converted. 0 = eep4k, 1 = eep16k, 2 = sram, 3 = flashram, 4 = ??, 5 = controller pak
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_SETTINGS.value, c.c_int(c.sizeof(self.rom_settings)), c.pointer(self.rom_settings))
 
-        name = self.rom_settings.goodname.decode()
+        name = self.rom_settings.goodname.decode("utf-8")
 
-        md5 = self.rom_settings.MD5.decode()
+        md5 = self.rom_settings.MD5.decode("utf-8")
+        savetype_raw = self.rom_settings.savetype
+        if savetype_raw == 0:
+            savetype = "EEPROM 4 kb"
+        elif savetype_raw == 1:
+            savetype = "EEPROM 16 kb"
+        elif savetype_raw == 2:
+            savetype = "SRAM 256 kb"
+        elif savetype_raw == 3:
+            savetype = "FlashRAM 1 Mb"
+        elif savetype_raw == 4:
+            #TODO: what's this value for? controller pak maybe? or it's SRAM 768 kb for dezaemon 3d?
+            #savetype = "Controller Pak 2 Mb"
+            savetype = savetype_raw
+        elif savetype_raw == 5:
+            savetype = "None"
+        else:
+            savetype = savetype_raw
+
+        m64pstatus = self.rom_settings.status
+        players = self.rom_settings.players
+        rumble = bool(self.rom_settings.rumble)
+
+        settings = {"goodname": name, "md5": md5, "savetype": savetype,
+                    "status": m64pstatus, "players": players, "rumble": rumble}
+
+        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            log.error("CoreDoCommand: Couldn't retrieve the ROM's settings.")
+            return status
+        else:
+            #print(settings)
+            return settings
+
+    def rom_get_settings_raw(self):
+        #M64CMD_ROM_GET_SETTINGS = 4
+        # XXX: In case anyone needs or prefer the raw values of the settings...
+
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_SETTINGS.value, c.c_int(c.sizeof(self.rom_settings)), c.pointer(self.rom_settings))
+
+        name = self.rom_settings.goodname
+
+        md5 = self.rom_settings.MD5
         savetype = self.rom_settings.savetype
         m64pstatus = self.rom_settings.status
         players = self.rom_settings.players
         rumble = self.rom_settings.rumble
 
-        settings = {"name": name, "md5": md5, "savetype": savetype,
+        settings = {"goodname": name, "md5": md5, "savetype": savetype,
                     "status": m64pstatus, "players": players, "rumble": rumble}
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:

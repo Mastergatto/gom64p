@@ -12,6 +12,7 @@ import sys, os, os.path, threading, ast, hashlib, time, pathlib
 
 import global_module as g
 import logging as log
+import widget.gameprop as w_gprop
 
 ###############
 ## VARIABLES ##
@@ -209,6 +210,9 @@ class List:
                 log.error("The emulation thread has encountered an unexpected error")
                 threading.main_thread()
 
+    def on_infogame_activated(self, widget):
+        dialog = w_gprop.PropertiesDialog(self.parent, self.selected_game, "info")
+
     def menu(self):
         # Context menu
         self.treeview_menu = Gtk.Menu()
@@ -216,6 +220,9 @@ class List:
         play_item = Gtk.MenuItem("Play this game")
         play_item.connect("activate", self.on_playitem_activated)
         info_item = Gtk.MenuItem("Informations on this game")
+        info_item.connect("activate", self.on_infogame_activated)
+        cheats_item = Gtk.MenuItem("Cheats for this game")
+        custom_item = Gtk.MenuItem("Custom settings")
 
         self.treeview_menu.append(play_item)
         self.treeview_menu.append(info_item)
@@ -308,7 +315,7 @@ class Cache:
         settings = g.m64p_wrapper.rom_get_settings()
         g.m64p_wrapper.rom_close()
 
-        element = [(header['country'], settings['name'], settings['status'], rom, settings['md5'])]
+        element = [(header['country'], settings['goodname'], settings['status'], rom, settings['md5'])]
         return element
 
     def scan(self):
