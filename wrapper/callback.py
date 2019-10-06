@@ -17,13 +17,22 @@ def debug_callback(context, level, message):
     context_dec = c.cast(context, c.c_char_p).value.decode("utf-8")
     if level <= wrp_dt.m64p_msg_level.M64MSG_ERROR.value:
         #sys.stderr.write("%s: %s\n" % (context, message))
-        log.error(f'{context_dec}: {message.decode("utf-8")}')
+        try:
+            log.error(f'({context_dec}) {message.decode("utf-8")}')
+        except UnicodeDecodeError:
+            log.error(f'({context_dec}) {message.decode("cp932", "replace")}')
     elif level == wrp_dt.m64p_msg_level.M64MSG_WARNING.value:
-        log.warning(f'{context_dec}: {message.decode("utf-8")}')
+        try:
+            log.warning(f'({context_dec}) {message.decode("utf-8")}')
+        except UnicodeDecodeError:
+            log.warning(f'({context_dec}) {message.decode("cp932", "replace")}')
     elif level == wrp_dt.m64p_msg_level.M64MSG_INFO.value or level == wrp_dt.m64p_msg_level.M64MSG_STATUS.value:
-        log.info(f'{context_dec}: {message.decode("utf-8")}')
+        try:
+            log.info(f'({context_dec}) {message.decode("utf-8")}')
+        except UnicodeDecodeError:
+            log.info(f'({context_dec}) {message.decode("cp932", "replace")}')
     elif level == wrp_dt.m64p_msg_level.M64MSG_VERBOSE.value:
-        log.debug(f'{context_dec}: {message.decode("utf-8")}')
+        log.debug(f'({context_dec}) {message.decode("utf-8", "replace")}')
 
 CB_DEBUG = DEBUGPROTO(debug_callback)
 
