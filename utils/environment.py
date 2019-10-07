@@ -7,6 +7,7 @@
 #############
 ## MODULES ##
 #############
+from gi.repository import GLib
 import platform, pathlib, os
 import ctypes.util as cu
 
@@ -21,6 +22,8 @@ class Environment:
         self.parent = None
         self.system = platform.system()
         self.current_path = None
+        self.frontend_config_dir = None
+        self.cache_dir = None
 
     def query(self):
         return self.system
@@ -29,13 +32,29 @@ class Environment:
         self.current_path = os.getcwd()
         return self.current_path
 
+    def set_directories(self):
+        # Sets up the paths for gom64p to store own config and data
+        config_dir = pathlib.Path(GLib.get_user_config_dir())
+        self.frontend_config_dir = f'{config_dir}{os.sep}gom64p/'
+        if config_dir.is_dir() == False:
+            log.warning(f'The directory doesn\'t exist! Creating one at: {self.frontend_config_dir}')
+            self.frontend_config_dir.mkdir(mode=0o755)
+        log.info(f'User configuration directory is: {self.frontend_config_dir}')
+
+        cache_dir = pathlib.Path(GLib.get_user_cache_dir())
+        self.cache_dir = f'{cache_dir}{os.sep}gom64p/'
+        if cache_dir.is_dir() == False:
+            log.warning(f'The directory doesn\'t exist! Creating one at: {self.cache_dir}')
+            self.cache_dir.mkdir(mode=0o755)
+        log.info(f'User cache directory is: {self.cache_dir}')
+
     def set(self, parent):
         self.parent = parent
         args = parent.args
 
         lib = parent.frontend_conf.get('m64plib')
         plugindir = parent.frontend_conf.get('PluginsDir')
-        configdir = parent.frontend_conf.get('ConfigDir')
+        m64p_configdir = parent.frontend_conf.get('ConfigDir')
         datadir = parent.frontend_conf.get('DataDir')
 
         # This frontend is fully compliant with latest api.
@@ -54,8 +73,8 @@ class Environment:
         if args.configdir:
             parent.parameters['configdir'] = args.configdir
         else:
-            if configdir:
-                parent.parameters['configdir'] = configdir
+            if m64p_configdir:
+                parent.parameters['configdir'] = m64p_configdir
             else:
                 parent.parameters['configdir'] = ""
 

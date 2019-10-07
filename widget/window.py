@@ -51,16 +51,17 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         args_debug = self.application.args.debug
         args_csd = self.application.args.enable_csd
 
-        # config
-        self.frontend_conf = u_conf.FrontendConf()
-        self.application.frontend_conf = self.frontend_conf
-
         # environment
         self.environment = u_env.Environment()
-        self.environment.set(self.m64p_window)
+        self.environment.set_directories()
         self.m64p_dir = self.environment.set_current_path()
         self.platform = self.environment.query()
         self.parameters['platform'] = self.platform
+
+        self.frontend_conf = u_conf.FrontendConf(self.environment.frontend_config_dir)
+        self.application.frontend_conf = self.frontend_conf
+
+        self.environment.set(self.m64p_window)
 
         self.m64p_wrapper = wrp.API(self.m64p_window, self.parameters)
         self.lock = self.m64p_wrapper.lock
@@ -95,7 +96,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             #self.lock?
             self.m64p_wrapper.initialise()
 
-            self.cache = u_cache.CacheData(self.m64p_wrapper.ConfigGetUserCachePath())
+            self.cache = u_cache.CacheData(self.environment.cache_dir)
 
         # LAYOUT main window: csd,menubar,toolbar,box filter(label,entry),box((treeview,scroll),videoext),statusbar
 
