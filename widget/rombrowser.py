@@ -367,6 +367,7 @@ class Cache:
                     GLib.idle_add(self.progressbar.tick)
                     self.rom_list += element
             if missing_elements:
+                #TODO: Should it still scan?
                 for rom in missing_elements:
                     element = self.scan_element(rom)
                     GLib.idle_add(self.progressbar.tick)
@@ -431,12 +432,11 @@ class Cache:
         for i in self.rom_list:
             list_cache += [(i[3])]
 
-        print(list_rom, list_cache)
-        if list_rom == list_cache:
+        if sorted(list_rom) == sorted(list_cache):
             validation[2] = True
-            log.info(f'The list of the cache is validated.')
+            log.info(f'The list in the cache is validated.')
         else:
-            log.warning(f'The list of the cache is NOT validated.')
+            log.warning(f'The list in the cache is NOT validated.')
 
         if  validation.count(True) == len(validation):
             return True
