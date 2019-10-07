@@ -27,6 +27,7 @@ class API():
         self.lock = False
         self.vext_override = False
         self.current_slot = 0
+        wrp_cb.frontend = self.parent
         self.media_loader = wrp_cb.MEDIA_LOADER
 
         configpath = params['configdir'].encode('utf-8')

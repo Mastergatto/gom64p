@@ -82,13 +82,13 @@ class PluginDialog(Gtk.Dialog):
         self.gamepad_type = None
 
         if section == 'gfx':
-            self.section = self.get_section(g.m64p_wrapper.gfx_filename)
+            self.section = self.get_section(self.parent.m64p_wrapper.gfx_filename)
         elif section == 'audio':
-            self.section = self.get_section(g.m64p_wrapper.audio_filename)
+            self.section = self.get_section(self.parent.m64p_wrapper.audio_filename)
         elif section == 'input':
-            self.section = self.get_section(g.m64p_wrapper.input_filename)
+            self.section = self.get_section(self.parent.m64p_wrapper.input_filename)
         elif section == 'rsp':
-            self.section = self.get_section(g.m64p_wrapper.rsp_filename)
+            self.section = self.get_section(self.parent.m64p_wrapper.rsp_filename)
 
         title = self.section + " configuration"
         self.plugin_window = Gtk.Dialog()
@@ -168,7 +168,7 @@ class PluginDialog(Gtk.Dialog):
                 entry = Gtk.Entry()
                 entry.set_text(str(value))
                 entry.connect("changed", self.on_EntryChanged, parameter, param_type, value_param, section)
-                entry.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(parameter))
+                entry.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(parameter))
                 grid.attach(label, 0, counter, 1, 1)
                 grid.attach(entry, 1, counter, 1, 1)
                 counter += 1
@@ -181,7 +181,7 @@ class PluginDialog(Gtk.Dialog):
                 if value == True:
                     checkbox.set_active(True)
                 checkbox.connect("toggled", self.on_CheckboxToggled, section, parameter, value_param)
-                checkbox.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(parameter))
+                checkbox.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(parameter))
                 grid.attach(checkbox, 0, counter, 1, 1)
                 counter += 1
             elif param_type == 4: #str
@@ -191,7 +191,7 @@ class PluginDialog(Gtk.Dialog):
                 entry = Gtk.Entry()
                 entry.set_text(value)
                 entry.connect("changed", self.on_EntryChanged, parameter, param_type, value_param, section)
-                entry.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(parameter))
+                entry.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(parameter))
                 grid.attach(label, 0, counter, 1, 1)
                 grid.attach(entry, 1, counter, 1, 1)
                 counter += 1
@@ -229,8 +229,8 @@ class PluginDialog(Gtk.Dialog):
         self.mode_combo.append('2',"Fully automatic")
 
         if self.parent.m64p_wrapper.ConfigGetParameter('mode') != None:
-            self.mode_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('mode')))
-            self.mode_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('mode'))
+            self.mode_combo.set_active_id(str(self.parent.m64p_wrapper.ConfigGetParameter('mode')))
+            self.mode_combo.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp('mode'))
         self.mode_combo.connect('changed', self.on_combobox_changed, section, 'mode')
 
         plugged_button = Gtk.ToggleButton()
@@ -250,8 +250,8 @@ class PluginDialog(Gtk.Dialog):
         pak_combo.append('5',"Rumble Pak")
 
         if self.parent.m64p_wrapper.ConfigGetParameter('plugin') != None:
-            pak_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('plugin')))
-            pak_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('plugin'))
+            pak_combo.set_active_id(str(self.parent.m64p_wrapper.ConfigGetParameter('plugin')))
+            pak_combo.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp('plugin'))
         pak_combo.connect('changed', self.on_combobox_changed, section, 'plugin')
 
         device_label = Gtk.Label("Device:")
@@ -260,10 +260,10 @@ class PluginDialog(Gtk.Dialog):
 
         # For gamepads let's wait for the SDL polling, which will happen later. Meanwhile we retrieve device and name of gamepad for each player from the configuration.
         if self.parent.m64p_wrapper.ConfigGetParameter('device') != None:
-            gamepad = [g.m64p_wrapper.ConfigGetParameter('device'), self.parent.m64p_wrapper.ConfigGetParameter('name')]
+            gamepad = [self.parent.m64p_wrapper.ConfigGetParameter('device'), self.parent.m64p_wrapper.ConfigGetParameter('name')]
             if self.parent.m64p_wrapper.ConfigGetParameter('device') == -1:
-                self.device_combo.set_active_id(str(g.m64p_wrapper.ConfigGetParameter('device')))
-            self.device_combo.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp('device'))
+                self.device_combo.set_active_id(str(self.parent.m64p_wrapper.ConfigGetParameter('device')))
+            self.device_combo.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp('device'))
         self.device_combo.connect('changed', self.on_combobox_changed, section, 'device')
 
 
@@ -367,7 +367,7 @@ class PluginDialog(Gtk.Dialog):
         if self.parent.m64p_wrapper.ConfigGetParameter("Mouse") == True:
             mouse_checkbox.set_active(True)
         mouse_checkbox.connect("toggled", self.on_CheckboxToggled, section, "Mouse", None)
-        mouse_checkbox.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp("Mouse"))
+        mouse_checkbox.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp("Mouse"))
 
         mouse_sensitivity = self.insert_double_spinbutton("MouseSensitivity", section, other_grid)
         analog_deadzone = self.insert_double_spinbutton("AnalogDeadzone", section, other_grid)
@@ -720,11 +720,11 @@ class PluginDialog(Gtk.Dialog):
             second_spin = self.insert_spinbutton_fragment(-32768, 32768)
             second_spin.set_value(int(spin_values[1]))
 
-        first_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param) + "\n This value refers to the axis X.")
+        first_spin.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param) + "\n This value refers to the axis X.")
         first_spin.connect("value-changed", self.on_double_spinbutton_changed, section, param, 0, spin_values)
 
         second_spin.connect("value-changed", self.on_double_spinbutton_changed, section, param, 1, spin_values)
-        second_spin.set_tooltip_text(g.m64p_wrapper.ConfigGetParameterHelp(param) + "\n This value refers to the axis Y.")
+        second_spin.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param) + "\n This value refers to the axis Y.")
 
         if param == "MouseSensitivity":
             label = Gtk.Label("Mouse sensitivity: ")

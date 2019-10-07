@@ -640,7 +640,7 @@ class ConfigDialog(Gtk.Dialog):
         entry.set_hexpand(True)
         if config == "frontend":
             if self.parent.frontend_conf.get(param) != None:
-                entry.set_text(g.frontend_conf.get(param))
+                entry.set_text(self.parent.frontend_conf.get(param))
             entry.set_tooltip_text(help)
         elif config == "m64p":
             if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:

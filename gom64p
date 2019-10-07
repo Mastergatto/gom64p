@@ -37,10 +37,9 @@ gi.require_version("GLib", "2.0")
 from gi.repository import Gtk, Gdk, Gio, GLib
 from gettext import gettext as _
 
-import widget.window as w_main
-import global_module as g
 import logging as log
 import utils.logging as u_log
+import widget.window as w_main
 
 ###############
 ## FUNCTIONS ##
@@ -64,8 +63,7 @@ class GoodOldM64pApp(Gtk.Application):
 
         self.main = None
         self.args = None
-        #g.m64p_dir = os.getcwd()
-        g.m64p_dir = os.path.dirname(os.path.abspath(__file__))
+        self.frontend_conf = None
         self.logger = u_log.Logger()
         log.debug(f"GTK+ version: {str(Gtk.MAJOR_VERSION)}.{str(Gtk.MINOR_VERSION)}.{str(Gtk.MICRO_VERSION)}")
 
@@ -91,7 +89,7 @@ class GoodOldM64pApp(Gtk.Application):
         '''
 
         log.debug("Closing...")
-        g.frontend_conf.write()
+        self.frontend_conf.write()
         #TODO: There's anything left to do?
         Gtk.Application.do_shutdown(self)
 

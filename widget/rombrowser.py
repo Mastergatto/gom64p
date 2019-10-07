@@ -10,7 +10,6 @@
 from gi.repository import Gtk, Gdk, GObject, GLib, GdkPixbuf
 import sys, os, os.path, threading, ast, hashlib, time, pathlib
 
-import global_module as g #TODO: Remove
 import logging as log
 import widget.gameprop as w_gprop
 
@@ -41,23 +40,23 @@ class List:
         size_rating = 76 * self.parent.get_scale_factor()
         new_list = []
 
-        usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/united-states.svg")), size_flag, -1, True)
-        japan = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/japan.svg")), size_flag, -1, True)
-        jpn_usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/us-jp.svg")), size_flag, -1, True)
-        europe = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/european-union.svg")), size_flag, -1, True)
-        australia = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/australia.svg")), size_flag, -1, True)
-        france = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/france.svg")), size_flag, -1, True)
-        germany = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/germany.svg")), size_flag, -1, True)
-        italy = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/italy.svg")), size_flag, -1, True)
-        spain = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/spain.svg")), size_flag, -1, True)
-        unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/unknown.svg")), size_flag, -1, True)
+        usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/united-states.svg")), size_flag, -1, True)
+        japan = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/japan.svg")), size_flag, -1, True)
+        jpn_usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/us-jp.svg")), size_flag, -1, True)
+        europe = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/european-union.svg")), size_flag, -1, True)
+        australia = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/australia.svg")), size_flag, -1, True)
+        france = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/france.svg")), size_flag, -1, True)
+        germany = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/germany.svg")), size_flag, -1, True)
+        italy = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/italy.svg")), size_flag, -1, True)
+        spain = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/spain.svg")), size_flag, -1, True)
+        unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/unknown.svg")), size_flag, -1, True)
 
-        zero = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating0.svg")), size_rating, -1, True)
-        one = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating1.svg")), size_rating, -1, True)
-        two = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating2.svg")), size_rating, -1, True)
-        three = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating3.svg")), size_rating, -1, True)
-        four = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating4.svg")), size_rating, -1, True)
-        five = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path("ui/icons/rating5.svg")), size_rating, -1, True)
+        zero = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating0.svg")), size_rating, -1, True)
+        one = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating1.svg")), size_rating, -1, True)
+        two = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating2.svg")), size_rating, -1, True)
+        three = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating3.svg")), size_rating, -1, True)
+        four = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating4.svg")), size_rating, -1, True)
+        five = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating5.svg")), size_rating, -1, True)
 
         for i in self.rom_list:
             flag = i[0]
@@ -303,7 +302,7 @@ class Cache:
                         total_paths += [(path + onerom)]
                     elif os.path.isfile(onerom) and onerom.lower().endswith(format64dd_allowed):
                         total64dd += [(path + onerom , str.upper(self.hashify(onerom)))]
-        os.chdir(g.m64p_dir) #TODO: remove
+        os.chdir(self.parent.m64p_dir)
 
         return total_paths
 

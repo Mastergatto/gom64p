@@ -205,7 +205,7 @@ class MediaDialog(Gtk.Dialog):
 
         try:
             if self.parent.m64p_wrapper.ConfigGetParameter(param) != None:
-                entry.set_text(g.m64p_wrapper.ConfigGetParameter(param))
+                entry.set_text(self.parent.m64p_wrapper.ConfigGetParameter(param))
         except KeyError:
             log.warning(f"{param} not found. Creating it.")
             self.parent.m64p_wrapper.ConfigSetDefaultString(param, "", help)

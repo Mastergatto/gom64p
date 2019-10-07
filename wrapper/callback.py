@@ -7,8 +7,9 @@
 import ctypes as c
 
 import wrapper.datatypes as wrp_dt
-import global_module as g # TODO: remove
 import logging as log
+
+frontend = None
 
 ###void (*DebugCallback)(void *Context, int level, const char *message)
 DEBUGPROTO = c.CFUNCTYPE(None, c.c_void_p, c.c_int, c.c_char_p)
@@ -111,15 +112,15 @@ class Media_callback(object):
 
     @cart_rom_cb
     def get_gb_cart_rom(cb_data, controller_id):
-        g.m64p_wrapper.ConfigOpenSection("Transferpak")
+        frontend.m64p_wrapper.ConfigOpenSection("Transferpak")
         if controller_id == 0:
-            filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-1")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-rom-1")
         elif controller_id == 1:
-            filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-2")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-rom-2")
         elif controller_id == 2:
-            filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-3")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-rom-3")
         elif controller_id == 3:
-            filename = g.m64p_wrapper.ConfigGetParameter("GB-rom-4")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-rom-4")
         else:
             log.warning("Unknown controller")
         if filename != '':
@@ -129,15 +130,15 @@ class Media_callback(object):
 
     @cart_ram_cb
     def get_gb_cart_ram(cb_data, controller_id):
-        g.m64p_wrapper.ConfigOpenSection("Transferpak")
+        frontend.m64p_wrapper.ConfigOpenSection("Transferpak")
         if controller_id == 0:
-            filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-1")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-ram-1")
         elif controller_id == 1:
-            filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-2")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-ram-2")
         elif controller_id == 2:
-            filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-3")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-ram-3")
         elif controller_id == 3:
-            filename = g.m64p_wrapper.ConfigGetParameter("GB-ram-4")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-ram-4")
         else:
             log.warning("Unknown controller")
         if filename != '':
@@ -147,30 +148,30 @@ class Media_callback(object):
 
     @dd_rom_cb
     def get_dd_rom(cb_data):
-        g.m64p_wrapper.ConfigOpenSection("64DD")
+        frontend.m64p_wrapper.ConfigOpenSection("64DD")
         try:
-            filename = g.m64p_wrapper.ConfigGetParameter("IPL-ROM")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("IPL-ROM")
             if filename != '':
                 return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
             else:
                 return None
         except:
             log.warning("IPL-ROM parameter not found. Creating it.")
-            g.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
+            frontend.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
             return None
 
     @dd_disk_cb
     def get_dd_disk(cb_data):
-        g.m64p_wrapper.ConfigOpenSection("64DD")
+        frontend.m64p_wrapper.ConfigOpenSection("64DD")
         try:
-            filename = g.m64p_wrapper.ConfigGetParameter("Disk")
+            filename = frontend.m64p_wrapper.ConfigGetParameter("Disk")
             if filename != '':
                 return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
             else:
                 return None
         except:
             log.warning("Disk image parameter not found. Creating it.")
-            g.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
+            frontend.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
             return None
 
 cb = Media_callback()

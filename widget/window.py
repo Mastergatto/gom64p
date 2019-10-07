@@ -10,6 +10,7 @@
 from gi.repository import Gtk, Gdk
 import ctypes as c
 import logging as log
+import pathlib
 
 import global_module as g #TODO: remove
 import utils.cache as u_cache
@@ -22,7 +23,6 @@ import widget.keysym as w_key
 import wrapper.datatypes as wrp_dt
 import wrapper.functions as wrp
 
-import pathlib
 ###############
 ## VARIABLES ##
 ###############
@@ -47,17 +47,19 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.parameters = {}
         self.args = self.application.args
         self.cache = None
+        self.m64p_dir = None
 
         args_debug = self.application.args.debug
         args_csd = self.application.args.enable_csd
 
         # config
         self.frontend_conf = u_conf.FrontendConf()
-        g.parameters = self.parameters #TODO: Legacy, to be removed soon
+        self.application.frontend_conf = self.frontend_conf
 
-        # platform
+        # environment
         self.environment = u_env.Environment()
         self.environment.set(self.m64p_window)
+        self.m64p_dir = self.environment.set_current_path()
         self.platform = self.environment.query()
         self.parameters['platform'] = self.platform
 
@@ -65,9 +67,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.lock = self.m64p_wrapper.lock
 
         # TODO: Legacy, to be removed soon
-        g.frontend_conf = self.frontend_conf
         g.m64p_wrapper = self.m64p_wrapper
-        #g.m64p_wrapper.lock = self.m64p_wrapper.lock
 
         if args_debug == True:
             self.application.logger.set_level(log.DEBUG)
@@ -100,7 +100,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             self.m64p_wrapper.initialise()
 
             self.cache = u_cache.CacheData(g.m64p_wrapper.ConfigGetUserCachePath())
-            g.cache = self.cache #TODO: Legacy, to be removed soon
 
 
         # LAYOUT main window: csd,menubar,toolbar,box filter(label,entry),box((treeview,scroll),videoext),statusbar
@@ -182,11 +181,11 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         ## Configurations InsertMenu
 
-        if g.frontend_conf.get_bool('ToolbarConfig') == True:
+        if self.frontend_conf.get_bool('ToolbarConfig') == True:
             self.main_menu.view_menu_toolbar.set_active(True)
-        if g.frontend_conf.get_bool('FilterConfig') == True:
+        if self.frontend_conf.get_bool('FilterConfig') == True:
             self.main_menu.view_menu_filter.set_active(True)
-        if g.frontend_conf.get_bool('StatusConfig') == True:
+        if self.frontend_conf.get_bool('StatusConfig') == True:
             self.main_menu.view_menu_status.set_active(True)
 
         ##Now load the instance with all the widgets and boxes ##
@@ -221,8 +220,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         vidext_tab = Gtk.Label(label="vidext")
         n_pages = self.notebook.get_n_pages()
         if n_pages == 1:
-            g.frontend_conf.open_section("Frontend")
-            if g.frontend_conf.get_bool("Vidext") == True:
+            self.frontend_conf.open_section("Frontend")
+            if self.frontend_conf.get_bool("Vidext") == True:
                 self.canvas = Gtk.DrawingArea()
                 self.canvas.set_can_focus(True)
                 #self.canvas.grab_add()
@@ -252,8 +251,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def remove_video_tab(self):
         self.notebook.remove_page(1)
         self.notebook.set_current_page(0)
-        g.frontend_conf.open_section("Frontend")
-        if g.frontend_conf.get_bool("Vidext") == True:
+        self.frontend_conf.open_section("Frontend")
+        if self.frontend_conf.get_bool("Vidext") == True:
             self.video_box.remove(self.canvas)
         else:
             self.video_box.remove(self.running_label)
@@ -261,7 +260,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     ### SIGNALS (clicked for button, activate for menu)
 
     def quit_cb(self, *args):
-        if g.running == True:
+        if self.running == True:
             #TODO: There should be a dialog asking if the user wants to stop emulation first
             self.main_menu.on_action_stop()
             return True
@@ -277,20 +276,20 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         n64list_filter = self.filter_box
         if filter_checkbox.get_active() == 1:
             n64list_filter.show_all()
-            g.frontend_conf.set('FilterConfig', 'True')
+            self.frontend_conf.set('FilterConfig', 'True')
         else:
             n64list_filter.hide()
-            g.frontend_conf.set('FilterConfig', 'False')
+            self.frontend_conf.set('FilterConfig', 'False')
 
     def on_EnableStatusBar_toggle(self, *args):
         statusbar_checkbox = self.view_menu_status
         m64p_statusbar = self.Statusbar
         if statusbar_checkbox.get_active() == 1:
             m64p_statusbar.show()
-            g.frontend_conf.set('StatusConfig', 'True')
+            self.frontend_conf.set('StatusConfig', 'True')
         else:
             m64p_statusbar.hide()
-            g.frontend_conf.set('StatusConfig', 'False')
+            self.frontend_conf.set('StatusConfig', 'False')
 
     def on_reload(self, widget):
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...")
@@ -301,9 +300,9 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         #https://lazka.github.io/pgi-docs/Gdk-3.0/mapping.html
         #print(event.hardware_keycode)
         if event.get_event_type() == Gdk.EventType.KEY_PRESS:
-            g.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
+            self.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
         elif event.get_event_type() == Gdk.EventType.KEY_RELEASE:
-            g.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(event.hardware_keycode).value)
+            self.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(event.hardware_keycode).value)
 
         return True
 
@@ -338,8 +337,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value:
             log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_video_mode(value).name}")
         elif param == wrp_dt.m64p_core_param.M64CORE_SAVESTATE_SLOT.value:
-            if g.m64p_wrapper.current_slot != value:
-                g.m64p_wrapper.current_slot = value
+            if self.m64p_wrapper.current_slot != value:
+                self.m64p_wrapper.current_slot = value
                 self.main_menu.save_slot_items[value].set_active(True)
             log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}, SLOT: {value}")
             self.Statusbar.push(self.StatusbarContext, "Slot selected: " + str(value))

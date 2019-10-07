@@ -7,8 +7,9 @@
 #############
 ## MODULES ##
 #############
-import platform, pathlib
+import platform, pathlib, os
 import ctypes.util as cu
+
 import logging as log
 
 ###############
@@ -19,10 +20,14 @@ class Environment:
     def __init__(self):
         self.parent = None
         self.system = platform.system()
-        #self.set_environment()
+        self.current_path = None
 
     def query(self):
         return self.system
+
+    def set_current_path(self):
+        self.current_path = os.getcwd()
+        return self.current_path
 
     def set(self, parent):
         self.parent = parent
