@@ -10,7 +10,6 @@
 from gi.repository import Gtk
 import os.path
 
-import global_module as g
 import widget.dialog as w_dialog
 import widget.plugin as w_plugin
 
@@ -21,6 +20,7 @@ import widget.plugin as w_plugin
 
 class CheatsDialog(Gtk.Dialog):
     def __init__(self, parent):
+        self.parent = parent
         self.cheats_window = Gtk.Dialog()
         self.cheats_window.set_properties(self, title="Cheats")
         self.cheats_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
@@ -65,10 +65,10 @@ class CheatsDialog(Gtk.Dialog):
         entry.set_placeholder_text(placeholder)
         entry.set_hexpand(True)
         if config == "frontend":
-            if g.frontend_conf.get(param) != None:
+            if self.parent.frontend_conf.get(param) != None:
                 entry.set_text(g.frontend_conf.get(param))
         elif config == "m64p":
-            if g.m64p_wrapper.ConfigGetParameter(param) != None:
+            if self.parent.m64p_wrapper.ConfigGetParameter(param) != None:
                 entry.set_text(g.m64p_wrapper.ConfigGetParameter(param))
         entry.connect("changed", self.on_EntryChanged, section, param)
         return entry
@@ -79,8 +79,8 @@ class CheatsDialog(Gtk.Dialog):
         self.apply_button.set_sensitive(True)
         value = widget.get_text()
         if section == "Frontend" or section == "GameDirs":
-            g.frontend_conf.open_section(section)
-            g.frontend_conf.set(param, value)
+            self.parent.frontend_conf.open_section(section)
+            self.parent.frontend_conf.set(param, value)
         else:
-            g.m64p_wrapper.ConfigOpenSection(section)
-            g.m64p_wrapper.ConfigSetParameter(param, value)
+            self.parent.m64p_wrapper.ConfigOpenSection(section)
+            self.parent.m64p_wrapper.ConfigSetParameter(param, value)

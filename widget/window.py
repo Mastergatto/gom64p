@@ -12,7 +12,6 @@ import ctypes as c
 import logging as log
 import pathlib
 
-import global_module as g #TODO: remove
 import utils.cache as u_cache
 import utils.config as u_conf
 #import utils.logging as u_log
@@ -66,9 +65,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.m64p_wrapper = wrp.API(self.m64p_window, self.parameters)
         self.lock = self.m64p_wrapper.lock
 
-        # TODO: Legacy, to be removed soon
-        g.m64p_wrapper = self.m64p_wrapper
-
         if args_debug == True:
             self.application.logger.set_level(log.DEBUG)
             log.debug("Debug is enabled!")
@@ -99,7 +95,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             #self.lock?
             self.m64p_wrapper.initialise()
 
-            self.cache = u_cache.CacheData(g.m64p_wrapper.ConfigGetUserCachePath())
+            self.cache = u_cache.CacheData(self.m64p_wrapper.ConfigGetUserCachePath())
 
 
         # LAYOUT main window: csd,menubar,toolbar,box filter(label,entry),box((treeview,scroll),videoext),statusbar
