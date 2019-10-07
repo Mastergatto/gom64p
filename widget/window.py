@@ -97,7 +97,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
             self.cache = u_cache.CacheData(self.m64p_wrapper.ConfigGetUserCachePath())
 
-
         # LAYOUT main window: csd,menubar,toolbar,box filter(label,entry),box((treeview,scroll),videoext),statusbar
 
         self.main_box = Gtk.VBox()

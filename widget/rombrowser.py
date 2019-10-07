@@ -122,7 +122,7 @@ class List:
         self.romlist_store_model = Gtk.ListStore(GdkPixbuf.Pixbuf, str, GdkPixbuf.Pixbuf, str, str)
 
         if self.is_cache_validated == False:
-            log.info("The cache is NOT validated! Checking the list...")
+            log.warning("The cache is NOT validated! Checking the list...")
             if self.rom_list != []:
                 log.info("Rom list is not empty! Updating...")
                 self.cache.update()
@@ -319,6 +319,7 @@ class Cache:
 
     def scan(self):
         '''Threaded method to scan those ROMs that are indicated.'''
+        log.info(f'Start scanning the directories')
         self.rom_list = []
         GLib.idle_add(self.progressbar.start, "Generating the list...")
         total_paths = self.get_total_elements()
@@ -332,6 +333,7 @@ class Cache:
 
         GLib.idle_add(self.progressbar.end)
         self.write()
+        log.info(f'Done scanning the directories')
 
         # Let's tell to the browser that the job is done here.
         self.parent.browser_list.rom_list = self.rom_list
@@ -340,6 +342,7 @@ class Cache:
     def compare_and_manage(self):
         '''Threaded method to compare the list stored in the cache with this new list,
         any ROM not present in both lists will be added or removed'''
+        log.info(f'Starting to compare lists and eventually add or remove files')
         list_cache = []
         self.rom_list = self.parent.browser_list.rom_list
         for i in self.rom_list:
@@ -351,7 +354,10 @@ class Cache:
         missing_elements = list(set(sorted(list_cache)).difference(sorted(total_paths)))
         changed_elements = len(new_elements) + len(missing_elements)
 
+        log.info(f'Done comparing the lists')
+
         if changed_elements > 0:
+            log.info(f'New elements! Updating the cache...')
             GLib.idle_add(self.progressbar.start, "Updating the list...")
             GLib.idle_add(self.progressbar.set_amount, changed_elements)
 
@@ -373,6 +379,7 @@ class Cache:
             self.parent.browser_list.rom_list = self.rom_list
             GLib.idle_add(self.parent.browser_list.generate_liststore)
         else:
+            log.info(f'No changes, there\'s no need to update the cache.')
             # There are no ROMs to be added or removed, but we pretend to update the list just to please the user.
             GLib.idle_add(self.progressbar.start, "Updating the list...")
             GLib.idle_add(self.progressbar.set_amount, 1)
@@ -410,18 +417,26 @@ class Cache:
         #TODO
         if cache_version == 1:
             validation[0] = True
+            log.info(f'The version of the cache is validated.')
 
         self.amount_roms = len(list_rom)
         if self.amount_roms == int(self.parent.cache.total_roms):
             validation[1] = True
+            log.info(f'The amount of games is validated.')
+        else:
+            log.warning(f'The amount of games is NOT validated.')
 
         self.rom_list = ast.literal_eval(self.parent.cache.generated_list)
         list_cache = []
         for i in self.rom_list:
             list_cache += [(i[3])]
+
+        print(list_rom, list_cache)
         if list_rom == list_cache:
             validation[2] = True
-
+            log.info(f'The list of the cache is validated.')
+        else:
+            log.warning(f'The list of the cache is NOT validated.')
 
         if  validation.count(True) == len(validation):
             return True
@@ -431,6 +446,7 @@ class Cache:
     def write(self):
         self.parent.cache.generated_list = self.rom_list
         self.parent.cache.total_roms = str(self.amount_roms)
+        log.info(f'Amount of games found: {self.amount_roms}')
         self.parent.cache.write_cache()
 
 class ProgressScanning(Gtk.Dialog):
