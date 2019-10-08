@@ -34,16 +34,16 @@ class Environment:
 
     def set_directories(self):
         # Sets up the paths for gom64p to store own config and data
-        config_dir = pathlib.Path(GLib.get_user_config_dir())
-        self.frontend_config_dir = f'{config_dir}{os.sep}gom64p/'
-        if config_dir.is_dir() == False:
+        config_dir = f'{GLib.get_user_config_dir()}{os.sep}gom64p/'
+        self.frontend_config_dir = pathlib.Path(config_dir)
+        if self.frontend_config_dir.is_dir() == False:
             log.warning(f'The directory doesn\'t exist! Creating one at: {self.frontend_config_dir}')
             self.frontend_config_dir.mkdir(mode=0o755)
         log.info(f'User configuration directory is: {self.frontend_config_dir}')
 
-        cache_dir = pathlib.Path(GLib.get_user_cache_dir())
-        self.cache_dir = f'{cache_dir}{os.sep}gom64p/'
-        if cache_dir.is_dir() == False:
+        cache_dir = f'{GLib.get_user_cache_dir()}{os.sep}gom64p/'
+        self.cache_dir = pathlib.Path(cache_dir)
+        if self.cache_dir.is_dir() == False:
             log.warning(f'The directory doesn\'t exist! Creating one at: {self.cache_dir}')
             self.cache_dir.mkdir(mode=0o755)
         log.info(f'User cache directory is: {self.cache_dir}')
