@@ -272,7 +272,7 @@ class DialogAbout(Gtk.Dialog):
         about_frontend.set_program_name("Good Old M64+")
         about_frontend.set_version("0.1")
         about_frontend.set_copyright("©2019 Mastergatto")
-        about_frontend.set_artists(["Freepik (The flags are designed by Freepik from Flaticon (www.flaticon.com))", "Google (Noto Emoji Travel & Places Icons set)"])
+        about_frontend.set_artists(["Freepik (The flags are designed by Freepik from Flaticon (www.flaticon.com))", "Google (Noto Emoji Travel &amp; Places Icons set)"])
         about_frontend.set_website("https://github.com/Mastergatto/gom64p")
         about_frontend.set_website_label("Github repository")
         about_frontend.set_transient_for(parent)
