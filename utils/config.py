@@ -64,7 +64,7 @@ class Configuration():
 class FrontendConf(Configuration):
     def __init__(self, path):
         self.config = configparser.ConfigParser()
-        self.config_file = str(path) + 'gom64p.conf'
+        self.config_file = f'{str(path)}{os.sep}gom64p.conf'
         self.section = 'Frontend'
         self.check()
 
