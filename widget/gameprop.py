@@ -44,6 +44,7 @@ class PropertiesDialog(Gtk.Dialog):
         self.game_window.add_button("OK", Gtk.ResponseType.OK)
 
         if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+
             notebook = Gtk.Notebook()
             notebook.set_vexpand(True)
             #notebook.connect("switch-page", self.on_change_page)
@@ -51,12 +52,18 @@ class PropertiesDialog(Gtk.Dialog):
             info_tab = self.info_handler()
             info_label = Gtk.Label(label="Informations")
 
+            cheats_tab = self.cheats()
+            cheats_label = Gtk.Label(label="Cheats")
+
+            custom_tab = self.custom_settings()
+            custom_label = Gtk.Label(label="Custom settings")
+
             notebook.append_page(info_tab, info_label)
+            notebook.append_page(cheats_tab, cheats_label)
+            notebook.append_page(custom_tab, custom_label)
 
             dialog_box = self.game_window.get_content_area()
             dialog_box.add(notebook)
-
-        # Cheats, settings per game
 
         else:
             label = Gtk.Label("Mupen64plus' core library is incompatible, please upgrade it.")
@@ -128,6 +135,20 @@ class PropertiesDialog(Gtk.Dialog):
 
         return info_box
 
+    def cheats(self):
+        label = Gtk.Label("Not yet implemented, please come back later.")
+        tab_area = Gtk.VBox()
+        tab_area.add(label)
+
+        return tab_area
+
+    def custom_settings(self):
+        label = Gtk.Label("Not yet implemented, please come back later.")
+        tab_area = Gtk.VBox()
+        tab_area.add(label)
+
+        return tab_area
+
     def scan_element(self, rom):
         '''Method that opens and reads a ROM, and finally returns valuable
          informations that are in it'''
@@ -135,9 +156,6 @@ class PropertiesDialog(Gtk.Dialog):
         self.header = self.parent.m64p_wrapper.rom_get_header()
         self.settings = self.parent.m64p_wrapper.rom_get_settings()
         self.parent.m64p_wrapper.rom_close()
-
-        #element = [(header['country'], settings['name'], settings['status'], rom, settings['md5'])]
-        #return element
 
     def insert_entry(self, text, field, case=None):
         box = Gtk.HBox()
