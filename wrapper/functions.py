@@ -4,7 +4,7 @@
 # This code is covered under GPLv2+, see LICENSE
 #####################
 
-import sys, pathlib, binascii, platform
+import sys, pathlib, binascii, platform, os
 import ctypes as c
 import logging as log
 
@@ -1267,36 +1267,62 @@ class API():
 
         # The internal name is also codified in ms-kanji, so let's decode this way.
         name = bytes(raw_name).decode('cp932', 'replace')
-
-        manufacturer = bytes(c.cast(self.rom_header.Manufacturer_ID, c.c_char_p)).decode("cp932", "replace").lstrip("\x00\x00\x00").rstrip("\x00\x00\x00\x00")
-        cartridge = bytes(c.cast(self.rom_header.Cartridge_ID, c.c_char_p)).decode("cp932", "replace")
         country_raw = self.rom_header.Country_code
 
         # Map the codes with known regions
+        cartridge_region = ""
+        cartridge_letter = ""
         if country_raw == 69 or country_raw == 325 or country_raw == 581:
             # 69 = 1.0, 325 = 1.1, 581 = 1.2
             country = 'U'
+            cartridge_region = "USA"
+            cartridge_letter = "E"
         elif country_raw == 74 or country_raw == 842 or country_raw == 330 or country_raw == 586:
             # 74 = 1.0, 330 = 1.1, 586 = 1.2, 842 = 1.3
             country = 'J'
+            cartridge_region = "JPN"
+            cartridge_letter = "J"
         elif country_raw == 65:
             country = 'JU'
         elif country_raw == 80 or country_raw == 336 or country_raw == 592 or country_raw == 88  or country_raw == 89:
             # 80 = 1.0, 336 = 1.1, 592 = 1.2, 88 = region 1 with some lang, 89 = region 2 with some other lang
             country = 'E'
+            cartridge_region = "EUR"
+            cartridge_letter = "P"
+            #TODO: Handle UKV cases (also X for Top Gear Rally 2 and Michael Owen's World League Soccer 2000)
         elif country_raw == 85:
             country = 'A'
+            cartridge_region = "AUS"
+            cartridge_letter = "P"
         elif country_raw == 70:
             country = 'F'
+            cartridge_region = "FRA"
+            cartridge_letter = "F"
         elif country_raw == 68 or country_raw == 324 or country_raw == 580:
             #68 = 1.0, 324 = 1.1, 580 = 1.2
             country = 'G'
+            cartridge_region = "NOE"
+            cartridge_letter = "D"
         elif country_raw == 73:
             country = 'I'
+            cartridge_region = "ITA"
+            cartridge_letter = "I"
         elif country_raw == 83:
             country = 'S'
+            cartridge_region = "ESP"
+            cartridge_letter = "S"
         else:
             country = '?'
+            log.warning(f'Unknown region for {name}.')
+
+        cartridge_bit = bytes(c.cast(self.rom_header.Cartridge_ID, c.c_char_p)).decode("cp932", "replace").rstrip("\x00\x00\x00\x00\x00\x00")
+
+        if country_raw == 65:
+            cartridge = f'NUS-NTEE-USA/NUS-NTEJ-JPN'
+        else:
+            cartridge = f'NUS-N{cartridge_bit}{cartridge_letter}-{cartridge_region}'
+
+        manufacturer = bytes(c.cast(self.rom_header.Manufacturer_ID, c.c_char_p)).decode("cp932", "replace").lstrip("\x00\x00\x00").rstrip("\x00\x00\x00\x00")
 
 
         header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2, "clockrate": clockrate,
@@ -1552,7 +1578,9 @@ class API():
 
     def preload(self):
         try:
+            os.chdir(self.plugins_dir) #TODO
             self.m64p_lib_core = c.cdll.LoadLibrary(self.m64p_lib_core_path)
+            os.chdir(self.parent.m64p_dir)
 
             check_core = self.PluginGetVersion(self.m64p_lib_core)
             if check_core["version"] >= self.core_version:
@@ -1597,28 +1625,31 @@ class API():
             self.CoreDetachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_RSP.value)
 
     def plugins_preload(self):
+        os.chdir(self.plugins_dir)
         if self.gfx_filename != "dummy":
             try:
-                self.m64p_lib_gfx = c.cdll.LoadLibrary(self.plugins_dir + self.gfx_filename)
+                print(self.gfx_filename)
+                self.m64p_lib_gfx = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.gfx_filename}')
             except:
                 log.error(f"{self.gfx_filename}: Plugin cannot be used. Dummy plugin is used instead, which means no video.")
                 self.gfx_filename = "dummy"
 
         try:
-            self.m64p_lib_audio = c.cdll.LoadLibrary(self.plugins_dir + self.audio_filename)
+            self.m64p_lib_audio = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.audio_filename}')
         except:
             log.error(f"{self.audio_filename }: Plugin not found, cannot be used. Default plugin is used instead.")
-            self.m64p_lib_audio = c.cdll.LoadLibrary(self.plugins_dir + 'mupen64plus-audio-hle' + self.extension_filename)
+            self.m64p_lib_audio = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-audio-hle{self.extension_filename}')
         try:
-            self.m64p_lib_input = c.cdll.LoadLibrary(self.plugins_dir + self.input_filename)
+            self.m64p_lib_input = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.input_filename}')
         except:
             log.error(f"{self.input_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
-            self.m64p_lib_input = c.cdll.LoadLibrary(self.plugins_dir + 'mupen64plus-input-sdl.so' + self.extension_filename)
+            self.m64p_lib_input = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-input-sdl{self.extension_filename}')
         try:
-            self.m64p_lib_rsp = c.cdll.LoadLibrary(self.plugins_dir + self.rsp_filename)
+            self.m64p_lib_rsp = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.rsp_filename}')
         except:
             log.error(f"{self.rsp_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
-            self.m64p_lib_rsp = c.cdll.LoadLibrary(self.plugins_dir + 'mupen64plus-rsp-hle.so' + self.extension_filename)
+            self.m64p_lib_rsp = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-rsp-hle{self.extension_filename}')
+        os.chdir(self.parent.m64p_dir)
 
     def initialise(self):
         if self.compatible == True:
@@ -1667,22 +1698,23 @@ class API():
         p = pathlib.Path(self.plugins_dir)
         if self.platform == "Linux":
             self.extension_filename = ".so"
-            directory = p.glob('*.so*')
+            directory = p.glob('mupen64plus*.so*')
         elif self.platform == "Windows":
             self.extension_filename = ".dll"
-            directory = p.glob('*.dll')
+            directory = p.glob('mupen64plus*.dll')
         elif self.platform == "Darwin":
             self.extension_filename = ".dylib"
-            directory = p.glob('*.dylib')
+            directory = p.glob('mupen64plus*dylib')
         else:
             log.warning("Warning: Your system is not supported")
             self.extension_filename = ".so"
-            directory = p.glob('*.so*')
+            directory = p.glob('mupen64plus*.so*')
 
         for plugin in sorted(directory):
+            os.chdir(self.plugins_dir)
             try:
                 filename = plugin.name
-                info = self.PluginGetVersion(c.cdll.LoadLibrary(self.plugins_dir + filename))
+                info = self.PluginGetVersion(c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{filename}'))
                 if info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_CORE.value:
                     pass
                 elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_AUDIO.value:
@@ -1697,3 +1729,4 @@ class API():
                     print("Unknown plugin")
             except:
                 log.warning(f"{filename}: Plugin not working or not compatible, skipping it.")
+            os.chdir(self.parent.m64p_dir)

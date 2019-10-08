@@ -76,7 +76,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_default_size(800, 640)
         self.set_size_request(640, 560) # TODO: What's the good looking minimum size for the main window?
-        self.set_default_icon_from_file(str(pathlib.Path("ui/icons/mupen64plus.svg")))
+        self.set_default_icon_from_file(str(pathlib.Path(self.m64p_dir + "/ui/icons/mupen64plus.svg")))
 
         ##If detected, it will close the application ##
         self.connect("delete-event", self.quit_cb)
