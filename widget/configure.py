@@ -315,7 +315,7 @@ class ConfigDialog(Gtk.Dialog):
         input_combo.connect('changed', self.on_combobox_changed, 'InputPlugin')
         self.input_configure_button = Gtk.Button(label="Configure")
         self.input_configure_button.connect("clicked", self.on_configure_button, self.parent, 'input')
-        if self.parent.frontend_conf.get('InputPlugin') == "mupen64plus-input-raphnetraw.so": #TODO: Is still necessary?
+        if self.parent.frontend_conf.get('InputPlugin') == "mupen64plus-input-raphnetraw": #TODO: Is still necessary?
             self.input_configure_button.set_sensitive(False)
         if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             input_combo.set_sensitive(False)
