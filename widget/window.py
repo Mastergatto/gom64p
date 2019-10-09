@@ -156,12 +156,18 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             self.browser_box.add(treeview)
         else:
             if self.lock == True:
-                warning = Gtk.Label(label="Mupen64Plus's core library hasn't been found. \n Please check it in Options > Configure")
+                if self.platform == "Windows":
+                    warning = Gtk.Label(label="Mupen64Plus's core library hasn't been found. \n Please check it in Options > Configure \n You may also need to check the path for the plugins' directory.")
+                else:
+                    warning = Gtk.Label(label="Mupen64Plus's core library hasn't been found. \n Please check it in Options > Configure")
                 self.browser_box.add(warning)
                 self.browser_box.show_all()
 
             else:
-                warning = Gtk.Label(label="Mupen64Plus's core library version is incompatible. Please upgrade it.")
+                if self.platform == "Windows":
+                    warning = Gtk.Label(label="Mupen64Plus's core library version is incompatible. Please upgrade it. \n You may also need to check the path for the plugins' directory.")
+                else:
+                    warning = Gtk.Label(label="Mupen64Plus's core library version is incompatible. Please upgrade it.")
                 self.browser_box.add(warning)
                 self.browser_box.show_all()
 

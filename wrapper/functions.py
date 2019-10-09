@@ -151,9 +151,9 @@ class API():
         status = function()
 
         if context != None:
-            log.error(f"ERROR({c.cast(context, c.c_char_p).value.decode('utf-8')}): {status.decode('utf-8')}")
+            log.error(f"{c.cast(context, c.c_char_p).value.decode('utf-8')}: {status.decode('utf-8')}")
         else:
-            log.error(f"ERROR: {status}")
+            log.error(f"{status}")
 
     ### Frontend functions
     ## Startup/Shutdown
@@ -1187,10 +1187,10 @@ class API():
 
         return filename.decode("utf-8")
 
-    def PluginStartup(self, plugin, context):
+    def PluginStartup(self, plugin_handle, context):
         #m64p_error PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Context, void (*DebugCallback)(void *Context, int level, const char *Message))
 
-        function = wrp_dt.cfunc("PluginStartup", plugin, wrp_dt.m64p_error,
+        function = wrp_dt.cfunc("PluginStartup", plugin_handle, wrp_dt.m64p_error,
                         ("CoreLibHandle", c.c_void_p, 1, c.c_void_p(self.m64p_lib_core._handle)),
                         ("Context", c.c_void_p, 2, context),
                         ("DebugCallback", c.c_void_p, 2, wrp_cb.CB_DEBUG))
@@ -1201,11 +1201,11 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, ("PluginStartup: " + wrp_dt.m64p_plugin_type(plugin).name).encode("utf-8"))
+            self.CoreErrorMessage(status, ("PluginStartup: " + wrp_dt.m64p_plugin_type(self.PluginGetVersion(plugin)["type"]).name).encode("utf-8"))
 
-    def PluginShutdown(self, plugin):
+    def PluginShutdown(self, plugin_handle):
         #m64p_error PluginShutdown(void)
-        function = wrp_dt.cfunc("PluginShutdown", plugin, wrp_dt.m64p_error)
+        function = wrp_dt.cfunc("PluginShutdown", plugin_handle, wrp_dt.m64p_error)
 
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
@@ -1213,7 +1213,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, ("PluginShutdown: " + wrp_dt.m64p_plugin_type(plugin).name).encode("utf-8"))
+            self.CoreErrorMessage(status, ("PluginStartup: " + wrp_dt.m64p_plugin_type(self.PluginGetVersion(plugin)["type"]).name).encode("utf-8"))
 
     #######CoreDoCommand commands #####
     def rom_open(self, rom_path):
@@ -1324,14 +1324,14 @@ class API():
             country = '?'
             log.warning(f'Unknown region for {name}.')
 
-        cartridge_bit = bytes(c.cast(self.rom_header.Cartridge_ID, c.c_char_p)).decode("cp932", "replace").rstrip("\x00\x00\x00\x00\x00\x00")
+        cartridge_bit = bytes(c.cast(self.rom_header.Cartridge_ID, c.c_char_p)).decode("cp932", "replace").rstrip("\x00")
 
         if country_raw == 65:
             cartridge = f'NUS-NTEE-USA/NUS-NTEJ-JPN'
         else:
             cartridge = f'NUS-N{cartridge_bit}{cartridge_letter}-{cartridge_region}'
 
-        manufacturer = bytes(c.cast(self.rom_header.Manufacturer_ID, c.c_char_p)).decode("cp932", "replace").lstrip("\x00\x00\x00").rstrip("\x00\x00\x00\x00")
+        manufacturer = bytes(c.cast(self.rom_header.Manufacturer_ID, c.c_char_p)).decode("cp932", "replace").lstrip("\x00").rstrip("\x00")
 
 
         header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2, "clockrate": clockrate,
@@ -1703,27 +1703,31 @@ class API():
         self.initialise()
 
     def plugins_validate(self):
-        p = pathlib.Path(self.plugins_dir)
-        directory = p.glob(f'mupen64plus*{self.extension_filename}*')
+        try:
+            p = pathlib.Path(self.plugins_dir)
+            directory = p.glob(f'mupen64plus*{self.extension_filename}*')
 
-        for plugin in sorted(directory):
-            os.chdir(self.plugins_dir)
-            try:
-                # x.name takes the file's name from the path
-                filename = plugin.name.rstrip(self.extension_filename)
-                info = self.PluginGetVersion(c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{filename}{self.extension_filename}'))
-                if info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_CORE.value:
-                    pass
-                elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_AUDIO.value:
-                    self.audio_plugins[filename] = info["name"]
-                elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_INPUT.value:
-                    self.input_plugins[filename] = info["name"]
-                elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_GFX.value:
-                    self.gfx_plugins[filename] = info["name"]
-                elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_RSP.value:
-                    self.rsp_plugins[filename] = info["name"]
-                else:
-                    print("Unknown plugin")
-            except:
-                log.warning(f"{filename}: Plugin not working or not compatible, skipping it.")
-            os.chdir(self.parent.m64p_dir)
+            for plugin in sorted(directory):
+                os.chdir(self.plugins_dir)
+                try:
+                    # x.name takes the file's name from the path
+                    filename = os.path.splitext(plugin.name)[0]
+                    info = self.PluginGetVersion(c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{filename}{self.extension_filename}'))
+                    if info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_CORE.value:
+                        pass
+                    elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_AUDIO.value:
+                        self.audio_plugins[filename] = info["name"]
+                    elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_INPUT.value:
+                        self.input_plugins[filename] = info["name"]
+                    elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_GFX.value:
+                        self.gfx_plugins[filename] = info["name"]
+                    elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_RSP.value:
+                        self.rsp_plugins[filename] = info["name"]
+                    else:
+                        print("Unknown plugin")
+                except:
+                    log.warning(f"{filename}: Plugin not working or not compatible, skipping it.")
+                os.chdir(self.parent.m64p_dir)
+        except:
+            log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly.")
+            
