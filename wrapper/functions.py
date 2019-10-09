@@ -1187,10 +1187,10 @@ class API():
 
         return filename.decode("utf-8")
 
-    def PluginStartup(self, plugin_handle, context):
+    def PluginStartup(self, plugin, context):
         #m64p_error PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Context, void (*DebugCallback)(void *Context, int level, const char *Message))
 
-        function = wrp_dt.cfunc("PluginStartup", plugin_handle, wrp_dt.m64p_error,
+        function = wrp_dt.cfunc("PluginStartup", plugin, wrp_dt.m64p_error,
                         ("CoreLibHandle", c.c_void_p, 1, c.c_void_p(self.m64p_lib_core._handle)),
                         ("Context", c.c_void_p, 2, context),
                         ("DebugCallback", c.c_void_p, 2, wrp_cb.CB_DEBUG))
@@ -1203,9 +1203,9 @@ class API():
         else:
             self.CoreErrorMessage(status, ("PluginStartup: " + wrp_dt.m64p_plugin_type(self.PluginGetVersion(plugin)["type"]).name).encode("utf-8"))
 
-    def PluginShutdown(self, plugin_handle):
+    def PluginShutdown(self, plugin):
         #m64p_error PluginShutdown(void)
-        function = wrp_dt.cfunc("PluginShutdown", plugin_handle, wrp_dt.m64p_error)
+        function = wrp_dt.cfunc("PluginShutdown", plugin, wrp_dt.m64p_error)
 
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()

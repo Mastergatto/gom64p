@@ -92,12 +92,12 @@ class Vidext():
         # Mandatory since we're doing the hack for embedding SDL into GTK+, otherwise gamepads won't work here since GTK+ doesn't handle those inputs.
         sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
 
-        if sys.platform.startswith('linux') or sys.platform.startswith('freebsd') :
+        if self.window.platform == 'Linux':
             from gi.repository import GdkX11
             # Hack to embed sdl window into the frontend.
             # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
             self.foreign_window = sdl.SDL_CreateWindowFrom(self.window.canvas.get_property('window').get_xid())
-        elif sys.platform == 'cygwin':
+        elif self.window.platform == 'Windows':
             #sdl.SDL_SetHint(sdl.SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT, x)
             sdl.SDL_SetHint(sdl.SDL_HINT_RENDER_DRIVER, b"opengl")
 
@@ -111,21 +111,21 @@ class Vidext():
             c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
             drawingarea_gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareawnd.__gpointer__, None)
             # get the win32 handle
-            libgdk = ctypes.CDLL("libgdk-3-0.dll")
+            libgdk = c.CDLL("libgdk-3-0.dll")
             handle = libgdk.gdk_win32_window_get_handle(drawingarea_gpointer)
             self.foreign_window = sdl.SDL_CreateWindowFrom(handle)
-        elif sys.platform == 'darwin':
+        elif self.window.platform == 'Darwin':
             # https://gitlab.gnome.org/GNOME/pygobject/issues/112
             drawingareawnd = self.window.canvas.get_property("window")
             # make sure to call ensure_native before e.g. on realize
             if not drawingareawnd.has_native():
                 log.warning("Vidext: Your window is gonna freeze as soon as you move or resize it...")
-            ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
-            ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object]
-            gpointer = ctypes.pythonapi.PyCapsule_GetPointer(window.__gpointer__, None)
-            libgdk = ctypes.CDLL ("libgdk-3.dylib")
-            libgdk.gdk_quartz_window_get_nsview.restype = ctypes.c_void_p
-            libgdk.gdk_quartz_window_get_nsview.argtypes = [ctypes.c_void_p]
+            c.pythonapi.PyCapsule_GetPointer.restype = c.c_void_p
+            c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
+            gpointer = c.pythonapi.PyCapsule_GetPointer(window.__gpointer__, None)
+            libgdk = c.CDLL ("libgdk-3.dylib")
+            libgdk.gdk_quartz_window_get_nsview.restype = c.c_void_p
+            libgdk.gdk_quartz_window_get_nsview.argtypes = [c.c_void_p]
             handle = libgdk.gdk_quartz_window_get_nsview(gpointer)
 
             self.foreign_window = sdl.SDL_CreateWindowFrom(handle)
