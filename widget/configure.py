@@ -220,8 +220,11 @@ class ConfigDialog(Gtk.Dialog):
         rotate_combo.append('2',"Flipped (180°)")
         rotate_combo.append('3',"(270°)")
         if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-            if self.parent.m64p_wrapper.ConfigGetParameter('Rotate') != None:
+            try:
                 rotate_combo.set_active_id(str(self.parent.m64p_wrapper.ConfigGetParameter('Rotate')))
+            except KeyError:
+                rotate_combo.set_sensitive(False)
+
         else:
             rotate_combo.set_sensitive(False)
 
