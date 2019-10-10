@@ -141,10 +141,7 @@ class ConfigDialog(Gtk.Dialog):
             cpu_core_combo.set_sensitive(False)
         cpu_core_combo.connect('changed', self.on_combobox_changed, 'R4300Emulator')
 
-        no_spec_recomp_chkbox = self.insert_checkbox('DisableSpecRecomp', "Core", "m64p", "Disable speculative precompilation in new dynarec", None)
-
         cpu_core_box.pack_start(cpu_core_combo, False, False, 0)
-        cpu_core_box.pack_start(no_spec_recomp_chkbox, False, False, 0)
         cpu_core_frame.add(cpu_core_box)
 
         no_comp_jump_chkbox = self.insert_checkbox('NoCompiledJump', "Core", "m64p", "Disable compiled jump", None)
