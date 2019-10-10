@@ -43,9 +43,12 @@ class Environment:
                 cache_dir = f'{os.path.expanduser("~/Library/Caches/")}gom64p/'
             else:
                 cache_dir = f'{os.getenv("XDG_CACHE_HOME")}/gom64p/'
+        elif self.system == "Windows":
+            config_dir = f'{GLib.get_user_config_dir()}{os.sep}gom64p{os.sep}'
+            cache_dir = f'{GLib.get_user_data_dir()}{os.sep}gom64p{os.sep}'
         else:
-            config_dir = f'{GLib.get_user_config_dir()}{os.sep}gom64p/'
-            cache_dir = f'{GLib.get_user_cache_dir()}{os.sep}gom64p/'
+            config_dir = f'{GLib.get_user_config_dir()}{os.sep}gom64p{os.sep}'
+            cache_dir = f'{GLib.get_user_cache_dir()}{os.sep}gom64p{os.sep}'
 
         self.frontend_config_dir = pathlib.Path(config_dir)
         if self.frontend_config_dir.is_dir() == False:
