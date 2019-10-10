@@ -632,37 +632,48 @@ class ConfigDialog(Gtk.Dialog):
         self.former_values['path3'] = self.parent.frontend_conf.get('path3')
 
     def insert_entry(self, param, section, config, placeholder, help=None):
-        entry = Gtk.Entry()
-        entry.set_placeholder_text(placeholder)
-        entry.set_hexpand(True)
-        if config == "frontend":
-            if self.parent.frontend_conf.get(param) != None:
-                entry.set_text(self.parent.frontend_conf.get(param))
-            entry.set_tooltip_text(help)
-        elif config == "m64p":
-            if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-                if self.parent.m64p_wrapper.ConfigGetParameter(param) != None:
-                    entry.set_text(self.parent.m64p_wrapper.ConfigGetParameter(param))
-                entry.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
-            else:
-                entry.set_sensitive(False)
-        entry.connect("changed", self.on_entry_changed, section, param)
+        try:
+            entry = Gtk.Entry()
+            entry.set_placeholder_text(placeholder)
+            entry.set_hexpand(True)
+            if config == "frontend":
+                if self.parent.frontend_conf.get(param) != None:
+                    entry.set_text(self.parent.frontend_conf.get(param))
+                entry.set_tooltip_text(help)
+            elif config == "m64p":
+                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                    if self.parent.m64p_wrapper.ConfigGetParameter(param) != None:
+                        entry.set_text(self.parent.m64p_wrapper.ConfigGetParameter(param))
+                    entry.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
+                else:
+                    entry.set_sensitive(False)
+            entry.connect("changed", self.on_entry_changed, section, param)
+
+        except KeyError:
+            entry.set_sensitive(False)
+            log.warning(f'{param} parameter NOT found, thus disabling the entry.')
+
         return entry
 
     def insert_checkbox(self, param, section, config, label, help=None):
         checkbox = Gtk.CheckButton.new_with_label(label)
-        if config == "frontend":
-            if self.parent.frontend_conf.get(param) == "True":
-                checkbox.set_active(True)
-            checkbox.set_tooltip_text(help)
-        elif config == "m64p":
-            if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-                if self.parent.m64p_wrapper.ConfigGetParameter(param) == True:
+        try:
+            if config == "frontend":
+                if self.parent.frontend_conf.get(param) == "True":
                     checkbox.set_active(True)
-                checkbox.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
-            else:
-                checkbox.set_sensitive(False)
-        checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
+                checkbox.set_tooltip_text(help)
+            elif config == "m64p":
+                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                    if self.parent.m64p_wrapper.ConfigGetParameter(param) == True:
+                        checkbox.set_active(True)
+                    checkbox.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
+                else:
+                    checkbox.set_sensitive(False)
+            checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
+        except KeyError:
+            checkbox.set_sensitive(False)
+            log.warning(f'{param} parameter NOT found, thus disabling the checkpoint.')
+
         return checkbox
 
     def insert_spinbutton(self, param, section, config, minimum, maximum, help=None):
@@ -672,17 +683,23 @@ class ConfigDialog(Gtk.Dialog):
 
         adjustment = Gtk.Adjustment(value=adj_value, lower=minimum, upper=maximum, step_increment=adj_step)
         spin = Gtk.SpinButton.new(adjustment, spin_climb, 0)
-        if config == "frontend":
-            spin.set_value(self.parent.frontend_conf.get(param))
-            spin.set_tooltip_text(help)
-        elif config == "m64p":
-            if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-                spin.set_value(self.parent.m64p_wrapper.ConfigGetParameter(param))
-                spin.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
-            else:
-                spin.set_sensitive(False)
-        spin.set_snap_to_ticks(True)
-        spin.connect("value-changed", self.on_spinbutton_changed, section, param)
+        try:
+            if config == "frontend":
+                spin.set_value(self.parent.frontend_conf.get(param))
+                spin.set_tooltip_text(help)
+            elif config == "m64p":
+                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                    spin.set_value(self.parent.m64p_wrapper.ConfigGetParameter(param))
+                    spin.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
+                else:
+                    spin.set_sensitive(False)
+            spin.set_snap_to_ticks(True)
+            spin.connect("value-changed", self.on_spinbutton_changed, section, param)
+
+        except KeyError:
+            spin.set_sensitive(False)
+            log.warning(f'{param} parameter NOT found, thus disabling the spin button.')
+
         return spin
 
     def return_state_lock(self): #TODO: Use this for all m64p widgets
