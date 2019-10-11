@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # coding=utf-8
 # © 2019 Mastergatto
 # This code is covered under GPLv2+, see LICENSE

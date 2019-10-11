@@ -1,6 +1,6 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # coding=utf-8
-# © 2018 Mastergatto
+# © 2019 Mastergatto
 # This code is covered under GPLv2+, see LICENSE
 #####################
 
@@ -97,33 +97,35 @@ class Vidext():
             # Hack to embed sdl window into the frontend.
             # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
             self.foreign_window = sdl.SDL_CreateWindowFrom(self.window.canvas.get_property('window').get_xid())
+            # for wayland maybe use gdk_wayland_surface_get_window_geometry + gdk_surface_get_geometry?
         elif self.window.platform == 'Windows':
             #sdl.SDL_SetHint(sdl.SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT, x)
             sdl.SDL_SetHint(sdl.SDL_HINT_RENDER_DRIVER, b"opengl")
 
             # https://stackoverflow.com/questions/23021327/how-i-can-get-drawingarea-window-handle-in-gtk3/27236258#27236258
             # https://gitlab.gnome.org/GNOME/gtk/issues/510
-            drawingareawnd = self.window.canvas.get_property("window")
+            drawingareahwnd = self.window.canvas.get_property("window")
             # make sure to call ensure_native before e.g. on realize
-            if not drawingareawnd.has_native():
+            if not drawingareahwnd.has_native():
                 log.warning("Vidext: Your window is gonna freeze as soon as you move or resize it...")
             c.pythonapi.PyCapsule_GetPointer.restype = c.c_void_p
             c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
-            drawingarea_gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareawnd.__gpointer__, None)
+            drawingarea_gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareahwnd.__gpointer__, None)
             # get the win32 handle
             libgdk = c.CDLL("libgdk-3-0.dll")
             handle = libgdk.gdk_win32_window_get_handle(drawingarea_gpointer)
             self.foreign_window = sdl.SDL_CreateWindowFrom(handle)
         elif self.window.platform == 'Darwin':
             # https://gitlab.gnome.org/GNOME/pygobject/issues/112
-            drawingareawnd = self.window.canvas.get_property("window")
+            drawingareahnd = self.window.canvas.get_property("window")
             # make sure to call ensure_native before e.g. on realize
-            if not drawingareawnd.has_native():
+            if not drawingareahnd.has_native():
                 log.warning("Vidext: Your window is gonna freeze as soon as you move or resize it...")
             c.pythonapi.PyCapsule_GetPointer.restype = c.c_void_p
             c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
-            gpointer = c.pythonapi.PyCapsule_GetPointer(window.__gpointer__, None)
-            libgdk = c.CDLL ("libgdk-3.dylib")
+            gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareahnd.__gpointer__, None)
+            libgdk = c.CDLL ("libgdk-3.0.dylib")
+            #gdk_quartz_window_get_nswindow segfaults.
             libgdk.gdk_quartz_window_get_nsview.restype = c.c_void_p
             libgdk.gdk_quartz_window_get_nsview.argtypes = [c.c_void_p]
             handle = libgdk.gdk_quartz_window_get_nsview(gpointer)
