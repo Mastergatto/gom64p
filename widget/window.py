@@ -36,7 +36,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
     def __init__(self, app):
         Gtk.ApplicationWindow.__init__(self, application=app)
-        self.m64p_window = self
+        self.window = self
 
         ### Frontend
         self.application = app
@@ -61,9 +61,9 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.frontend_conf = u_conf.FrontendConf(self.environment.frontend_config_dir)
         self.application.frontend_conf = self.frontend_conf
 
-        self.environment.set(self.m64p_window)
+        self.environment.set(self.window)
 
-        self.m64p_wrapper = wrp.API(self.m64p_window, self.parameters)
+        self.m64p_wrapper = wrp.API(self.window, self.parameters)
         self.lock = self.m64p_wrapper.lock
 
         if args_debug == True:
@@ -150,7 +150,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             self.filter_box.pack_start(self.filter_entry, True, True, 5)
             self.browser_box.pack_start(self.filter_box, False, False, 5)
 
-            self.browser_list = w_brw.List(self.m64p_window)
+            self.browser_list = w_brw.List(self.window)
             treeview = self.browser_list.treeview_call()
 
             self.browser_box.add(treeview)
@@ -179,7 +179,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.main_box.pack_start(self.notebook, True, True, 0)
         self.main_box.pack_end(self.Statusbar, False, False, 0)
 
-        self.m64p_window.add(self.main_box)
+        self.window.add(self.main_box)
 
         ## Configurations InsertMenu
 
@@ -199,14 +199,14 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         self.notebook.show_all()
         #self.Statusbar.hide()
-        self.m64p_window.show()
+        self.window.show()
 
     def csd(self):
         # HeaderBar (Client Side Decoration, only for GNOME)
         self.headerbar = Gtk.HeaderBar(title="mupen64plus CSD",has_subtitle="False")
         self.headerbar.set_show_close_button(True)
         #self.headerbar.set_subtitle("LOL")
-        self.m64p_window.set_titlebar(self.headerbar)
+        self.window.set_titlebar(self.headerbar)
 
         #TODO: Some example here. Replace it with real code.
         button = Gtk.Button()
@@ -240,7 +240,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 self.canvas.connect("leave-notify-event", self.on_mouse_events)
                 self.canvas.connect("button-press-event", self.on_mouse_events)
                 import wrapper.vidext as wrp_vext
-                wrp_vext.m64p_video.set_window(self.m64p_window)
+                wrp_vext.m64p_video.set_window(self.window)
                 self.video_box.add(self.canvas)
             else:
                 self.running_label = Gtk.Label(label="Emulator is running.")
@@ -302,23 +302,26 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         #https://lazka.github.io/pgi-docs/Gdk-3.0/mapping.html
         #print(event.hardware_keycode)
         if event.get_event_type() == Gdk.EventType.KEY_PRESS:
-            self.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
+            if self.window.get_focus_visible() == True:
+                self.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
         elif event.get_event_type() == Gdk.EventType.KEY_RELEASE:
-            self.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(event.hardware_keycode).value)
+            if self.window.get_focus_visible() == True:
+                self.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(event.hardware_keycode).value)
 
         return True
 
     def on_mouse_events(self, widget, event):
         #https://stackoverflow.com/questions/44453139/how-to-hide-mouse-pointer-in-gtk-c
         # In case of Enter/leave notify we make sure that the cursor stays invisibile but only inside the canvas.
+        display = self.window.get_display()
         if event.get_event_type() == Gdk.EventType.ENTER_NOTIFY:
-            display = self.m64p_window.get_display()
-            cursor = Gdk.Cursor.new_for_display(display, Gdk.CursorType.BLANK_CURSOR)
-            display.get_default_seat().grab(self.m64p_window.canvas.get_property('window'), Gdk.SeatCapabilities.ALL, True, cursor)
+            pass
         elif event.get_event_type() == Gdk.EventType.LEAVE_NOTIFY:
-            self.m64p_window.get_display().get_default_seat().ungrab()
+            display.get_default_seat().ungrab()
         elif event.get_event_type() == Gdk.EventType.BUTTON_PRESS:
-            log.debug("mouse has clicked")
+            cursor = Gdk.Cursor.new_for_display(display, Gdk.CursorType.BLANK_CURSOR)
+            display.get_default_seat().grab(self.window.canvas.get_property('window'), Gdk.SeatCapabilities.ALL, True, cursor)
+            log.debug("mouse has clicked on the canvas")
         else:
             log.debug(event.get_event_type())
 

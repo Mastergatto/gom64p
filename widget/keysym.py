@@ -278,7 +278,9 @@ class Scancodes(Enum):
 
 def keysym2sdl(param):
     switch = {
-        ### https://github.com/xkbcommon/libxkbcommon/blob/master/test/evdev-scancodes.h
+        ### evdev: https://github.com/xkbcommon/libxkbcommon/blob/master/test/evdev-scancodes.h
+        ### win32: https://gitlab.gnome.org/GNOME/gtk/raw/master/gdk/gdkkeysyms.h
+        ### https://github.com/GNOME/gtk/blob/master/gdk/win32/gdkkeys-win32.c
         ### <gtk keycode value + 8>: <sdl scancode value>, #<character present on US keyboard>
         0: 'SDL_SCANCODE_UNKNOWN',
         9: 'SDL_SCANCODE_ESCAPE', # Escape

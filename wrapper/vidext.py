@@ -155,17 +155,16 @@ class Vidext():
             #version = sdl.SDL_VERSION(c.byref(info.version))
             version = sdl.SDL_GetVersion(c.byref(self.info.version))
             self.window_info = sdl.SDL_GetWindowWMInfo(self.foreign_window, c.byref(self.info))
-            #print(self.info.subsystem)
             if self.info.subsystem == sdl.SDL_SYSWM_X11:
-                print("The OS is Linux, using X11")
+                log.debug("The OS is Linux, using X11")
             #TODO: How to get to info.x11.window?
-                print(repr(self.info))
+                log.debug(repr(self.info))
             elif self.info.subsystem == sdl.SDL_SYSWM_WAYLAND:
-                print("The OS is Linux, using Wayland")
+                log.debug("The OS is Linux, using Wayland")
             elif self.info.subsystem == sdl.SDL_SYSWM_WINDOWS:
-                print("The OS is Windows")
+                log.debug("The OS is Windows")
             elif self.info.subsystem == sdl.SDL_SYSWM_COCOA:
-                print("The OS is Mac OS X")
+                log.debug("The OS is Mac OS X")
 
             #print(sdl.SDL_GetError())
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
