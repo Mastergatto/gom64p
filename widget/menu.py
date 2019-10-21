@@ -40,7 +40,7 @@ class Menu:
 
         self.toolbar_load_rom = self.insert_toolbar_item("document-open", self.return_state_lock(), self.on_ChoosingRom)
         self.toolbar_play = self.insert_toolbar_item("media-playback-start", False, self.on_ResumeAction)
-        self.toolbar_pause = self.insert_toolbar_item("media-playback-pause", False, self.on_PauseAction)
+        self.toolbar_pause = self.insert_toolbar_item("media-playback-pause", False, self.on_action_pause)
         self.toolbar_stop = self.insert_toolbar_item("media-playback-stop", False, self.on_action_stop)
         self.toolbar_next = self.insert_toolbar_item("media-skip-forward", False, self.on_advance_action)
         self.toolbar_save_state = self.insert_toolbar_item("document-save", False, self.on_SaveStateAction)
@@ -117,7 +117,7 @@ class Menu:
         self.emulation_menu_label.set_submenu(self.emulation_menu)
 
         self.emulation_menu_play = self.insert_menu_item("Play", False, self.on_ResumeAction, None)
-        self.emulation_menu_pause = self.insert_menu_item("Pause", False, self.on_PauseAction, None)
+        self.emulation_menu_pause = self.insert_menu_item("Pause", False, self.on_action_pause, None)
         self.emulation_menu_stop = self.insert_menu_item("Stop", False, self.on_action_stop, None)
         self.emulation_menu_soft_reset = self.insert_menu_item("Soft reset", False, self.on_SResetAction, None)
         self.emulation_menu_hard_reset = self.insert_menu_item("Hard reset", False, self.on_HResetAction, None)
@@ -354,7 +354,7 @@ class Menu:
         self.parent.m64p_wrapper.stop()
         self.parent.running = False
 
-    def on_PauseAction(self, *args):
+    def on_action_pause(self, *args):
         self.parent.m64p_wrapper.pause()
         #self.parent.Statusbar.push(self.parent.StatusbarContext, "*** Emulation PAUSED ***")
 

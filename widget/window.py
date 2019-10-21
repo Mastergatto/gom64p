@@ -79,7 +79,10 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.set_default_icon_from_file(str(pathlib.Path(self.m64p_dir + "/ui/icons/mupen64plus.svg")))
 
         ##If detected, it will close the application ##
-        self.connect("delete-event", self.quit_cb)
+        self.window.connect("delete-event", self.quit_cb)
+
+        # If the window lose the focus, stops the emulation and calls a dialog
+        self.window.connect("focus-out-event", self.focus_cb)
 
         # NOTE: This callback code has to be declared before launching the wrapper
         STATEPROTO = c.CFUNCTYPE(None, c.POINTER(c.c_void_p), c.c_int, c.c_int)
@@ -269,6 +272,11 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         else:
             self.application.quit()
 
+    def focus_cb(self, *args):
+        if self.running == True:
+            self.main_menu.on_action_pause()
+            log.debug("The window has lost the focus! Stopping the emulation.")
+
     def on_text_change(self, entry):
         self.browser_list.game_search_current = entry.get_text()
         self.browser_list.game_search_filter.refilter()
@@ -331,12 +339,15 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_emu_state(value).name}")
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
                 self.main_menu.sensitive_menu_stop()
+                self.running = False
                 self.Statusbar.push(self.StatusbarContext, "*** Emulation STOPPED ***")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_RUNNING':
                 self.main_menu.sensitive_menu_run()
+                self.running = True
                 self.Statusbar.push(self.StatusbarContext, "*** Emulation STARTED ***")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_PAUSED':
                 self.main_menu.sensitive_menu_pause()
+                self.running = False
                 self.Statusbar.push(self.StatusbarContext, "*** Emulation PAUSED ***")
 
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value:
