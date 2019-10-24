@@ -209,8 +209,8 @@ class List:
                 log.error("The emulation thread has encountered an unexpected error")
                 threading.main_thread()
 
-    def on_infogame_activated(self, widget):
-        dialog = w_gprop.PropertiesDialog(self.parent, self.selected_game, "info")
+    def on_properties_activated(self, widget, tab):
+        dialog = w_gprop.PropertiesDialog(self.parent, self.selected_game, tab)
 
     def menu(self):
         # Context menu
@@ -219,12 +219,17 @@ class List:
         play_item = Gtk.MenuItem("Play this game")
         play_item.connect("activate", self.on_playitem_activated)
         info_item = Gtk.MenuItem("Informations on this game")
-        info_item.connect("activate", self.on_infogame_activated)
+        info_item.connect("activate", self.on_properties_activated, "info")
         cheats_item = Gtk.MenuItem("Cheats for this game")
+        cheats_item.connect("activate", self.on_properties_activated, "cheats")
         custom_item = Gtk.MenuItem("Custom settings")
+        custom_item.connect("activate", self.on_properties_activated, "custom")
 
         self.treeview_menu.append(play_item)
+        self.treeview_menu.append(Gtk.SeparatorMenuItem())
         self.treeview_menu.append(info_item)
+        self.treeview_menu.append(cheats_item)
+        self.treeview_menu.append(custom_item)
 
     def mouse_click(self, tv, event):
         if event.button == 3:

@@ -24,6 +24,8 @@ class Cheats:
         lb_cheats = Gtk.ListBox()
         tv_codes = Gtk.TreeView()
 
+        grid.add(Gtk.Label("Not yet implemented, please come back later."))
+
         return grid
 
 

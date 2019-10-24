@@ -28,24 +28,19 @@ class PropertiesDialog(Gtk.Dialog):
         self.former_values = None
         #self.former_update()
         self.is_changed = False
-        self.page_check = [False, False, False, False]
         #self.map_controls = {}
         self.scale_factor = parent.get_scale_factor()
 
-        #self.section_info = self.get_section(g.m64p_wrapper.gfx_filename)
-        #self.section_settings = self.get_section(g.m64p_wrapper.audio_filename)
-        #self.section_cheats = self.get_section(g.m64p_wrapper.input_filename)
-
         title = f"Configuration for {self.game}"
-        self.game_window = Gtk.Dialog()
-        self.game_window.set_properties(self, title=title)
-        self.game_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-        self.game_window.set_transient_for(parent)
+        self.prop_window = Gtk.Dialog()
+        self.prop_window.set_properties(self, title=title)
+        self.prop_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        self.prop_window.set_transient_for(parent)
 
-        #self.apply_button = self.game_window.add_button("Apply",Gtk.ResponseType.APPLY)
+        #self.apply_button = self.prop_window.add_button("Apply",Gtk.ResponseType.APPLY)
         #self.apply_button.set_sensitive(False)
-        self.game_window.add_button("Cancel", Gtk.ResponseType.CANCEL)
-        self.game_window.add_button("OK", Gtk.ResponseType.OK)
+        self.prop_window.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        self.prop_window.add_button("OK", Gtk.ResponseType.OK)
 
         if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
 
@@ -66,26 +61,34 @@ class PropertiesDialog(Gtk.Dialog):
             notebook.append_page(cheats_tab, cheats_label)
             notebook.append_page(custom_tab, custom_label)
 
-            dialog_box = self.game_window.get_content_area()
+            dialog_box = self.prop_window.get_content_area()
             dialog_box.add(notebook)
+
+            self.prop_window.show_all()
+
+            if tab == "info":
+                notebook.set_current_page(0)
+            elif tab == "cheats":
+                notebook.set_current_page(1)
+            elif tab == "custom":
+                notebook.set_current_page(2)
 
         else:
             label = Gtk.Label("Mupen64plus' core library is incompatible, please upgrade it.")
-            dialog_box = self.game_window.get_content_area()
+            dialog_box = self.prop_window.get_content_area()
             dialog_box.add(label)
-
-        self.game_window.show_all()
+            self.prop_window.show_all()
 
         response = Gtk.ResponseType.APPLY
         while response == Gtk.ResponseType.APPLY:
-            response = self.game_window.run()
+            response = self.prop_window.run()
             if response == Gtk.ResponseType.OK:
                 self.parent.m64p_wrapper.ConfigSaveFile()
-                self.game_window.destroy()
+                self.prop_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 pass
             else:
-                self.game_window.destroy()
+                self.prop_window.destroy()
 
     def info_handler(self):
         # Tab ROM handler#
@@ -138,13 +141,6 @@ class PropertiesDialog(Gtk.Dialog):
         info_box.pack_start(manufacturer_entry, False, False, 0)
 
         return info_box
-
-    #def cheats_page(self):
-    #    label = Gtk.Label("Not yet implemented, please come back later.")
-    #    tab_area = Gtk.VBox()
-    #    tab_area.add(label)
-
-    #    return tab_area
 
     def custom_settings(self):
         label = Gtk.Label("Not yet implemented, please come back later.")
