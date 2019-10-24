@@ -9,6 +9,8 @@
 #############
 from gi.repository import Gtk
 
+import widget.cheats as w_cht
+
 #############
 ## CLASSES ##
 #############
@@ -20,6 +22,8 @@ class PropertiesDialog(Gtk.Dialog):
         self.header = None
         self.settings = None
         self.scan_element(path)
+
+        self.cheats = w_cht.Cheats(self.parent)
 
         self.former_values = None
         #self.former_update()
@@ -52,7 +56,7 @@ class PropertiesDialog(Gtk.Dialog):
             info_tab = self.info_handler()
             info_label = Gtk.Label(label="Informations")
 
-            cheats_tab = self.cheats()
+            cheats_tab = self.cheats.page()
             cheats_label = Gtk.Label(label="Cheats")
 
             custom_tab = self.custom_settings()
@@ -88,7 +92,7 @@ class PropertiesDialog(Gtk.Dialog):
         info_box = Gtk.VBox()
 
         file_entry = self.insert_entry("File name:", self.game) #TODO: filter to just the last part
-        path_entry = self.insert_entry("File name:", self.game)
+        path_entry = self.insert_entry("Path:", self.game)
         name_entry = self.insert_entry("Name:", self.settings["goodname"])
         md5_entry = self.insert_entry("MD5 checksum:", self.settings["md5"])
         save_entry = self.insert_entry("Save type:", self.settings["savetype"])
@@ -135,12 +139,12 @@ class PropertiesDialog(Gtk.Dialog):
 
         return info_box
 
-    def cheats(self):
-        label = Gtk.Label("Not yet implemented, please come back later.")
-        tab_area = Gtk.VBox()
-        tab_area.add(label)
+    #def cheats_page(self):
+    #    label = Gtk.Label("Not yet implemented, please come back later.")
+    #    tab_area = Gtk.VBox()
+    #    tab_area.add(label)
 
-        return tab_area
+    #    return tab_area
 
     def custom_settings(self):
         label = Gtk.Label("Not yet implemented, please come back later.")

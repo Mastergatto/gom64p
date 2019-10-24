@@ -1,6 +1,6 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # coding=utf-8
-# © 2018 Mastergatto
+# © 2019 Mastergatto
 # This code is covered under GPLv2+, see LICENSE
 #####################
 
@@ -8,79 +8,71 @@
 ## MODULES ##
 #############
 from gi.repository import Gtk
-import os.path
-
-import widget.dialog as w_dialog
-import widget.plugin as w_plugin
 
 #############
 ## CLASSES ##
 #############
 
 
-class CheatsDialog(Gtk.Dialog):
+class Cheats:
     def __init__(self, parent):
         self.parent = parent
-        self.cheats_window = Gtk.Dialog()
-        self.cheats_window.set_properties(self, title="Cheats")
-        self.cheats_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-        self.cheats_window.set_default_size(480, 550)
-        self.cheats_window.set_transient_for(parent)
+        self.cheat_list = {}
 
-        self.apply_button = self.cheats_window.add_button("Apply",Gtk.ResponseType.APPLY)
-        self.apply_button.set_sensitive(False)
-        self.cheats_window.add_button("Cancel",Gtk.ResponseType.CANCEL)
-        self.cheats_window.add_button("OK",Gtk.ResponseType.OK)
-
-        #player1_rom = self.insert_entry(self, param, section, config, placeholder, help)
+    def page(self):
         grid = Gtk.Grid()
-        value_param = {}
-        counter = 0
+        lb_cheats = Gtk.ListBox()
+        tv_codes = Gtk.TreeView()
 
-        #g.m64p_wrapper.ConfigOpenSection(section)
-        #g.m64p_wrapper.ConfigListParameters()
-
+        return grid
 
 
+    def parse(self):
+        cheat_fn = f"{self.parent.m64p_wrapper.ConfigGetSharedDataFilepath('mupencheat.txt')}"
+        crc1 = '635a2bff' #TODO: crc1, crc2 and country are hardcoded for Super Mario 64 (USA), change them later
+        crc2 = '8b022326'
+        country = 45 #4A = Jap, 45= U, 50 = E, 55 = A, 46 = F, 44 = D, 49 = I, 53 = S || & 0xff is needed?
 
-        self.cheats_window.show_all()
+        header = f'{crc1}-{crc2}-C:{country}'.upper()
 
-        response = Gtk.ResponseType.APPLY
-        while response == Gtk.ResponseType.APPLY:
-            response = self.cheats_window.run()
-            if response == Gtk.ResponseType.OK:
+        try:
+            with open(cheat_fn, 'r') as file:
+                # [game, [cheat name, description, {1st pair code, 2nd pair code, (1st part, 2nd part, choices if available), ...}], next cheat, ...]
+                cheat, codes, parts = [], [], []
+                game, name, description = None, None, None
+                found, new = False, False
+                for line in file:
+                    if line.startswith('crc '):
+                        found = True if line[4:].rstrip("\n") == header else False
+                    else:
+                        if found == True:
+                            if line.startswith('gn '):
+                                # gn = game name
+                                self.cheat_list["game"] = line[3:].rstrip("\n")
+                            elif line.startswith(' cn '):
+                                # cn = cheat name
+                                if new == True:
+                                    cheat.append([name, description, codes])
+                                    # clear for next cheat
+                                    codes = None
+                                new, name = True, line[3:].rstrip("\n")
 
+                            elif line.startswith('  cd '):
+                                # cd = cheat description
+                                description = line[4:].rstrip("\n")
+                            else:
+                                #excludes every line that doesn't contain codes
+                                if line.startswith('  '):
+                                    parts = line[2:].rstrip("\n").split(" ", 2)
+                                    if '?' in parts[1]:
+                                        parts[2] = [item.split(':') for item in parts[2].split(',')]
+                                    else:
+                                        parts.append(None)
 
-                self.cheats_window.destroy()
-            elif response == Gtk.ResponseType.APPLY:
-                if self.is_changed == True:
-                    pass
+                                    codes = {'first':parts[0], 'second':parts[1], 'choices':parts[2]}
 
-            else:
-                self.cheats_window.destroy()
+                self.cheat_list["cheats"] = cheat
 
-    def insert_entry(self, param, section, config, placeholder, help):
-        #TODO: Erase it
-        entry = Gtk.Entry()
-        entry.set_placeholder_text(placeholder)
-        entry.set_hexpand(True)
-        if config == "frontend":
-            if self.parent.frontend_conf.get(param) != None:
-                entry.set_text(g.frontend_conf.get(param))
-        elif config == "m64p":
-            if self.parent.m64p_wrapper.ConfigGetParameter(param) != None:
-                entry.set_text(g.m64p_wrapper.ConfigGetParameter(param))
-        entry.connect("changed", self.on_EntryChanged, section, param)
-        return entry
-
-    def on_EntryChanged(self, widget, section, param):
-        #TODO: Erase it
-        self.is_changed = True
-        self.apply_button.set_sensitive(True)
-        value = widget.get_text()
-        if section == "Frontend" or section == "GameDirs":
-            self.parent.frontend_conf.open_section(section)
-            self.parent.frontend_conf.set(param, value)
-        else:
-            self.parent.m64p_wrapper.ConfigOpenSection(section)
-            self.parent.m64p_wrapper.ConfigSetParameter(param, value)
+        except IOError as e:
+            print(f"Couldn't open cheat database:")
+            print(">", e)

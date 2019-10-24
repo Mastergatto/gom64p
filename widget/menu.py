@@ -11,7 +11,6 @@ from gi.repository import Gtk, GLib
 import threading
 import logging as log
 
-import widget.cheats as w_cheats
 import widget.configure as w_conf
 import widget.dialog as w_dialog
 import widget.plugin as w_plugin
@@ -154,7 +153,6 @@ class Menu:
             menu_item.connect("activate", self.on_slot_select, i)
 
         self.emulation_menu_current_slot = self.insert_menu_item("Current save state slot", False, None, self.save_slot_menu)
-        self.emulation_menu_cheats = self.insert_menu_item_obj("Cheats", self.return_state_lock(), w_cheats.CheatsDialog, self.parent) #TODO: desensitive it
         self.emulation_menu_transfer_pak = self.insert_menu_item_obj("Media Loader", self.return_state_lock(), w_media.MediaDialog, self.parent)
 
 
@@ -172,7 +170,6 @@ class Menu:
         # "Current save state slot" submenu
         self.emulation_menu.append(self.emulation_menu_current_slot)
         self.emulation_menu.append(Gtk.SeparatorMenuItem())
-        self.emulation_menu.append(self.emulation_menu_cheats)
         self.emulation_menu.append(self.emulation_menu_transfer_pak)
         self.menubar.append(self.emulation_menu_label)
 
