@@ -33,7 +33,7 @@ class FileChooserDialog(Gtk.FileChooserDialog):
             self.library_chooser(parent)
 
     def directory_chooser(self, parent):
-        dialog = Gtk.FileChooserDialog(title="Please select the directory",transient_for=parent,action=2,add_buttons=0)
+        dialog = Gtk.FileChooserDialog(title="Please select the directory", transient_for=parent, action=2, add_buttons=0)
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Select", Gtk.ResponseType.ACCEPT)
         #dialog.set_default_size(800, 400)
@@ -45,14 +45,14 @@ class FileChooserDialog(Gtk.FileChooserDialog):
             import platform
             system = platform.system()
             if system == "Windows":
-                self.path = dialog.get_filename() + "\\" #Untested
+                self.path = dialog.get_filename() + "\\"
             else:
                 self.path = dialog.get_filename() + "/"
             log.debug(f"Directory selected: {self.path}")
         dialog.destroy()
 
     def rom_chooser(self, parent):
-        dialog = Gtk.FileChooserDialog(title="Please choose a N64 game image",transient_for=parent,action=0,add_buttons=0)
+        dialog = Gtk.FileChooserDialog(title="Please choose a N64 game image", transient_for=parent, action=0, add_buttons=0)
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Open", Gtk.ResponseType.ACCEPT)
         #dialog.set_default_size(800, 400)
@@ -76,7 +76,6 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
             log.debug(f"File selected: {self.path}")
-            #return self.path
         elif response == Gtk.ResponseType.CANCEL:
             pass
         dialog.response(response)
@@ -107,7 +106,6 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
             log.debug(f"File selected: {self.path}")
-            #return self.path
         dialog.destroy()
 
     def n64dd_chooser(self, parent, file):
@@ -137,7 +135,6 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
             log.debug(f"File selected: {self.path}")
-            #return self.path
         dialog.destroy()
 
     def snapshot_loader(self, parent):
@@ -164,7 +161,6 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
             log.debug(f"File selected: {self.path}")
-            #return self.path
         dialog.destroy()
 
     def snapshot_saver(self, parent):
@@ -199,11 +195,10 @@ class FileChooserDialog(Gtk.FileChooserDialog):
             self.path = dialog.get_filename()
             #self.ret_type =
             log.debug(f"File selected: {self.path}")
-            #return self.path
         dialog.destroy()
 
     def library_chooser(self, parent):
-        dialog = Gtk.FileChooserDialog(title="Please find the Mupen64plus library",transient_for=parent,action=0,add_buttons=0)
+        dialog = Gtk.FileChooserDialog(title="Please find the Mupen64plus library", transient_for=parent, action=0, add_buttons=0)
         dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
         dialog.add_button("_Select", Gtk.ResponseType.ACCEPT)
         #dialog.set_default_size(800, 400)
@@ -226,11 +221,10 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
             log.debug(f"File selected: {self.path}")
-            #return self.path
         dialog.destroy()
 
 class DialogAbout(Gtk.Dialog):
-    def __init__(self,parent,whichtype):
+    def __init__(self, parent, whichtype):
         if whichtype == 'core':
             self.on_core_clicked(parent)
         elif whichtype == 'frontend':
@@ -257,12 +251,6 @@ class DialogAbout(Gtk.Dialog):
         #about_core.set_logo(GdkPixbuf.Pixbuf.new_from_file("ui/mupen64plus.svg"))
         about_core.set_transient_for(parent)
 
-        response = about_core.run()
-        if response == Gtk.ResponseType.OK:
-            pass
-        elif response == Gtk.ResponseType.CANCEL:
-            pass
-
         about_core.destroy()
 
     def on_frontend_clicked(self, parent):
@@ -278,9 +266,4 @@ class DialogAbout(Gtk.Dialog):
         about_frontend.set_transient_for(parent)
 
         response = about_frontend.run()
-        if response == Gtk.ResponseType.OK:
-            pass
-        elif response == Gtk.ResponseType.CANCEL:
-            pass
-
         about_frontend.destroy()
