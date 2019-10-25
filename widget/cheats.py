@@ -22,8 +22,9 @@ class Cheats:
 
     def page(self):
         grid = Gtk.Grid()
+        crc1, crc2 = '635a2bff', '8b022326'
 
-        self.parse_ini('635a2bff', '8b022326', 45)
+        self.parse_ini(crc1, crc2, 45)
         lb_cheats = Gtk.ListBox()
         tv_codes = Gtk.TreeView()
 
@@ -36,7 +37,7 @@ class Cheats:
             check = Gtk.CheckButton()
             lb_hbox.pack_start(check, False, False, 0)
             label = Gtk.Label(i[0], xalign=0) # cheat name
-            lb_hbox.pack_start(label, True, False, 0)
+            lb_hbox.pack_start(label, True, True, 0)
 
             edit = Gtk.Button(label="Edit", always_show_image=True)
             lb_hbox.pack_start(edit, False, False, 0)
@@ -54,15 +55,14 @@ class Cheats:
 
         lb_cheats.add(add_button)
 
-
-
-        grid.attach(Gtk.Label(self.cheat_list["game"]), 0, 0, 1, 1)
+        grid.attach(Gtk.Label(f'{self.cheat_list["game"]} ({crc1}-{crc2})'), 0, 0, 1, 1)
         grid.attach(lb_cheats, 0, 1, 1, 1)
         grid.attach(tv_codes, 0, 2, 1, 1)
 
         scroll = Gtk.ScrolledWindow()
         scroll.add(grid)
         scroll.set_propagate_natural_height(True)
+        scroll.set_propagate_natural_width(True)
 
         return scroll
 
