@@ -250,6 +250,7 @@ class DialogAbout(Gtk.Dialog):
         #about_core.set_documenters("")
         #about_core.set_logo(GdkPixbuf.Pixbuf.new_from_file("ui/mupen64plus.svg"))
         about_core.set_transient_for(parent)
+        response = about_core.run()
 
         about_core.destroy()
 
