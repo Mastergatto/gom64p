@@ -8,6 +8,7 @@
 ## MODULES ##
 #############
 from gi.repository import Gtk
+import logging as log
 
 #############
 ## CLASSES ##
@@ -21,19 +22,55 @@ class Cheats:
 
     def page(self):
         grid = Gtk.Grid()
+
+        self.parse_ini('635a2bff', '8b022326', 45)
         lb_cheats = Gtk.ListBox()
         tv_codes = Gtk.TreeView()
 
-        grid.add(Gtk.Label("Not yet implemented, please come back later."))
+        for i in self.cheat_list["cheats"]:
+            lb_row = Gtk.ListBoxRow()
+            lb_row.set_tooltip_text(i[1]) # description
 
-        return grid
+            lb_hbox = Gtk.HBox()
+            lb_row.add(lb_hbox)
+            check = Gtk.CheckButton()
+            lb_hbox.pack_start(check, False, False, 0)
+            label = Gtk.Label(i[0], xalign=0) # cheat name
+            lb_hbox.pack_start(label, True, False, 0)
+
+            edit = Gtk.Button(label="Edit", always_show_image=True)
+            lb_hbox.pack_start(edit, False, False, 0)
+
+            remove_img = Gtk.Image()
+            remove_img.set_from_icon_name("list-remove-symbolic", Gtk.IconSize.BUTTON)
+            remove_button = Gtk.Button(label="", image=remove_img, always_show_image=True)
+            lb_hbox.pack_start(remove_button, False, True, 0)
+
+            lb_cheats.add(lb_row)
+
+        add_img = Gtk.Image()
+        add_img.set_from_icon_name("list-add-symbolic", Gtk.IconSize.BUTTON)
+        add_button = Gtk.Button(label="", image=add_img, always_show_image=True)
+
+        lb_cheats.add(add_button)
 
 
-    def parse(self):
+
+        grid.attach(Gtk.Label(self.cheat_list["game"]), 0, 0, 1, 1)
+        grid.attach(lb_cheats, 0, 1, 1, 1)
+        grid.attach(tv_codes, 0, 2, 1, 1)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.add(grid)
+        scroll.set_propagate_natural_height(True)
+
+        return scroll
+
+
+    def parse_ini(self, crc1, crc2, country):
         cheat_fn = f"{self.parent.m64p_wrapper.ConfigGetSharedDataFilepath('mupencheat.txt')}"
-        crc1 = '635a2bff' #TODO: crc1, crc2 and country are hardcoded for Super Mario 64 (USA), change them later
-        crc2 = '8b022326'
-        country = 45 #4A = Jap, 45= U, 50 = E, 55 = A, 46 = F, 44 = D, 49 = I, 53 = S || & 0xff is needed?
+
+        #country: 4A = Jap, 45= U, 50 = E, 55 = A, 46 = F, 44 = D, 49 = I, 53 = S || & 0xff is needed?
 
         header = f'{crc1}-{crc2}-C:{country}'.upper()
 
@@ -63,7 +100,7 @@ class Cheats:
                                 # cd = cheat description
                                 description = line[4:].rstrip("\n")
                             else:
-                                #excludes every line that doesn't contain codes
+                                #make sure to exclude every other lines that don't contain codes
                                 if line.startswith('  '):
                                     parts = line[2:].rstrip("\n").split(" ", 2)
                                     if '?' in parts[1]:
@@ -76,5 +113,4 @@ class Cheats:
                 self.cheat_list["cheats"] = cheat
 
         except IOError as e:
-            print(f"Couldn't open cheat database:")
-            print(">", e)
+            log.error(f"Couldn't open cheat database:\n >{e}")
