@@ -1712,7 +1712,8 @@ class API():
                 try:
                     # x.name takes the file's name from the path
                     filename = os.path.splitext(plugin.name)[0]
-                    info = self.PluginGetVersion(c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{filename}{self.extension_filename}'))
+                    info = self.PluginGetVersion(c.cdll.LoadLibrary(f'{self.plugins_dir}{filename}{self.extension_filename}'))
+                    log.debug(info)
                     if info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_CORE.value:
                         pass
                     elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_AUDIO.value:
@@ -1725,8 +1726,8 @@ class API():
                         self.rsp_plugins[filename] = info["name"]
                     else:
                         print("Unknown plugin")
-                except:
-                    log.warning(f"{filename}: Plugin not working or not compatible, skipping it.")
+                except OSError as e:
+                    log.warning(f"{filename}: Plugin not working or not compatible, skipping it. \n > {e}")
                 os.chdir(self.parent.m64p_dir)
         except:
             log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly.")
