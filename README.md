@@ -10,3 +10,8 @@ Frontend in GTK+ 3.x and python3 for mupen64plus. Tested on Linux, untested on o
 - GTK+ 3.22+ (with librsvg support)
 - python 3.6+
 - pygobject
+
+## Issues
+
+### Rice Video Plugin
+- Screen is flickering? Try to set ScreenUpdateSetting to 2 or 4 
