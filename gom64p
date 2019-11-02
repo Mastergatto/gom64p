@@ -65,7 +65,6 @@ class GoodOldM64pApp(Gtk.Application):
         self.args = None
         self.frontend_conf = None
         self.logger = u_log.Logger()
-        log.debug(f"GTK+ version: {str(Gtk.MAJOR_VERSION)}.{str(Gtk.MINOR_VERSION)}.{str(Gtk.MICRO_VERSION)}")
 
     def do_startup(self):
         '''

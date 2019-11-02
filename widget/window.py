@@ -69,6 +69,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         if args_debug == True:
             self.application.logger.set_level(log.DEBUG)
             log.debug("Debug is enabled!")
+            log.debug(f"GTK+ version: {Gtk.MAJOR_VERSION}.{Gtk.MINOR_VERSION}.{Gtk.MICRO_VERSION}")
         #else:
         #    logger = u_log.Logger(log.INFO)
         #self.set_application_name("mupen64plus")

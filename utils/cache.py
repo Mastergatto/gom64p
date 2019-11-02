@@ -9,7 +9,7 @@ import logging as log
 
 class CacheData:
     def __init__(self, path):
-        filename = str(path) + "gom64p.cache"
+        filename = f'{path}gom64p.cache'
         self.cache_fn = pathlib.Path(filename).resolve()
         self.cache = []
         self.version = None

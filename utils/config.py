@@ -8,8 +8,10 @@
 ## MODULES ##
 #############
 
-import configparser, os.path
+import configparser
+import os.path
 import logging as log
+import json
 
 ###############
 ## VARIABLES ##
@@ -19,49 +21,7 @@ import logging as log
 ## CLASSES ##
 #############
 
-class Configuration():
-    def __init__(self):
-        self.config = configparser.ConfigParser()
-        self.config_file = None
-        self.section = None
-
-    def default(self):
-        self.config = {}
-        self.write()
-
-    def write(self):
-        with open(self.config_file, 'w') as configfile:
-            self.config.write(configfile)
-        del configfile
-
-    def load(self):
-        self.config.read(self.config_file)
-
-    def set(self, option, value):
-        self.config[self.section][option] = value
-
-    def get(self, option):
-        return self.config[self.section][option]
-
-    def get_bool(self, option):
-        return self.config[self.section].getboolean(option)
-
-    def check(self):
-        if os.path.isfile(self.config_file) == True:
-            try:
-                self.load()
-            except:
-                log.warning("Cannot load", self.config_file)
-        else:
-            self.default()
-            log.warning(f"{self.config_file} NOT found! Creating new config file.")
-
-    def open_section(self, section):
-        self.section = section
-
-
-
-class FrontendConf(Configuration):
+class FrontendConf():
     def __init__(self, path):
         self.config = configparser.ConfigParser()
         self.config_file = f'{str(path)}{os.sep}gom64p.conf'
@@ -103,71 +63,150 @@ class FrontendConf(Configuration):
 
         self.write()
 
+    def write(self):
+        with open(self.config_file, 'w') as configfile:
+            self.config.write(configfile)
+        del configfile
 
-class M64pConf(Configuration):
-    #TODO: Erase
-    def __init__(self):
-        self.config = configparser.ConfigParser()
-        self.config_file = 'config/mupen64plus.cfg'
-        #self.Sections = ['Core', 'CoreEvents']
-        self.check()
+    def load(self):
+        self.config.read(self.config_file)
 
-    def set(self, section, option, value):
-        self.config[section][option] = value
+    def set(self, option, value):
+        self.config[self.section][option] = value
 
-    def get(self, section, option):
-        return self.config[section][option]
+    def get(self, option):
+        return self.config[self.section][option]
 
-    def get_bool(self, section, option):
-        return self.config[section].getboolean(option)
+    def get_bool(self, option):
+        return self.config[self.section].getboolean(option)
 
-    def default(self):
-        #mupen64plus.cfg
-        self.config['Core'] = {'Version': '1,010000', #float, don't touch
-                        'OnScreenDisplay': 'False',
-                        'R4300Emulator': '2', #int
-                        'NoCompiledJump': 'False',
-                        'DisableExtraMem': 'False',
-                        'AutoStateSlotIncrement': 'False',
-                        'EnableDebugger': 'False',
-                        'CurrentStateSlot': '0', #int
-                        'ScreenshotPath': "",
-                        'SaveStatePath': "",
-                        'SaveSRAMPath': "",
-                        'SharedDataPath': "",
-                        'CountPerOp': '0', #int
-                        'DelaySI': 'False',
-                        'DisableSpecRecomp': 'True'
-                        }
+    def check(self):
+        if os.path.isfile(self.config_file) == True:
+            try:
+                self.load()
+            except:
+                log.warning("Cannot load", self.config_file)
+        else:
+            self.default()
+            log.warning(f"{self.config_file} NOT found! Creating new config file.")
 
-        self.config['CoreEvents'] = {'Version': '1', #don't touch
-                                'Kbd Mapping Stop': '27',
-                                'Kbd Mapping Fullscreen': '0',
-                                'Kbd Mapping Save State': '286',
-                                'Kbd Mapping Load State': '288',
-                                'Kbd Mapping Increment Slot': '0',
-                                'Kbd Mapping Reset': '290',
-                                'Kbd Mapping Speed Down': '291',
-                                'Kbd Mapping Speed Up': '292',
-                                'Kbd Mapping Screenshot': '293',
-                                'Kbd Mapping Pause': '112',
-                                'Kbd Mapping Mute': '109',
-                                'Kbd Mapping Increase Volume': '93',
-                                'Kbd Mapping Decrease Volume': '91',
-                                'Kbd Mapping Fast Forward': '102',
-                                'Kbd Mapping Frame Advance': '47',
-                                'Kbd Mapping Gameshark': '103',
-                                'Joy Mapping Stop': "",
-                                'Joy Mapping Fullscreen': "",
-                                'Joy Mapping Save State': "",
-                                'Joy Mapping Load State': "",
-                                'Joy Mapping Increment Slot': "",
-                                'Joy Mapping Screenshot': "",
-                                'Joy Mapping Pause': "",
-                                'Joy Mapping Mute': "",
-                                'Joy Mapping Increase Volume': "",
-                                'Joy Mapping Decrease Volume': "",
-                                'Joy Mapping Fast Forward': "",
-                                'Joy Mapping Gameshark': ""
-                                }
-        self.write()
+    def open_section(self, section):
+        self.section = section
+
+
+class CheatsCfg():
+    def __init__(self, parent):
+        self.frontend = parent
+        self.list = None
+        self.list_default = {}
+        self.directory = None
+        self.file = None
+
+    def set_game(self, crc1, crc2, country):
+        self.directory = f'{self.frontend.environment.frontend_config_dir}{os.sep}games{os.sep}{crc1}-{crc2}{os.sep}'
+        if os.path.isdir(self.directory) == False:
+            os.makedirs(self.directory, mode=0o755, exist_ok=True)
+
+        self.file = f'{self.directory}cheats.cfg'
+
+    def check(self):
+        return True if os.path.isfile(self.file) == True else False
+
+    def read(self):
+        try:
+            with open(self.file, 'r') as file:
+                self.list = json.load(file)
+
+        except IOError as e:
+            log.error(f"Couldn't open cheat file:\n >{e}")
+
+    def write(self):
+        try:
+            with open(self.file, 'w') as file:
+                json.dump(self.list, file, indent=4)
+
+        except IOError as e:
+            log.error(f"Couldn't open cheat file:\n >{e}")
+
+    def write_default(self, crc1, crc2, country):
+        cheat_default = f"{self.frontend.m64p_wrapper.ConfigGetSharedDataFilepath('mupencheat.txt')}"
+
+        #country: 4A = Jap, 45= U, 50 = E, 55 = A, 46 = F, 44 = D, 49 = I, 53 = S || & 0xff is needed?
+
+        header = f'{crc1}-{crc2}-C:{country}'.upper()
+
+        try:
+            with open(cheat_default, 'r') as file:
+                # {game, {cheat name, description, {1st pair code, 2nd pair code, (1st part, 2nd part, choices if available), ...}}, next cheat, ...}
+                cheat, codes, parts = [], [], []
+                game, name, description = None, None, None
+                found, new = False, False
+
+                for line in file:
+                    if line.startswith('crc '):
+                        found = True if line[4:].rstrip("\n") == header else False
+                    else:
+                        if found == True:
+                            if line.startswith('gn '):
+                                # gn = game name
+                                self.list_default["game"] = line[3:].rstrip("\n")
+                            elif line.startswith(' cn '):
+                                # cn = cheat name
+                                if new == True:
+                                    cheat.append({"name": name, "description": description, "codes":codes, "activate": False})
+                                    # clear for next cheat
+                                    codes = None
+                                new, name = True, line[3:].rstrip("\n")
+
+                            elif line.startswith('  cd '):
+                                # cd = cheat description
+                                description = line[4:].rstrip("\n")
+                            else:
+                                #make sure to exclude every other lines that don't contain codes
+                                if line.startswith('  '):
+                                    parts = line[2:].split(" ", 2)
+                                    if '?' in parts[1]:
+                                        parts[2] = [item.split(':') for item in parts[2].split(',')] #TODO: .rstrip("\n") ?
+                                    else:
+                                        parts.append(None)
+
+                                    codes = {'first':parts[0].rstrip("\n"), 'second':parts[1].rstrip("\n"), 'choices':parts[2], 'selected': None}
+
+                self.list_default["cheats"] = cheat
+                self.list = self.list_default
+                if "game" in self.list:
+                    self.write()
+
+        except IOError as e:
+            log.error(f"Couldn't open cheat database: {os.linesep} >{e}")
+
+        # self.config['CoreEvents'] = 'Version': '1', #don't touch
+        #                         'Kbd Mapping Stop': '27',
+        #                         'Kbd Mapping Fullscreen': '0',
+        #                         'Kbd Mapping Save State': '286',
+        #                         'Kbd Mapping Load State': '288',
+        #                         'Kbd Mapping Increment Slot': '0',
+        #                         'Kbd Mapping Reset': '290',
+        #                         'Kbd Mapping Speed Down': '291',
+        #                         'Kbd Mapping Speed Up': '292',
+        #                         'Kbd Mapping Screenshot': '293',
+        #                         'Kbd Mapping Pause': '112',
+        #                         'Kbd Mapping Mute': '109',
+        #                         'Kbd Mapping Increase Volume': '93',
+        #                         'Kbd Mapping Decrease Volume': '91',
+        #                         'Kbd Mapping Fast Forward': '102',
+        #                         'Kbd Mapping Frame Advance': '47',
+        #                         'Kbd Mapping Gameshark': '103',
+        #                         'Joy Mapping Stop': "",
+        #                         'Joy Mapping Fullscreen': "",
+        #                         'Joy Mapping Save State': "",
+        #                         'Joy Mapping Load State': "",
+        #                         'Joy Mapping Increment Slot': "",
+        #                         'Joy Mapping Screenshot': "",
+        #                         'Joy Mapping Pause': "",
+        #                         'Joy Mapping Mute': "",
+        #                         'Joy Mapping Increase Volume': "",
+        #                         'Joy Mapping Decrease Volume': "",
+        #                         'Joy Mapping Fast Forward': "",
+        #                         'Joy Mapping Gameshark': ""
+        #                         
