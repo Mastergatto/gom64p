@@ -339,7 +339,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def state_callback(self, context, param, value):
         context_dec = c.cast(context, c.c_char_p).value.decode("utf-8")
         if param == wrp_dt.m64p_core_param.M64CORE_EMU_STATE.value:
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_emu_state(value).name}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_emu_state(value).name}")
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
                 self.main_menu.sensitive_menu_stop()
                 self.running = False
@@ -354,47 +354,47 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 self.Statusbar.push(self.StatusbarContext, "*** Emulation PAUSED ***")
 
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value:
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_video_mode(value).name}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_video_mode(value).name}")
         elif param == wrp_dt.m64p_core_param.M64CORE_SAVESTATE_SLOT.value:
             if self.m64p_wrapper.current_slot != value:
                 self.m64p_wrapper.current_slot = value
                 self.main_menu.save_slot_items[value].set_active(True)
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}, SLOT: {value}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}, SLOT: {value}")
             self.Statusbar.push(self.StatusbarContext, "Slot selected: " + str(value))
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_FACTOR.value:
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {value}%")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}%")
             self.Statusbar.push(self.StatusbarContext, "Emulation speed: " + str(value) + "%")
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_LIMITER.value:
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}, {value}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}, {value}")
             self.Statusbar.push(self.StatusbarContext, "Speed limit: " + str(value))
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value:
             #TODO:Not yet mapped, (ScreenWidth << 16) + ScreenHeight
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param)}, {str(value).encode('utf-8')}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param)}, {str(value).encode('utf-8')}")
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_VOLUME.value:
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {value}%")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}%")
             self.Statusbar.push(self.StatusbarContext, "Audio volume: " + str(value) + "%")
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_MUTE.value:
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {value}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")
             if value == 1:
                 self.Statusbar.push(self.StatusbarContext, "Audio has been muted!")
             else:
                 self.Statusbar.push(self.StatusbarContext, "Audio has been unmuted.")
         elif param == wrp_dt.m64p_core_param.M64CORE_INPUT_GAMESHARK.value:
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {value}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")
             if value == 1:
                 self.Statusbar.push(self.StatusbarContext, "Gameshark button has been pressed!")
         elif param == wrp_dt.m64p_core_param.M64CORE_STATE_LOADCOMPLETE.value:
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {value}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")
             if value == 1:
                 self.Statusbar.push(self.StatusbarContext, "Save state is loaded successfully.")
             else:
                 self.Statusbar.push(self.StatusbarContext, "WARNING: Save state has failed to load!")
         elif param == wrp_dt.m64p_core_param.M64CORE_STATE_SAVECOMPLETE.value:
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {value}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")
             if value == 1:
                 self.Statusbar.push(self.StatusbarContext, "Save state is done successfully.")
             else:
                 self.Statusbar.push(self.StatusbarContext, "WARNING: Unable to create a save state!")
         else:
             # Unmapped params go here.
-            log.info(f"({context_dec}){wrp_dt.m64p_core_param(param).name}: {value}")
+            log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")

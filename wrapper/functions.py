@@ -1688,7 +1688,7 @@ class API():
             self.rom_get_settings() ###
             self.plugins_attach()
             self.set_media_loader()
-            self.frontend.cheats.set_game(header["crc1"], header["crc2"])
+            self.frontend.cheats.set_game(header["crc1"], header["crc2"], header["country"])
             self.frontend.cheats.dispatch()
             self.execute()
             self.plugins_detach()

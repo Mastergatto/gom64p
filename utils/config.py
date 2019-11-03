@@ -164,8 +164,8 @@ class CheatsCfg():
         except IOError as e:
             log.error(f"Couldn't open cheat file:\n >{self.file}: {e}")
 
-    def set_game(self, crc1, crc2):
-        self.directory = f'{self.frontend.environment.frontend_config_dir}{os.sep}games{os.sep}{crc1}-{crc2}{os.sep}'
+    def set_game(self, crc1, crc2, country):
+        self.directory = f'{self.frontend.environment.frontend_config_dir}{os.sep}games{os.sep}{country.lower()}-{crc1}-{crc2}{os.sep}'
         if os.path.isdir(self.directory) == False:
             os.makedirs(self.directory, mode=0o755, exist_ok=True)
 
@@ -205,6 +205,7 @@ class CheatsCfg():
                                     cheat.append({"name": name, "description": description, "codes": codes, "activate": False})
                                     # clear for next cheat
                                     codes = []
+                                    description = None
                                 new, name = True, line[3:].rstrip("\n")
 
                             elif line.startswith('  cd '):

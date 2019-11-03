@@ -25,7 +25,7 @@ class Cheats:
     def page(self, crc1, crc2, country):
         grid = Gtk.Grid()
 
-        self.handler.set_game(crc1, crc2)
+        self.handler.set_game(crc1, crc2, country)
         if self.handler.check() == True:
             self.handler.read()
         else:
