@@ -11,8 +11,6 @@ from gi.repository import Gtk
 import os
 import logging as log
 
-import utils.config as u_file
-
 #############
 ## CLASSES ##
 #############
@@ -21,14 +19,13 @@ import utils.config as u_file
 class Cheats:
     def __init__(self, parent):
         self.frontend = parent
-        self.handler = u_file.CheatsCfg(self.frontend) # TODO: move in window.py
+        self.handler = self.frontend.cheats
         self.cheat_list = None
 
-    def page(self):
+    def page(self, crc1, crc2, country):
         grid = Gtk.Grid()
-        crc1, crc2, country = '635a2bff', '8b022326', 45
 
-        self.handler.set_game(crc1, crc2, country)
+        self.handler.set_game(crc1, crc2)
         if self.handler.check() == True:
             self.handler.read()
         else:
@@ -38,6 +35,7 @@ class Cheats:
         lb_cheats = Gtk.ListBox()
         tv_codes = Gtk.TreeView()
 
+        j = 0
         for i in self.handler.list["cheats"]:
             lb_row = Gtk.ListBoxRow()
             lb_row.set_tooltip_text(i["description"])
@@ -47,20 +45,25 @@ class Cheats:
             checkbox = Gtk.CheckButton()
             if i["activate"] == True:
                 checkbox.set_active(True)
-            #checkbox.connect("toggled", self.on_checkbox_toggled)
+            checkbox.connect("toggled", self.on_checkbox_toggled, j)
             lb_hbox.pack_start(checkbox, False, False, 0)
-            label = Gtk.Label(i["name"], xalign=0)
-            lb_hbox.pack_start(label, True, True, 0)
 
-            edit = Gtk.Button(label="Edit", always_show_image=True)
-            #lb_hbox.pack_start(edit, False, False, 0)
+            if i["codes"][0]["choices"]:
+                pass
+            else:
+                label = Gtk.Label(i["name"], xalign=0)
+                lb_hbox.pack_start(label, True, True, 0)
 
-            remove_img = Gtk.Image()
-            remove_img.set_from_icon_name("list-remove-symbolic", Gtk.IconSize.BUTTON)
-            remove_button = Gtk.Button(label="", image=remove_img, always_show_image=True)
-            #lb_hbox.pack_start(remove_button, False, True, 0)
+                edit = Gtk.Button(label="Edit", always_show_image=True)
+                #lb_hbox.pack_start(edit, False, False, 0)
 
-            lb_cheats.add(lb_row)
+                remove_img = Gtk.Image()
+                remove_img.set_from_icon_name("list-remove-symbolic", Gtk.IconSize.BUTTON)
+                remove_button = Gtk.Button(label="", image=remove_img, always_show_image=True)
+                #lb_hbox.pack_start(remove_button, False, True, 0)
+
+                lb_cheats.add(lb_row)
+            j += 1
 
         add_img = Gtk.Image()
         add_img.set_from_icon_name("list-add-symbolic", Gtk.IconSize.BUTTON)
@@ -79,3 +82,13 @@ class Cheats:
         scroll.set_propagate_natural_width(True)
 
         return scroll
+
+    def on_checkbox_toggled(self, widget, index):
+        #self.is_changed = True
+        #self.apply_button.set_sensitive(True)
+        if widget.get_active() == True:
+            self.handler.list["cheats"][index]["activate"] = True
+        elif widget.get_active() == False:
+            self.handler.list["cheats"][index]["activate"] = False
+        else:
+            log.error("Cheats: Unexpected error")

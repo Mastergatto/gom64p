@@ -51,7 +51,7 @@ class PropertiesDialog(Gtk.Dialog):
             info_tab = self.info_handler()
             info_label = Gtk.Label(label="Informations")
 
-            cheats_tab = self.cheats.page()
+            cheats_tab = self.cheats.page(self.header["crc1"], self.header["crc2"], self.header["country"])
             cheats_label = Gtk.Label(label="Cheats")
 
             custom_tab = self.custom_settings()
@@ -83,7 +83,8 @@ class PropertiesDialog(Gtk.Dialog):
         while response == Gtk.ResponseType.APPLY:
             response = self.prop_window.run()
             if response == Gtk.ResponseType.OK:
-                self.parent.m64p_wrapper.ConfigSaveFile()
+                #self.parent.m64p_wrapper.ConfigSaveFile()
+                self.parent.cheats.write()
                 self.prop_window.destroy()
             elif response == Gtk.ResponseType.APPLY:
                 pass

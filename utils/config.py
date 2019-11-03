@@ -13,6 +13,8 @@ import os.path
 import logging as log
 import json
 
+import wrapper.datatypes as wrp_dt
+
 ###############
 ## VARIABLES ##
 ###############
@@ -102,15 +104,57 @@ class CheatsCfg():
         self.directory = None
         self.file = None
 
-    def set_game(self, crc1, crc2, country):
-        self.directory = f'{self.frontend.environment.frontend_config_dir}{os.sep}games{os.sep}{crc1}-{crc2}{os.sep}'
-        if os.path.isdir(self.directory) == False:
-            os.makedirs(self.directory, mode=0o755, exist_ok=True)
+    def add(self, cheatname, codes):
+        codes_type = wrp_dt.m64p_cheat_code * len(codes)
+        codelist = codes_type()
+        for i, cheat in enumerate(codes):
+            address, value, choices, selected = cheat["address"], cheat["value"], cheat["choices"], cheat["selected"]
 
-        self.file = f'{self.directory}cheats.cfg'
+            if choices:
+                pass
+
+            codelist[i].address = int(address, 16)
+            codelist[i].value = int(value, 16)
+
+        self.frontend.m64p_wrapper.CoreAddCheat(cheatname, codelist)
+
+    def dispatch(self):
+        if self.check() == True:
+            self.read()
+            for cheat in self.list["cheats"]:
+                if cheat["activate"] == True:
+                    self.add(cheat["name"], cheat["codes"])
+
+            # Clean everything
+            self.list = None
+
+    def toggle(self, cheatname, boolean):
+        self.frontend.m64p_wrapper.CoreCheatEnabled(cheatname, boolean)
 
     def check(self):
         return True if os.path.isfile(self.file) == True else False
+
+    def translate(self, country):
+        # TODO: UJ?
+        if country == "J":
+            return "4A"
+        elif country == "U":
+            return "45"
+        elif country == "E":
+            return "50"
+        elif country == "A":
+            return "55"
+        elif country == "F":
+            return "46"
+        elif country == "D":
+            return "44"
+        elif country == "I":
+            return "49"
+        elif country == "S":
+            return "53"
+        else:
+            log.warning("Cheats: Unknown country")
+
 
     def read(self):
         try:
@@ -118,7 +162,14 @@ class CheatsCfg():
                 self.list = json.load(file)
 
         except IOError as e:
-            log.error(f"Couldn't open cheat file:\n >{e}")
+            log.error(f"Couldn't open cheat file:\n >{self.file}: {e}")
+
+    def set_game(self, crc1, crc2):
+        self.directory = f'{self.frontend.environment.frontend_config_dir}{os.sep}games{os.sep}{crc1}-{crc2}{os.sep}'
+        if os.path.isdir(self.directory) == False:
+            os.makedirs(self.directory, mode=0o755, exist_ok=True)
+
+        self.file = f'{self.directory}cheats.cfg'
 
     def write(self):
         try:
@@ -126,14 +177,12 @@ class CheatsCfg():
                 json.dump(self.list, file, indent=4)
 
         except IOError as e:
-            log.error(f"Couldn't open cheat file:\n >{e}")
+            log.error(f"Couldn't open cheat file:\n >{self.file}:{e}")
 
     def write_default(self, crc1, crc2, country):
         cheat_default = f"{self.frontend.m64p_wrapper.ConfigGetSharedDataFilepath('mupencheat.txt')}"
 
-        #country: 4A = Jap, 45= U, 50 = E, 55 = A, 46 = F, 44 = D, 49 = I, 53 = S || & 0xff is needed?
-
-        header = f'{crc1}-{crc2}-C:{country}'.upper()
+        header = f'{crc1}-{crc2}-C:{self.translate(country)}'.upper()
 
         try:
             with open(cheat_default, 'r') as file:
@@ -153,9 +202,9 @@ class CheatsCfg():
                             elif line.startswith(' cn '):
                                 # cn = cheat name
                                 if new == True:
-                                    cheat.append({"name": name, "description": description, "codes":codes, "activate": False})
+                                    cheat.append({"name": name, "description": description, "codes": codes, "activate": False})
                                     # clear for next cheat
-                                    codes = None
+                                    codes = []
                                 new, name = True, line[3:].rstrip("\n")
 
                             elif line.startswith('  cd '):
@@ -170,12 +219,14 @@ class CheatsCfg():
                                     else:
                                         parts.append(None)
 
-                                    codes = {'first':parts[0].rstrip("\n"), 'second':parts[1].rstrip("\n"), 'choices':parts[2], 'selected': None}
+                                    codes += [{'address': parts[0].rstrip("\n"), 'value': parts[1].rstrip("\n"), 'choices': parts[2], 'selected': None}]
 
                 self.list_default["cheats"] = cheat
                 self.list = self.list_default
                 if "game" in self.list:
                     self.write()
+
+                self.list_default = {}
 
         except IOError as e:
             log.error(f"Couldn't open cheat database: {os.linesep} >{e}")

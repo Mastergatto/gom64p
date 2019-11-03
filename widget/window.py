@@ -66,6 +66,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.m64p_wrapper = wrp.API(self.window, self.parameters)
         self.lock = self.m64p_wrapper.lock
 
+        self.cheats = u_conf.CheatsCfg(self.window)
+
         if args_debug == True:
             self.application.logger.set_level(log.DEBUG)
             log.debug("Debug is enabled!")

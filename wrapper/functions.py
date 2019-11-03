@@ -18,7 +18,7 @@ class API():
         #Latest API version supported by this wrapper.
         self.core_version = 0x020509 # 2.5.9 BETA
 
-        self.parent = parent
+        self.frontend = parent
         self.platform = params['platform']
         self.m64p_lib_core_path = params['m64plib']
         self.plugins_dir = params['pluginsdir']
@@ -27,7 +27,7 @@ class API():
         self.lock = False
         self.vext_override = False
         self.current_slot = 0
-        wrp_cb.frontend = self.parent
+        wrp_cb.frontend = self.frontend
         self.media_loader = wrp_cb.MEDIA_LOADER
 
         configpath = params['configdir'].encode('utf-8')
@@ -167,7 +167,7 @@ class API():
                    ("Context", c.c_void_p, 1, c.cast(b"Core", c.c_void_p)),
                    ("DebugCallback", c.c_void_p , 2, wrp_cb.CB_DEBUG),
                    ("Context2", c.c_void_p, 1, c.cast(b"State", c.c_void_p)),
-                   ("StateCallback", c.c_void_p , 2, self.parent.CB_STATE))
+                   ("StateCallback", c.c_void_p , 2, self.frontend.CB_STATE))
 
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
@@ -272,25 +272,24 @@ class API():
             self.CoreErrorMessage(status, b"CoreOverrideVidExt")
 
     ## Cheat
-    def CoreAddCheat(self, cheatname, codelist, numcodes):
+    def CoreAddCheat(self, cheatname, codelist):
         #m64p_error CoreAddCheat(const char *CheatName, m64p_cheat_code *CodeList, int NumCodes)
-        #TODO: Untested
         function = wrp_dt.cfunc("CoreAddCheat", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("CheatName", c.c_char_p, 1, cheatname.encode("utf-8")),
-                        ("CodeList", c.pointer(wrp_dt.m64p_cheat_code), 1, c.byref(codelist())),
-                        ("NumCodes", c.c_int, 1, c.c_int(numcodes)))
+                        ("CodeList", c.POINTER(wrp_dt.m64p_cheat_code * len(codelist)), 1, c.byref(codelist)),
+                        ("NumCodes", c.c_int, 1, c.c_int(c.sizeof(codelist))))
 
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            log.info(f"Cheats: activate '{cheatname}'")
             return status
         else:
             self.CoreErrorMessage(status, b"CoreAddCheat")
 
     def CoreCheatEnabled(self, cheatname, enabled):
         #m64p_error CoreCheatEnabled(const char *CheatName, int Enabled)
-        #TODO: Untested
         function = wrp_dt.cfunc("CoreCheatEnabled", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("CheatName", c.c_char_p, 1, cheatname.encode("utf-8")),
                         ("Enabled", c.c_int, 1, c.c_int(enabled)))
@@ -299,6 +298,10 @@ class API():
         status = function()
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            if enabled == True:
+                log.info(f"Cheats: activating '{cheatname}'")
+            else:
+                log.info(f"Cheats: deactivating '{cheatname}'")
             return status
         else:
             self.CoreErrorMessage(status, b"CoreCheatEnabled")
@@ -1342,7 +1345,6 @@ class API():
             log.error("CoreDoCommand: Couldn't retrieve the ROM's header.")
             return status
         else:
-            #print(header)
             return header
 
     def rom_get_header_raw(self):
@@ -1589,7 +1591,7 @@ class API():
         try:
             os.chdir(self.plugins_dir) #TODO
             self.m64p_lib_core = c.cdll.LoadLibrary(self.m64p_lib_core_path)
-            os.chdir(self.parent.m64p_dir)
+            os.chdir(self.frontend.m64p_dir)
 
             check_core = self.PluginGetVersion(self.m64p_lib_core)
             if check_core["version"] >= self.core_version:
@@ -1657,7 +1659,7 @@ class API():
         except:
             log.error(f"{self.rsp_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
             self.m64p_lib_rsp = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-rsp-hle{self.extension_filename}')
-        os.chdir(self.parent.m64p_dir)
+        os.chdir(self.frontend.m64p_dir)
 
     def initialise(self):
         if self.compatible == True:
@@ -1682,10 +1684,12 @@ class API():
 
         retval = self.rom_open(rom)
         if retval == 0:
-            self.rom_get_header() ###
+            header = self.rom_get_header() ###
             self.rom_get_settings() ###
             self.plugins_attach()
             self.set_media_loader()
+            self.frontend.cheats.set_game(header["crc1"], header["crc2"])
+            self.frontend.cheats.dispatch()
             self.execute()
             self.plugins_detach()
             self.rom_close()
@@ -1728,7 +1732,7 @@ class API():
                         print("Unknown plugin")
                 except OSError as e:
                     log.warning(f"{filename}: Plugin not working or not compatible, skipping it. \n > {e}")
-                os.chdir(self.parent.m64p_dir)
+                os.chdir(self.frontend.m64p_dir)
         except:
             log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly.")
             
