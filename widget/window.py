@@ -277,8 +277,9 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
     def focus_cb(self, *args):
         if self.running == True:
-            self.main_menu.on_action_pause()
-            log.debug("The window has lost the focus! Stopping the emulation.")
+            if self.frontend_conf.get_bool("Vidext") == True:
+                self.main_menu.on_action_pause()
+                log.debug("The window has lost the focus! Stopping the emulation.")
 
     def on_text_change(self, entry):
         self.browser_list.game_search_current = entry.get_text()
