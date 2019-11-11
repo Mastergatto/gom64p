@@ -170,7 +170,7 @@ class Vidext():
 
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            log.error("Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL")
+            log.error("Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL: \n > {sdl.SDL_GetError().decode('utf-8')}")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_get_proc(self, proc):

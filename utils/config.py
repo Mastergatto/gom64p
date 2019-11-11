@@ -125,14 +125,14 @@ class CheatsCfg():
                 if cheat["activate"] == True:
                     self.add(cheat["name"], cheat["codes"])
 
-            # Clean everything
-            self.list = None
+    def check(self):
+        return True if os.path.isfile(self.file) == True else False
+
+    def clean(self):
+        self.list = None
 
     def toggle(self, cheatname, boolean):
         self.frontend.m64p_wrapper.CoreCheatEnabled(cheatname, boolean)
-
-    def check(self):
-        return True if os.path.isfile(self.file) == True else False
 
     def translate(self, country):
         # TODO: UJ?
