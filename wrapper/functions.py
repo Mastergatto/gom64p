@@ -1604,16 +1604,22 @@ class API():
     def plugins_startup(self):
         if self.gfx_filename != "dummy":
             self.PluginStartup(self.m64p_lib_gfx, b"gfx")
-        self.PluginStartup(self.m64p_lib_audio, b"audio")
-        self.PluginStartup(self.m64p_lib_input, b"input")
-        self.PluginStartup(self.m64p_lib_rsp, b"rsp")
+        if self.audio_filename != "dummy":
+            self.PluginStartup(self.m64p_lib_audio, b"audio")
+        if self.input_filename != "dummy":
+            self.PluginStartup(self.m64p_lib_input, b"input")
+        if self.rsp_filename != "dummy":
+            self.PluginStartup(self.m64p_lib_rsp, b"rsp")
 
     def plugins_shutdown(self):
         if self.gfx_filename != "dummy":
             self.PluginShutdown(self.m64p_lib_gfx)
-        self.PluginShutdown(self.m64p_lib_audio)
-        self.PluginShutdown(self.m64p_lib_input)
-        self.PluginShutdown(self.m64p_lib_rsp)
+        if self.audio_filename != "dummy":
+            self.PluginShutdown(self.m64p_lib_audio)
+        if self.input_filename != "dummy":
+            self.PluginShutdown(self.m64p_lib_input)
+        if self.rsp_filename != "dummy":
+            self.PluginShutdown(self.m64p_lib_rsp)
 
     def plugins_attach(self):
         if self.gfx_filename != "dummy":
@@ -1644,21 +1650,26 @@ class API():
                 log.error(f"{self.gfx_filename}: Plugin cannot be used. Dummy plugin is used instead, which means no video.")
                 self.gfx_filename = "dummy"
 
-        try:
-            self.m64p_lib_audio = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.audio_filename}{self.extension_filename}')
-        except:
-            log.error(f"{self.audio_filename }: Plugin not found, cannot be used. Default plugin is used instead.")
-            self.m64p_lib_audio = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-audio-hle{self.extension_filename}')
-        try:
-            self.m64p_lib_input = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.input_filename}{self.extension_filename}')
-        except:
-            log.error(f"{self.input_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
-            self.m64p_lib_input = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-input-sdl{self.extension_filename}')
-        try:
-            self.m64p_lib_rsp = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.rsp_filename}{self.extension_filename}')
-        except:
-            log.error(f"{self.rsp_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
-            self.m64p_lib_rsp = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-rsp-hle{self.extension_filename}')
+        if self.audio_filename != "dummy":
+            try:
+                self.m64p_lib_audio = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.audio_filename}{self.extension_filename}')
+            except:
+                log.error(f"{self.audio_filename }: Plugin not found, cannot be used. Default plugin is used instead.")
+                self.m64p_lib_audio = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-audio-hle{self.extension_filename}')
+
+        if self.input_filename != "dummy":
+            try:
+                self.m64p_lib_input = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.input_filename}{self.extension_filename}')
+            except:
+                log.error(f"{self.input_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
+                self.m64p_lib_input = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-input-sdl{self.extension_filename}')
+
+        if self.rsp_filename != "dummy":
+            try:
+                self.m64p_lib_rsp = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.rsp_filename}{self.extension_filename}')
+            except:
+                log.error(f"{self.rsp_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
+                self.m64p_lib_rsp = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-rsp-hle{self.extension_filename}')
         os.chdir(self.frontend.m64p_dir)
 
     def initialise(self):
@@ -1688,9 +1699,12 @@ class API():
             self.rom_get_settings() ###
             self.plugins_attach()
             self.set_media_loader()
-            self.frontend.cheats.set_game(header["crc1"], header["crc2"], header["country"])
-            self.frontend.cheats.dispatch()
+            if self.frontend.cheats:
+                self.frontend.cheats.set_game(header["crc1"], header["crc2"], header["country"])
+                self.frontend.cheats.dispatch()
             self.execute()
+            if self.frontend.cheats:
+                self.frontend.cheats.clean()
             self.plugins_detach()
             self.rom_close()
 
