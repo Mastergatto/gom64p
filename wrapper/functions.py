@@ -1688,10 +1688,12 @@ class API():
 
     def run(self, rom):
         if self.vext_override == True:
-            self.CoreOverrideVidExt()
+            wrp_vext.enable_vidext()
             log.debug("Core: Vidext is now enabled!")
         else:
-            log.debug("Core: Vidext should be disabled.")
+            wrp_vext.disable_vidext()
+            log.debug("Core: Vidext should be now disabled.")
+        self.CoreOverrideVidExt()
 
         retval = self.rom_open(rom)
         if retval == 0:
