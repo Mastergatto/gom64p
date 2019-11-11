@@ -49,6 +49,8 @@ class List:
         germany = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/germany.svg")), size_flag, -1, True)
         italy = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/italy.svg")), size_flag, -1, True)
         spain = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/spain.svg")), size_flag, -1, True)
+        #brazil = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/brazil.svg")), size_flag, -1, True)
+        #china = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/china.svg")), size_flag, -1, True)
         unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/unknown.svg")), size_flag, -1, True)
 
         zero = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating0.svg")), size_rating, -1, True)
@@ -79,6 +81,10 @@ class List:
                 j[0] = italy
             elif flag == "S":
                 j[0] = spain
+            #elif flag == "B":
+            #    j[0] = brazil
+            #elif flag == "C":
+            #    j[0] = china
             else:
                 j[0] = unknown
 

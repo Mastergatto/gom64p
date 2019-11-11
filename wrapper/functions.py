@@ -1324,7 +1324,7 @@ class API():
             cartridge_region = "ESP"
             cartridge_letter = "S"
         else:
-            country = '?'
+            country = 'Unk'
             log.warning(f'Unknown region for {name}.')
 
         cartridge_bit = bytes(c.cast(self.rom_header.Cartridge_ID, c.c_char_p)).decode("cp932", "replace").rstrip("\x00")
