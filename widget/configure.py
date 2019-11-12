@@ -361,6 +361,7 @@ class ConfigDialog(Gtk.Dialog):
         gamedir_box = Gtk.VBox()
         gamedir1_box = Gtk.HBox()
         gamedir2_box = Gtk.HBox()
+        gamedir3_box = Gtk.HBox()
 
         m64p_frame = Gtk.Frame(label="mupen64plus directories", shadow_type=1)
         gamedir_frame = Gtk.Frame(label="game image directories", shadow_type=1)
@@ -414,12 +415,23 @@ class ConfigDialog(Gtk.Dialog):
         gamedir2_button = Gtk.Button.new_with_label("Open")
         gamedir2_button.connect("clicked", self.on_search_path_dir, gamedir2_entry)
 
+        gamedir3_entry = self.insert_entry('path3', 'GameDirs', 'frontend', "Choose the dir where game images are found", None)
+        gamedir3_button = Gtk.Button.new_with_label("Open")
+        gamedir3_button.connect("clicked", self.on_search_path_dir, gamedir3_entry)
+
         gamedir1_box.pack_start(gamedir_entry, True, True, 5)
         gamedir1_box.pack_start(gamedir_button, False, False, 0)
         gamedir2_box.pack_start(gamedir2_entry, True, True, 5)
         gamedir2_box.pack_start(gamedir2_button, False, False, 0)
+        gamedir3_box.pack_start(gamedir3_entry, True, True, 5)
+        gamedir3_box.pack_start(gamedir3_button, False, False, 0)
         gamedir_box.pack_start(gamedir1_box, False, False, 0)
         gamedir_box.pack_start(gamedir2_box, False, False, 0)
+        gamedir_box.pack_start(gamedir3_box, False, False, 0)
+
+        recursive_chkbox = self.insert_checkbox('Recursive', 'Frontend', 'frontend', "Recursive mode", "The frontend will scan for games even in subdirectories")
+        gamedir_box.pack_start(recursive_chkbox, False, False, 0)
+
         gamedir_frame.add(gamedir_box)
 
         paths_box.pack_start(m64p_frame, False, False, 0)
@@ -662,6 +674,7 @@ class ConfigDialog(Gtk.Dialog):
         checkbox = Gtk.CheckButton.new_with_label(label)
         try:
             if config == "frontend":
+                self.parent.frontend_conf.open_section(section)
                 if self.parent.frontend_conf.get(param) == "True":
                     checkbox.set_active(True)
                 checkbox.set_tooltip_text(help)
@@ -674,8 +687,13 @@ class ConfigDialog(Gtk.Dialog):
                     checkbox.set_sensitive(False)
             checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
         except KeyError:
+            if config == "frontend":
+                self.parent.frontend_conf.open_section(section)
+                self.parent.frontend_conf.set(param, 'False')
+                log.warning(f'{param} parameter NOT found, setting new default value.')
+            else:
+                log.warning(f'{param} parameter NOT found, thus disabling the checkpoint.')
             checkbox.set_sensitive(False)
-            log.warning(f'{param} parameter NOT found, thus disabling the checkpoint.')
 
         return checkbox
 

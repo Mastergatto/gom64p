@@ -48,7 +48,8 @@ class FrontendConf():
                             'RSPPlugin': 'mupen64plus-rsp-hle',
                             'VidExt': 'True',
                             'LogLevel': '20',
-                            'TrueFullscreen': 'False'
+                            'TrueFullscreen': 'False',
+                            'Recursive': 'False'
                             }
         self.config['GameDirs'] = {'path1': '',
                             'path2': '',

@@ -299,23 +299,33 @@ class Cache:
         '''Method that enlist and returns ROMs that are present in selected
          directories.'''
         path_items = self.parent.frontend_conf.config.items('GameDirs')
-        total_paths = []
-        total64dd = []
+        self.total_paths, self.total64dd = [], []
+        self.format_allowed = ('.n64', '.v64', '.z64')
+        self.format64dd_allowed = ('.ndd')
 
         for key, path in path_items:
             if path != '' and os.path.isdir(path) == True:
                 os.chdir(path)
-                format_allowed = ('.n64', '.v64', '.z64')
-                format64dd_allowed = ('.ndd')
+                self.walk(path, self.parent.frontend_conf.get_bool("Recursive"))
 
-                for onerom in os.listdir(path):
-                    if os.path.isfile(onerom) and onerom.lower().endswith(format_allowed):
-                        total_paths += [(path + onerom)]
-                    elif os.path.isfile(onerom) and onerom.lower().endswith(format64dd_allowed):
-                        total64dd += [(path + onerom , str.upper(self.hashify(onerom)))]
         os.chdir(self.parent.m64p_dir)
 
-        return total_paths
+        return self.total_paths
+
+    def walk(self, path, recursion):
+        directory = os.listdir(path)
+        if len(directory) > 0:
+            for item in directory:
+                item_path = path + item
+                if os.path.isdir(item_path):
+                    if recursion == True:
+                        self.walk(item_path + os.sep, recursion)
+                else:
+                    if os.path.isfile(item_path):
+                        if item_path.lower().endswith(self.format_allowed):
+                            self.total_paths += [(item_path)]
+                        #elif item_path.lower().endswith(self.format64dd_allowed):
+                        #    self.total64dd += [(item_path, str.upper(self.hashify(onerom[i])))]
 
     def scan_element(self, rom):
         '''Method that opens and reads a ROM, and finally returns valuable
