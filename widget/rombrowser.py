@@ -279,6 +279,7 @@ class Cache:
         self.parent = parent
         self.progressbar = ProgressScanning(self.parent)
         self.thread = None
+        self.version = 0
 
         # The list.
         self.rom_list = None
@@ -366,8 +367,8 @@ class Cache:
         log.info(f'Starting to compare lists and eventually add or remove files')
         list_cache = []
         self.rom_list = self.parent.browser_list.rom_list
-        for i in self.rom_list:
-            list_cache += [(i[3])]
+        for item in self.rom_list:
+            list_cache += [(item[3])]
 
         total_paths = self.get_total_elements()
         self.amount_roms = len(total_paths)
@@ -385,14 +386,24 @@ class Cache:
             if new_elements:
                 for rom in new_elements:
                     element = self.scan_element(rom)
-                    GLib.idle_add(self.progressbar.tick)
                     self.rom_list += element
-            if missing_elements:
-                #TODO: Should it still scan?
-                for rom in missing_elements:
-                    element = self.scan_element(rom)
                     GLib.idle_add(self.progressbar.tick)
-                    self.rom_list.remove(element[0])
+            if missing_elements:
+                for rom in missing_elements:
+                    try:
+                        found, value = False, None
+                        i = 0
+                        while found == False:
+                            if rom in self.rom_list[i]:
+                                found = True
+                                break
+                            else:
+                                i += 1
+                        self.rom_list.pop(i)
+                    except ValueError:
+                        log.error(f"Rombrowser: Record was supposed to be discarded, but it wasn't found, what's going on?! \n >{rom}")
+                    finally:
+                        GLib.idle_add(self.progressbar.tick)
 
             GLib.idle_add(self.progressbar.end)
             self.write()
@@ -429,15 +440,14 @@ class Cache:
             threading.main_thread()
 
     def validate(self):
+        '''Establish if the cache is consistent with that of the game directories.'''
         #TODO: what about creation or modified date of files? Discard the idea if it's too complex to implement
         list_rom = self.get_total_elements()
 
         #validation = {"version": False, "amount": False, "identical": False}
         validation = [False, False, False]
-        cache_version = 1
 
-        #TODO
-        if cache_version == 1:
+        if self.version == int(self.parent.cache.version):
             validation[0] = True
             log.info(f'The version of the cache is validated.')
 
@@ -465,6 +475,7 @@ class Cache:
             return False
 
     def write(self):
+        '''Store those values to file.'''
         self.parent.cache.generated_list = self.rom_list
         self.parent.cache.total_roms = str(self.amount_roms)
         log.info(f'Amount of games found: {self.amount_roms}')
