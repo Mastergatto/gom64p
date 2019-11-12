@@ -490,7 +490,10 @@ class ProgressScanning(Gtk.Dialog):
 
     def set_amount(self, amount):
         self.amount = amount
-        self.fraction = 1.0 / self.amount
+        if self.amount > 0:
+            self.fraction = 1.0 / self.amount
+        else:
+            self.fraction = 1.0
 
     def tick(self):
         value = self.progressbar.get_fraction() + self.fraction
