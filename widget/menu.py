@@ -282,10 +282,10 @@ class Menu:
     def on_EnableToolbar_toggle(self, *args):
         if self.view_menu_toolbar.get_active() == True:
             self.toolbar.show_all()
-            self.parent.frontend_conf.set('ToolbarConfig', 'True')
+            self.parent.frontend_conf.set("Frontend", "ToolbarConfig", "True")
         else:
             self.toolbar.hide()
-            self.parent.frontend_conf.set('ToolbarConfig', 'False')
+            self.parent.frontend_conf.set("Frontend", "ToolbarConfig", "False")
 
     def item_activated(self, recentchoosermenu):
         item = recentchoosermenu.get_current_item()
@@ -313,9 +313,9 @@ class Menu:
     def rom_startup(self):
         GLib.idle_add(self.parent.add_video_tab)
         self.parent.running = True
-        self.parent.frontend_conf.open_section("Frontend")
+        #self.parent.frontend_conf.open_section("Frontend")
         #print("Rombrowser:", self.parent.frontend_conf.get_bool("Vidext"))
-        if self.parent.frontend_conf.get_bool("Vidext") == True:
+        if self.parent.frontend_conf.get_bool("Frontend", "Vidext") == True:
             self.parent.m64p_wrapper.vext_override = True
         else:
             self.parent.m64p_wrapper.vext_override = False

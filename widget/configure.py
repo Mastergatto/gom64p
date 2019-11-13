@@ -47,7 +47,7 @@ class ConfigDialog(Gtk.Dialog):
         config_notebook.set_vexpand(True)
 
         ## Frontend tab ##
-        self.parent.frontend_conf.open_section("Frontend")
+        #self.parent.frontend_conf.open_section("Frontend")
         frontend_tab = Gtk.Label(label="Frontend")
 
         m64plib_frame = Gtk.Frame(label="mupen64plus library", shadow_type=1)
@@ -97,8 +97,8 @@ class ConfigDialog(Gtk.Dialog):
         for key,lang in enumerate(language_combo_choices):
             language_combo.append(str(key),lang)
 
-        if self.parent.frontend_conf.get('Language') != None:
-            language_combo.set_active_id(str(self.parent.frontend_conf.get('Language')))
+        if self.parent.frontend_conf.get("Frontend", "Language") != None:
+            language_combo.set_active_id(str(self.parent.frontend_conf.get("Frontend", "Language")))
 
         language_combo.connect('changed', self.on_combobox_changed, 'Language')
 
@@ -270,8 +270,8 @@ class ConfigDialog(Gtk.Dialog):
         for key,val in self.parent.m64p_wrapper.gfx_plugins.items():
             gfx_combo.append(key, val)
 
-        if self.parent.frontend_conf.get('GfxPlugin') != None:
-            gfx_combo.set_active_id(self.parent.frontend_conf.get('GfxPlugin'))
+        if self.parent.frontend_conf.get("Frontend", "GfxPlugin") != None:
+            gfx_combo.set_active_id(self.parent.frontend_conf.get("Frontend", "GfxPlugin"))
 
         gfx_combo.connect('changed', self.on_combobox_changed, 'GfxPlugin')
 
@@ -290,8 +290,8 @@ class ConfigDialog(Gtk.Dialog):
         for key,val in self.parent.m64p_wrapper.audio_plugins.items():
              audio_combo.append(key, val)
 
-        if self.parent.frontend_conf.get('AudioPlugin') != None:
-            audio_combo.set_active_id(self.parent.frontend_conf.get('AudioPlugin'))
+        if self.parent.frontend_conf.get("Frontend", "AudioPlugin") != None:
+            audio_combo.set_active_id(self.parent.frontend_conf.get("Frontend", "AudioPlugin"))
 
         audio_combo.connect('changed', self.on_combobox_changed, 'AudioPlugin')
         self.audio_configure_button = Gtk.Button(label="Configure")
@@ -309,13 +309,13 @@ class ConfigDialog(Gtk.Dialog):
         for key,val in self.parent.m64p_wrapper.input_plugins.items():
              input_combo.append(key, val)
 
-        if self.parent.frontend_conf.get('InputPlugin') != None:
-            input_combo.set_active_id(self.parent.frontend_conf.get('InputPlugin'))
+        if self.parent.frontend_conf.get("Frontend", "InputPlugin") != None:
+            input_combo.set_active_id(self.parent.frontend_conf.get("Frontend", "InputPlugin"))
 
         input_combo.connect('changed', self.on_combobox_changed, 'InputPlugin')
         self.input_configure_button = Gtk.Button(label="Configure")
         self.input_configure_button.connect("clicked", self.on_configure_button, self.parent, 'input')
-        if self.parent.frontend_conf.get('InputPlugin') == "mupen64plus-input-raphnetraw": #TODO: Is still necessary?
+        if self.parent.frontend_conf.get("Frontend", "InputPlugin") == "mupen64plus-input-raphnetraw": #TODO: Is still necessary?
             self.input_configure_button.set_sensitive(False)
         if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
             input_combo.set_sensitive(False)
@@ -330,8 +330,8 @@ class ConfigDialog(Gtk.Dialog):
         for key,val in self.parent.m64p_wrapper.rsp_plugins.items():
              rsp_combo.append(key, val)
 
-        if self.parent.frontend_conf.get('RSPPlugin') != None:
-            rsp_combo.set_active_id(self.parent.frontend_conf.get('RSPPlugin'))
+        if self.parent.frontend_conf.get("Frontend", "RSPPlugin") != None:
+            rsp_combo.set_active_id(self.parent.frontend_conf.get("Frontend", "RSPPlugin"))
 
         rsp_combo.connect('changed', self.on_combobox_changed, 'RSPPlugin')
         self.rsp_configure_button = Gtk.Button(label="Configure")
@@ -406,7 +406,7 @@ class ConfigDialog(Gtk.Dialog):
         m64p_frame.add(m64p_paths_grid2)
 
         # TODO: Replace with ListStore or CellRenderer? to allow multi directories
-        self.parent.frontend_conf.open_section("GameDirs")
+        #self.parent.frontend_conf.open_section("GameDirs")
         gamedir_entry = self.insert_entry('path1', 'GameDirs', 'frontend', "Choose the dir where game images are found", None)
         gamedir_button = Gtk.Button.new_with_label("Open")
         gamedir_button.connect("clicked", self.on_search_path_dir, gamedir_entry)
@@ -436,7 +436,7 @@ class ConfigDialog(Gtk.Dialog):
 
         paths_box.pack_start(m64p_frame, False, False, 0)
         paths_box.pack_start(gamedir_frame, False, False, 0)
-        self.parent.frontend_conf.open_section("Frontend")
+        #self.parent.frontend_conf.open_section("Frontend")
 
         config_notebook.append_page(paths_box, paths_tab)
 
@@ -502,9 +502,9 @@ class ConfigDialog(Gtk.Dialog):
             self.parent.m64p_wrapper.ConfigOpenSection('Core')
             self.parent.m64p_wrapper.ConfigSetParameter('R4300Emulator', int(widget_id))
         elif param == 'Language':
-            self.parent.frontend_conf.set('Language', str(widget_id))
+            self.parent.frontend_conf.set("Frontend", "Language", str(widget_id))
         elif param == 'GfxPlugin':
-            self.parent.frontend_conf.set('GfxPlugin', widget_id)
+            self.parent.frontend_conf.set("Frontend", "GfxPlugin", widget_id)
             self.parent.m64p_wrapper.gfx_filename = widget_id
             if active_plugin == 'mupen64plus-video-GLideN64':
                 self.gfx_configure_button.set_sensitive(True)
@@ -519,14 +519,14 @@ class ConfigDialog(Gtk.Dialog):
             else:
                 self.gfx_configure_button.set_sensitive(False)
         elif param == 'AudioPlugin':
-            self.parent.frontend_conf.set('AudioPlugin', widget_id)
+            self.parent.frontend_conf.set("Frontend", "AudioPlugin", widget_id)
             self.parent.m64p_wrapper.audio_filename = widget_id
             if active_plugin == 'mupen64plus-audio-sdl':
                 self.audio_configure_button.set_sensitive(True)
             else:
                 self.audio_configure_button.set_sensitive(False)
         elif param == 'InputPlugin':
-            self.parent.frontend_conf.set('InputPlugin', widget_id)
+            self.parent.frontend_conf.set("Frontend", "InputPlugin", widget_id)
             self.parent.m64p_wrapper.input_filename = widget_id
             if active_plugin == 'mupen64plus-input-sdl':
                 self.input_configure_button.set_sensitive(True)
@@ -535,7 +535,7 @@ class ConfigDialog(Gtk.Dialog):
             else:
                 self.input_configure_button.set_sensitive(False)
         elif param == 'RSPPlugin':
-            self.parent.frontend_conf.set('RSPPlugin', widget_id)
+            self.parent.frontend_conf.set("Frontend", "RSPPlugin", widget_id)
             self.parent.m64p_wrapper.rsp_filename = widget_id
             if active_plugin == 'mupen64plus-rsp-hle':
                 self.rsp_configure_button.set_sensitive(True)
@@ -555,11 +555,11 @@ class ConfigDialog(Gtk.Dialog):
         self.is_changed = True
         self.apply_button.set_sensitive(True)
         if section == "Frontend" or section == "GameDirs":
-            self.parent.frontend_conf.open_section(section)
+            #self.parent.frontend_conf.open_section(section)
             if widget.get_active() == True:
-                self.parent.frontend_conf.set(param, "True")
+                self.parent.frontend_conf.set(section, param, "True")
             elif widget.get_active() == False:
-                self.parent.frontend_conf.set(param, "False")
+                self.parent.frontend_conf.set(section, param, "False")
             else:
                 log.error("Config: Unexpected error")
         else:
@@ -602,8 +602,8 @@ class ConfigDialog(Gtk.Dialog):
         self.apply_button.set_sensitive(True)
         value = widget.get_text()
         if section == "Frontend" or section == "GameDirs":
-            self.parent.frontend_conf.open_section(section)
-            self.parent.frontend_conf.set(param, value)
+            #self.parent.frontend_conf.open_section(section)
+            self.parent.frontend_conf.set(section, param, value)
         else:
             self.parent.m64p_wrapper.ConfigOpenSection(section)
             self.parent.m64p_wrapper.ConfigSetParameter(param, value)
@@ -612,39 +612,37 @@ class ConfigDialog(Gtk.Dialog):
     def revert(self):
         self.is_changed = False
         self.apply_button.set_sensitive(False)
-        self.parent.frontend_conf.open_section("Frontend")
-        self.parent.frontend_conf.set('M64pLib', self.former_values['library'])
-        self.parent.frontend_conf.set('PluginsDir', self.former_values['plugins_dir'])
-        self.parent.frontend_conf.set('ConfigDir', self.former_values['config_dir'])
-        self.parent.frontend_conf.set('DataDir', self.former_values['data_dir'])
-        #self.parent.frontend_conf.set('GameDirs', self.former_values['game_directories'])
-        self.parent.frontend_conf.set('GfxPlugin', self.former_values['gfx_plugin'])
-        self.parent.frontend_conf.set('AudioPlugin', self.former_values['audio_plugin'])
-        self.parent.frontend_conf.set('InputPlugin', self.former_values['input_plugin'])
-        self.parent.frontend_conf.set('RSPPlugin', self.former_values['rsp_plugin'])
-        self.parent.frontend_conf.set('Vidext', self.former_values['vidext'])
-        self.parent.frontend_conf.open_section("GameDirs")
-        self.parent.frontend_conf.set('path1', self.former_values['path1'])
-        self.parent.frontend_conf.set('path2', self.former_values['path2'])
-        self.parent.frontend_conf.set('path3', self.former_values['path3'])
+        #self.parent.frontend_conf.open_section("Frontend")
+        self.parent.frontend_conf.set("Frontend", 'M64pLib', self.former_values['library'])
+        self.parent.frontend_conf.set("Frontend", 'PluginsDir', self.former_values['plugins_dir'])
+        self.parent.frontend_conf.set("Frontend", 'ConfigDir', self.former_values['config_dir'])
+        self.parent.frontend_conf.set("Frontend", 'DataDir', self.former_values['data_dir'])
+        self.parent.frontend_conf.set("Frontend", 'GfxPlugin', self.former_values['gfx_plugin'])
+        self.parent.frontend_conf.set("Frontend", 'AudioPlugin', self.former_values['audio_plugin'])
+        self.parent.frontend_conf.set("Frontend", 'InputPlugin', self.former_values['input_plugin'])
+        self.parent.frontend_conf.set("Frontend", 'RSPPlugin', self.former_values['rsp_plugin'])
+        self.parent.frontend_conf.set("Frontend", 'Vidext', self.former_values['vidext'])
+        #self.parent.frontend_conf.open_section("GameDirs")
+        self.parent.frontend_conf.set("GameDirs", 'path1', self.former_values['path1'])
+        self.parent.frontend_conf.set("GameDirs", 'path2', self.former_values['path2'])
+        self.parent.frontend_conf.set("GameDirs", 'path3', self.former_values['path3'])
 
     def former_update(self):
         self.is_changed = False
-        self.parent.frontend_conf.open_section("Frontend")
-        self.former_values['library'] = self.parent.frontend_conf.get('M64pLib')
-        self.former_values['plugins_dir'] = self.parent.frontend_conf.get('PluginsDir')
-        self.former_values['config_dir'] = self.parent.frontend_conf.get('ConfigDir')
-        self.former_values['data_dir'] = self.parent.frontend_conf.get('DataDir')
-        #self.former_values['game_directories'] = self.parent.frontend_conf.get('GameDirs')
-        self.former_values['gfx_plugin'] = self.parent.frontend_conf.get('GfxPlugin')
-        self.former_values['audio_plugin'] = self.parent.frontend_conf.get('AudioPlugin')
-        self.former_values['input_plugin'] = self.parent.frontend_conf.get('InputPlugin')
-        self.former_values['rsp_plugin'] = self.parent.frontend_conf.get('RSPPlugin')
-        self.former_values['vidext'] = self.parent.frontend_conf.get('Vidext')
-        self.parent.frontend_conf.open_section("GameDirs")
-        self.former_values['path1'] = self.parent.frontend_conf.get('path1')
-        self.former_values['path2'] = self.parent.frontend_conf.get('path2')
-        self.former_values['path3'] = self.parent.frontend_conf.get('path3')
+        #self.parent.frontend_conf.open_section("Frontend")
+        self.former_values['library'] = self.parent.frontend_conf.get("Frontend", 'M64pLib')
+        self.former_values['plugins_dir'] = self.parent.frontend_conf.get("Frontend", 'PluginsDir')
+        self.former_values['config_dir'] = self.parent.frontend_conf.get("Frontend", 'ConfigDir')
+        self.former_values['data_dir'] = self.parent.frontend_conf.get("Frontend", 'DataDir')
+        self.former_values['gfx_plugin'] = self.parent.frontend_conf.get("Frontend", 'GfxPlugin')
+        self.former_values['audio_plugin'] = self.parent.frontend_conf.get("Frontend", 'AudioPlugin')
+        self.former_values['input_plugin'] = self.parent.frontend_conf.get("Frontend", 'InputPlugin')
+        self.former_values['rsp_plugin'] = self.parent.frontend_conf.get("Frontend", 'RSPPlugin')
+        self.former_values['vidext'] = self.parent.frontend_conf.get("Frontend", 'Vidext')
+        #self.parent.frontend_conf.open_section("GameDirs")
+        self.former_values['path1'] = self.parent.frontend_conf.get("GameDirs", 'path1')
+        self.former_values['path2'] = self.parent.frontend_conf.get("GameDirs", 'path2')
+        self.former_values['path3'] = self.parent.frontend_conf.get("GameDirs", 'path3')
 
     def insert_entry(self, param, section, config, placeholder, help=None):
         try:
@@ -652,8 +650,8 @@ class ConfigDialog(Gtk.Dialog):
             entry.set_placeholder_text(placeholder)
             entry.set_hexpand(True)
             if config == "frontend":
-                if self.parent.frontend_conf.get(param) != None:
-                    entry.set_text(self.parent.frontend_conf.get(param))
+                if self.parent.frontend_conf.get(section, param) != None:
+                    entry.set_text(self.parent.frontend_conf.get(section, param))
                 entry.set_tooltip_text(help)
             elif config == "m64p":
                 if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
@@ -674,8 +672,8 @@ class ConfigDialog(Gtk.Dialog):
         checkbox = Gtk.CheckButton.new_with_label(label)
         try:
             if config == "frontend":
-                self.parent.frontend_conf.open_section(section)
-                if self.parent.frontend_conf.get(param) == "True":
+                #self.parent.frontend_conf.open_section(section)
+                if self.parent.frontend_conf.get(section, param) == "True":
                     checkbox.set_active(True)
                 checkbox.set_tooltip_text(help)
             elif config == "m64p":
@@ -688,8 +686,8 @@ class ConfigDialog(Gtk.Dialog):
             checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
         except KeyError:
             if config == "frontend":
-                self.parent.frontend_conf.open_section(section)
-                self.parent.frontend_conf.set(param, 'False')
+                #self.parent.frontend_conf.open_section(section)
+                self.parent.frontend_conf.set(section, param, 'False')
                 log.warning(f'{param} parameter NOT found, setting new default value.')
             else:
                 log.warning(f'{param} parameter NOT found, thus disabling the checkpoint.')
@@ -706,7 +704,7 @@ class ConfigDialog(Gtk.Dialog):
         spin = Gtk.SpinButton.new(adjustment, spin_climb, 0)
         try:
             if config == "frontend":
-                spin.set_value(self.parent.frontend_conf.get(param))
+                spin.set_value(self.parent.frontend_conf.get(section, param))
                 spin.set_tooltip_text(help)
             elif config == "m64p":
                 if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:

@@ -66,10 +66,10 @@ class Environment:
         self.parent = parent
         args = parent.args
 
-        lib = parent.frontend_conf.get('m64plib')
-        plugindir = parent.frontend_conf.get('PluginsDir')
-        m64p_configdir = parent.frontend_conf.get('ConfigDir')
-        datadir = parent.frontend_conf.get('DataDir')
+        lib = parent.frontend_conf.get("Frontend", "m64plib")
+        plugindir = parent.frontend_conf.get("Frontend", "PluginsDir")
+        m64p_configdir = parent.frontend_conf.get("Frontend", "ConfigDir")
+        datadir = parent.frontend_conf.get("Frontend", "DataDir")
 
         # This frontend is fully compliant with latest api.
         parent.parameters['api_version'] = 0x020102
@@ -111,10 +111,10 @@ class Environment:
                 parent.parameters['datadir'] = ""
 
         # And now we set the path for each plugin
-        parent.parameters['gfx'] = parent.frontend_conf.get('GfxPlugin')
-        parent.parameters['audio'] = parent.frontend_conf.get('AudioPlugin')
-        parent.parameters['input'] = parent.frontend_conf.get('InputPlugin')
-        parent.parameters['rsp'] = parent.frontend_conf.get('RSPPlugin')
+        parent.parameters['gfx'] = parent.frontend_conf.get("Frontend", "GfxPlugin")
+        parent.parameters['audio'] = parent.frontend_conf.get("Frontend", "AudioPlugin")
+        parent.parameters['input'] = parent.frontend_conf.get("Frontend", "InputPlugin")
+        parent.parameters['rsp'] = parent.frontend_conf.get("Frontend", "RSPPlugin")
 
     def set_library_path(self):
         if self.system == 'Windows':

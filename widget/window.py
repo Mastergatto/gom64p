@@ -189,11 +189,11 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         ## Configurations InsertMenu
 
-        if self.frontend_conf.get_bool('ToolbarConfig') == True:
+        if self.frontend_conf.get_bool("Frontend", "ToolbarConfig") == True:
             self.main_menu.view_menu_toolbar.set_active(True)
-        if self.frontend_conf.get_bool('FilterConfig') == True:
+        if self.frontend_conf.get_bool("Frontend", "FilterConfig") == True:
             self.main_menu.view_menu_filter.set_active(True)
-        if self.frontend_conf.get_bool('StatusConfig') == True:
+        if self.frontend_conf.get_bool("Frontend", "StatusConfig") == True:
             self.main_menu.view_menu_status.set_active(True)
 
         ##Now load the instance with all the widgets and boxes ##
@@ -228,8 +228,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         vidext_tab = Gtk.Label(label="vidext")
         n_pages = self.notebook.get_n_pages()
         if n_pages == 1:
-            self.frontend_conf.open_section("Frontend")
-            if self.frontend_conf.get_bool("Vidext") == True:
+            #self.frontend_conf.open_section("Frontend")
+            if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
                 self.canvas = Gtk.DrawingArea()
                 self.canvas.set_can_focus(True)
                 #self.canvas.grab_add()
@@ -259,15 +259,15 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def remove_video_tab(self):
         self.notebook.remove_page(1)
         self.notebook.set_current_page(0)
-        self.frontend_conf.open_section("Frontend")
-        if self.frontend_conf.get_bool("Vidext") == True:
+        #self.frontend_conf.open_section("Frontend")
+        if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
             self.video_box.remove(self.canvas)
         else:
             self.video_box.remove(self.running_label)
 
     ### SIGNALS (clicked for button, activate for menu)
 
-    def quit_cb(self, *args):
+    def quit_cb(self, widget, event):
         if self.running == True:
             #TODO: There should be a dialog asking if the user wants to stop emulation first
             self.main_menu.on_action_stop()
@@ -277,7 +277,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
     def focus_cb(self, *args):
         if self.running == True:
-            if self.frontend_conf.get_bool("Vidext") == True:
+            if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
                 self.main_menu.on_action_pause()
                 log.debug("The window has lost the focus! Stopping the emulation.")
 
@@ -290,20 +290,20 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         n64list_filter = self.filter_box
         if filter_checkbox.get_active() == 1:
             n64list_filter.show_all()
-            self.frontend_conf.set('FilterConfig', 'True')
+            self.frontend_conf.set("Frontend", "FilterConfig", "True")
         else:
             n64list_filter.hide()
-            self.frontend_conf.set('FilterConfig', 'False')
+            self.frontend_conf.set("Frontend", "FilterConfig", "False")
 
     def on_EnableStatusBar_toggle(self, *args):
         statusbar_checkbox = self.view_menu_status
         m64p_statusbar = self.Statusbar
         if statusbar_checkbox.get_active() == 1:
             m64p_statusbar.show()
-            self.frontend_conf.set('StatusConfig', 'True')
+            self.frontend_conf.set("Frontend", "StatusConfig", "True")
         else:
             m64p_statusbar.hide()
-            self.frontend_conf.set('StatusConfig', 'False')
+            self.frontend_conf.set("Frontend", "StatusConfig", "False")
 
     def on_reload(self, widget):
         self.Statusbar.push(self.StatusbarContext,"Refreshing the list...")

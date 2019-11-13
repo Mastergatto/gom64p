@@ -258,9 +258,8 @@ class List:
     def rom_startup(self):
         GLib.idle_add(self.parent.add_video_tab)
         self.parent.running = True
-        self.parent.frontend_conf.open_section("Frontend")
-        #print("Rombrowser:", self.parent.frontend_conf.get_bool("Vidext"))
-        if self.parent.frontend_conf.get_bool("Vidext") == True:
+        #self.parent.frontend_conf.open_section("Frontend")
+        if self.parent.frontend_conf.get_bool("Frontend", "Vidext") == True:
             self.parent.m64p_wrapper.vext_override = True
         else:
             self.parent.m64p_wrapper.vext_override = False
@@ -307,10 +306,9 @@ class Cache:
         for key, path in path_items:
             if path != '' and os.path.isdir(path) == True:
                 os.chdir(path)
-                self.walk(path, self.parent.frontend_conf.get_bool("Recursive"))
+                self.walk(path, self.parent.frontend_conf.get_bool("Frontend", "Recursive"))
 
         os.chdir(self.parent.m64p_dir)
-
         return self.total_paths
 
     def walk(self, path, recursion):
@@ -491,6 +489,10 @@ class ProgressScanning(Gtk.Dialog):
     def end(self):
         self.dialog.destroy()
 
+    def stop(self, widget, event):
+        #TODO: How to stop the process?
+        self.dialog.destroy()
+
     def message(self, text):
         if self.progressbar.get_show_text() == False:
             self.progressbar.set_show_text(True)
@@ -499,6 +501,7 @@ class ProgressScanning(Gtk.Dialog):
     def start(self, text):
         self.dialog = Gtk.Dialog.new()
         self.dialog.set_transient_for(self.parent)
+        self.dialog.connect("delete-event", self.stop)
         content_area = self.dialog.get_content_area()
 
         self.progressbar = Gtk.ProgressBar()

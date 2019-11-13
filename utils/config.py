@@ -74,14 +74,14 @@ class FrontendConf():
     def load(self):
         self.config.read(self.config_file)
 
-    def set(self, option, value):
-        self.config[self.section][option] = value
+    def set(self, section, option, value):
+        self.config[section][option] = value
 
-    def get(self, option):
-        return self.config[self.section][option]
+    def get(self, section, option):
+        return self.config[section][option]
 
-    def get_bool(self, option):
-        return self.config[self.section].getboolean(option)
+    def get_bool(self, section, option):
+        return self.config[section].getboolean(option)
 
     def check(self):
         if os.path.isfile(self.config_file) == True:
