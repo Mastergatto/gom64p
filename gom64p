@@ -7,23 +7,25 @@
 ###############
 ## VARIABLES ##
 ###############
-import argparse, os, sys, ctypes
+import argparse, os, sys, platform
+# Set the current directory to that of this file.
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
 # Before importing or do anything, we must set those env variable so that this program can work correctly on Linux
 #Gdk.set_allowed_backends("x11, win32, quartz")
-if sys.platform.startswith('linux') or sys.platform.startswith('freebsd') :
+system = platform.system()
+if system == 'Linux':
     os.environ['GDK_BACKEND'] = 'x11'
     try:
+        import ctypes
         x11 = ctypes.cdll.LoadLibrary('libX11.so')
         x11.XInitThreads()
     except:
         print("Warning: failed to XInitThreads()")
-elif sys.platform == 'cygwin':
+elif system == 'Windows':
+    os.environ["PYSDL2_DLL_PATH"] = "SDL2.dll"
+elif system == 'Darwin':
     pass
-elif sys.platform == 'darwin':
-    pass
-# Set the current directory to that of this file.
-os.chdir(sys.path[0])
-#print(os.getcwd())
 
 #############
 ## MODULES ##

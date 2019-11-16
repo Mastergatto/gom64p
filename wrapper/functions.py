@@ -1589,9 +1589,7 @@ class API():
 
     def preload(self):
         try:
-            os.chdir(self.plugins_dir) #TODO
-            self.m64p_lib_core = c.cdll.LoadLibrary(self.m64p_lib_core_path)
-            os.chdir(self.frontend.m64p_dir)
+            self.m64p_lib_core = self.load_module(self.m64p_lib_core_path)
 
             check_core = self.PluginGetVersion(self.m64p_lib_core)
             if check_core["version"] >= self.core_version:
@@ -1642,35 +1640,33 @@ class API():
             self.CoreDetachPlugin(wrp_dt.m64p_plugin_type.M64PLUGIN_RSP.value)
 
     def plugins_preload(self):
-        os.chdir(self.plugins_dir)
         if self.gfx_filename != "dummy":
             try:
-                self.m64p_lib_gfx = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.gfx_filename}{self.extension_filename}')
+                self.m64p_lib_gfx = self.load_module(f'{self.plugins_dir}{os.sep}{self.gfx_filename}{self.extension_filename}')
             except:
                 log.error(f"{self.gfx_filename}: Plugin cannot be used. Dummy plugin is used instead, which means no video.")
                 self.gfx_filename = "dummy"
 
         if self.audio_filename != "dummy":
             try:
-                self.m64p_lib_audio = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.audio_filename}{self.extension_filename}')
+                self.m64p_lib_audio = self.load_module(f'{self.plugins_dir}{os.sep}{self.audio_filename}{self.extension_filename}')
             except:
                 log.error(f"{self.audio_filename }: Plugin not found, cannot be used. Default plugin is used instead.")
-                self.m64p_lib_audio = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-audio-hle{self.extension_filename}')
+                self.m64p_lib_audio = self.load_module(f'{self.plugins_dir}{os.sep}mupen64plus-audio-hle{self.extension_filename}')
 
         if self.input_filename != "dummy":
             try:
-                self.m64p_lib_input = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.input_filename}{self.extension_filename}')
+                self.m64p_lib_input = self.load_module(f'{self.plugins_dir}{os.sep}{self.input_filename}{self.extension_filename}')
             except:
                 log.error(f"{self.input_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
-                self.m64p_lib_input = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-input-sdl{self.extension_filename}')
+                self.m64p_lib_input = self.load_module(f'{self.plugins_dir}{os.sep}mupen64plus-input-sdl{self.extension_filename}')
 
         if self.rsp_filename != "dummy":
             try:
-                self.m64p_lib_rsp = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}{self.rsp_filename}{self.extension_filename}')
+                self.m64p_lib_rsp = self.load_module(f'{self.plugins_dir}{os.sep}{self.rsp_filename}{self.extension_filename}')
             except:
                 log.error(f"{self.rsp_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
-                self.m64p_lib_rsp = c.cdll.LoadLibrary(f'{self.plugins_dir}{os.sep}mupen64plus-rsp-hle{self.extension_filename}')
-        os.chdir(self.frontend.m64p_dir)
+                self.m64p_lib_rsp = self.load_module(f'{self.plugins_dir}{os.sep}mupen64plus-rsp-hle{self.extension_filename}')
 
     def initialise(self):
         if self.compatible == True:
@@ -1728,11 +1724,10 @@ class API():
             directory = p.glob(f'mupen64plus*{self.extension_filename}*')
 
             for plugin in sorted(directory):
-                os.chdir(self.plugins_dir)
                 try:
                     # x.name takes the file's name from the path
                     filename = os.path.splitext(plugin.name)[0]
-                    info = self.PluginGetVersion(c.cdll.LoadLibrary(f'{self.plugins_dir}{filename}{self.extension_filename}'))
+                    info = self.PluginGetVersion(self.load_module(f'{self.plugins_dir}{filename}{self.extension_filename}'))
                     log.debug(info)
                     if info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_CORE.value:
                         pass
@@ -1748,7 +1743,16 @@ class API():
                         print("Unknown plugin")
                 except OSError as e:
                     log.warning(f"{filename}: Plugin not working or not compatible, skipping it. \n > {e}")
-                os.chdir(self.frontend.m64p_dir)
         except:
             log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly.")
-            
+
+    def load_module(self, path):
+        if self.system == 'Windows':
+            os.chdir(self.plugins_dir)
+            c.windll.kernel32.SetDllDirectoryW(self.plugins_dir)
+            dylib = c.cdll.LoadLibrary(path)
+            os.chdir(self.frontend.m64p_dir)
+            cwindll.kernel32.SetDllDirectoryW(sys._MEIPASS)
+            return dylib
+        else:
+            return c.cdll.LoadLibrary(path)

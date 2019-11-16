@@ -3,6 +3,8 @@
 # © 2019 Mastergatto
 # This code is covered under GPLv2+, see LICENSE
 #####################
+import platform
+
 import external.sdl2 as sdl
 from enum import Enum
 
@@ -276,259 +278,387 @@ class Scancodes(Enum):
 
     SDL_NUM_SCANCODES = 512
 
+platform = platform.system()
 def keysym2sdl(param):
-    switch = {
-        ### evdev: https://github.com/xkbcommon/libxkbcommon/blob/master/test/evdev-scancodes.h
-        ### win32: https://gitlab.gnome.org/GNOME/gtk/raw/master/gdk/gdkkeysyms.h
-        ### https://github.com/GNOME/gtk/blob/master/gdk/win32/gdkkeys-win32.c
-        ### <gtk keycode value + 8>: <sdl scancode value>, #<character present on US keyboard>
-        0: 'SDL_SCANCODE_UNKNOWN',
-        9: 'SDL_SCANCODE_ESCAPE', # Escape
-        10: 'SDL_SCANCODE_1', # 1
-        11: 'SDL_SCANCODE_2', # 2
-        12: 'SDL_SCANCODE_3', # 3
-        13: 'SDL_SCANCODE_4', # 4
-        14: 'SDL_SCANCODE_5', # 5
-        15: 'SDL_SCANCODE_6', # 6
-        16: 'SDL_SCANCODE_7', # 7
-        17: 'SDL_SCANCODE_8', # 8
-        18: 'SDL_SCANCODE_9', # 9
-        19: 'SDL_SCANCODE_0', # 0
-        20: 'SDL_SCANCODE_MINUS', # < - (minus)> <'>
-        21: 'SDL_SCANCODE_EQUALS', # < = (equal)> <ì>
-        22: 'SDL_SCANCODE_BACKSPACE', # Return/backspace
-        23: 'SDL_SCANCODE_TAB', # TAB
-        24: 'SDL_SCANCODE_Q', # Q
-        25: 'SDL_SCANCODE_W', # W
-        26: 'SDL_SCANCODE_E', # E
-        27: 'SDL_SCANCODE_R', # R
-        28: 'SDL_SCANCODE_T', # T
-        29: 'SDL_SCANCODE_Y', # Y
-        30: 'SDL_SCANCODE_U', # U
-        31: 'SDL_SCANCODE_I', # I
-        32: 'SDL_SCANCODE_O', # O
-        33: 'SDL_SCANCODE_P', # P
-        34: 'SDL_SCANCODE_LEFTBRACKET', # <[> <è>
-        35: 'SDL_SCANCODE_RIGHTBRACKET', # <]> <+>
-        36: 'SDL_SCANCODE_RETURN', # # Enter/Return
-        37: 'SDL_SCANCODE_LCTRL', #L-ctrl
-        38: 'SDL_SCANCODE_A', # A
-        39: 'SDL_SCANCODE_S', # S
-        40: 'SDL_SCANCODE_D', # D
-        41: 'SDL_SCANCODE_F', # F
-        42: 'SDL_SCANCODE_G', # G
-        43: 'SDL_SCANCODE_H', # H
-        44: 'SDL_SCANCODE_J', # J
-        45: 'SDL_SCANCODE_K', # K
-        46: 'SDL_SCANCODE_L', # L
-        47: 'SDL_SCANCODE_SEMICOLON', # <;> <ò>
-        48: 'SDL_SCANCODE_APOSTROPHE', # <'> <à>
-        49: 'SDL_SCANCODE_GRAVE', # ` (grave), \
-        50: 'SDL_SCANCODE_LSHIFT', # L-shift
-        51: 'SDL_SCANCODE_BACKSLASH', # <\> <ù>
-        52: 'SDL_SCANCODE_Z', # Z
-        53: 'SDL_SCANCODE_X', # X
-        54: 'SDL_SCANCODE_C', # C
-        55: 'SDL_SCANCODE_V', # V
-        56: 'SDL_SCANCODE_B', # B
-        57: 'SDL_SCANCODE_N', # N
-        58: 'SDL_SCANCODE_M', # M
-        59: 'SDL_SCANCODE_COMMA', # <,>
-        60: 'SDL_SCANCODE_PERIOD', # <.>
-        61: 'SDL_SCANCODE_SLASH', # </> <->
-        62: 'SDL_SCANCODE_RSHIFT', # R-shift
-        63: 'SDL_SCANCODE_KP_MULTIPLY', # <*>
-        64: 'SDL_SCANCODE_LALT', # L-alt
-        65: 'SDL_SCANCODE_SPACE', # Space
-        66: 'SDL_SCANCODE_CAPSLOCK', # Caps lock
-        67: 'SDL_SCANCODE_F1', # F1
-        68: 'SDL_SCANCODE_F2', # F2
-        69: 'SDL_SCANCODE_F3', # F3
-        70: 'SDL_SCANCODE_F4', # F4
-        71: 'SDL_SCANCODE_F5', # F5
-        72: 'SDL_SCANCODE_F6', # F6
-        73: 'SDL_SCANCODE_F7', # F7
-        74: 'SDL_SCANCODE_F8', # F8
-        75: 'SDL_SCANCODE_F9', # F9
-        76: 'SDL_SCANCODE_F10', #F10
-        77: 'SDL_SCANCODE_NUMLOCKCLEAR', # Num lock
-        78: 'SDL_SCANCODE_SCROLLLOCK', # Scroll lock
-        79: 'SDL_SCANCODE_KP_7', # KP 7
-        80: 'SDL_SCANCODE_KP_8', # KP 8
-        81: 'SDL_SCANCODE_KP_9', # KP 9
-        82: 'SDL_SCANCODE_KP_MINUS', # <KP -(minus)>
-        83: 'SDL_SCANCODE_KP_4', # KP 4
-        84: 'SDL_SCANCODE_KP_5', # KP 5
-        85: 'SDL_SCANCODE_KP_6', # KP 6
-        86: 'SDL_SCANCODE_KP_PLUS', # <KP + (plus)>
-        87: 'SDL_SCANCODE_KP_1', # KP 1
-        88: 'SDL_SCANCODE_KP_2', # KP 2
-        89: 'SDL_SCANCODE_KP_3', # KP 3
-        90: 'SDL_SCANCODE_KP_0', # KP 0
-        91: 'SDL_SCANCODE_KP_PERIOD', # <KP . (period)>
-        92: 'SDL_SCANCODE_UNKNOWN',
-        #93: '', # ZENKAKUHANKAKU
-        94: 'SDL_SCANCODE_NONUSBACKSLASH', # <> '<'
-        95: 'SDL_SCANCODE_F11', #F11
-        96: 'SDL_SCANCODE_F12', #F12
-        #97: '', # RO
-        #98: '', # Katakana
-        #99: '', # Hiragana
-        #100: '', # Henkan
-        #101: '', # Katakana/Hiragana
-        #102: '', # MUHENKAN
-        #103: '', # KP JP Comma
-        104: 'SDL_SCANCODE_KP_ENTER', # KP Enter
-        105: 'SDL_SCANCODE_RCTRL', # R-ctrl
-        106: 'SDL_SCANCODE_KP_DIVIDE', # <KP / (divide)>
-        107: 'SDL_SCANCODE_PRINTSCREEN', # Print Screen
-        108: 'SDL_SCANCODE_RALT', # Alt gr/Ralt
-        #109: '', # Linefeed
-        110: 'SDL_SCANCODE_HOME', # Start
-        111: 'SDL_SCANCODE_UP', # Up
-        112: 'SDL_SCANCODE_PAGEUP', # Pag up
-        113: 'SDL_SCANCODE_LEFT', # Left
-        114: 'SDL_SCANCODE_RIGHT', # Right
-        115: 'SDL_SCANCODE_END', # End
-        116: 'SDL_SCANCODE_DOWN', # Down
-        117: 'SDL_SCANCODE_PAGEDOWN', #Pag down
-        118: 'SDL_SCANCODE_INSERT', # Insert
-        119: 'SDL_SCANCODE_DELETE', # Del
-        #120: # Macro
-        121: 'SDL_SCANCODE_AUDIOMUTE', # Mute, or it was SDL_SCANCODE_MUTE?
-        122: 'SDL_SCANCODE_VOLUMEDOWN', # Vol -
-        123: 'SDL_SCANCODE_VOLUMEUP', # Vol +
-        #124: '', # SC System Power Down
-        #125: '', # KP Equal
-        #126: '', # KP Plus Minus
-        127: 'SDL_SCANCODE_PAUSE', # Pause/interrupt?
-        #128: '', # SCALE? AL Compiz Scale (Expose)
-        129: 'SDL_SCANCODE_KP_COMMA', # KP COMMA
-        #130: '', # HANGEUL
-        #131: '', # HANJA
-        #132: '', # YEN
-        133: 'SDL_SCANCODE_LGUI', # Super to the left
-        135: 'SDL_SCANCODE_RGUI', # Super/menu? to the right
-        #136: '', # COMPOSE
-        #137: '', # AC Stop
-        #138: '', # AC Properties
-        #139: '', # AC Undo
-        #140: '', # Front
-        #141: '', # AC Copy
-        #142: '', # AC Open
-        #143: '', # AC Paste
-        #144: '', # AC Search
-        #145: '', # AC Cut
-        #146: '', # AL Integrated Help Center
-        #147: '', # Menu (show menu)
-        148: 'SDL_SCANCODE_CALCULATOR', # Calculator
-        #149: '', # Setup?
-        #150: '', # SC System Sleep
-        #151: '', # System Wake Up
-        #152: '', # AL Local Machine Browser
-        #153: '', # SENDFILE
-        #154: '', # DELETEFILE
-        #155: '', # XFER
-        #156: '', # PROG1
-        #157: '', # PROG2
-        #158: '', # WWW
-        #159: '', # MSDOS
-        #160: '', # AL Terminal Lock/Screensaver
-        #161: '', # DIRECTION
-        #162: '', # CYCLEWINDOWS
-        163: 'SDL_SCANCODE_MAIL', # Email
-        164: 'SDL_SCANCODE_AC_BOOKMARKS', # Bookmark
-        166: 'SDL_SCANCODE_AC_BACK', # Back
-        167: 'SDL_SCANCODE_AC_FORWARD', # Forward
-        #168: '', # CLOSECD
-        #169: '', # EJECTCD
-        #170: '', # EJECTCLODECD
-        171: 'SDL_SCANCODE_AUDIONEXT', # Next, or it was SDL_SCANCODE_AUDIOFASTFORWARD?
-        172: 'SDL_SCANCODE_AUDIOPLAY', # Play/Pause
-        173: 'SDL_SCANCODE_AUDIOPREV', # Previous
-        174: 'SDL_SCANCODE_AUDIOSTOP', # Stop
-        #175: '', # RECORD
-        #176: 'SDL_SCANCODE_AUDIOREWIND', # REWIND
-        #177: '', # Media Select Telephone
-        #178: '', # ISO
-        #179: '', # AL Consumer Control Configuration
-        180: 'SDL_SCANCODE_AC_HOME', # Home
-        #181: '', # AC Refresh
-        #182: '', # AC Exit
-        #183: '', # MOVE
-        #184: '', # EDIT
-        #185: '', # SCROLLUP
-        #186: '', # SCROLLDOWN
-        #187: '', # KPLEFTPAREN
-        #188: '', # KPRIGHTPAREN
-        #189: '', # AC New
-        #190: '', # AC Redo/Repeat
-        191: 'SDL_SCANCODE_F13', #F13
-        192: 'SDL_SCANCODE_F14', #F14
-        193: 'SDL_SCANCODE_F15', #F15
-        194: 'SDL_SCANCODE_F16', #F16
-        195: 'SDL_SCANCODE_F17', #F17
-        196: 'SDL_SCANCODE_F18', #F18
-        197: 'SDL_SCANCODE_F19', #F19
-        198: 'SDL_SCANCODE_F20', #F20
-        199: 'SDL_SCANCODE_F21', #F21
-        200: 'SDL_SCANCODE_F22', #F22
-        201: 'SDL_SCANCODE_F23', #F23
-        202: 'SDL_SCANCODE_F24', #F24
-        #203: '', #
-        #204: '', #
-        #205: '', #
-        #206: '', #
-        #207: '', #
-        #208: '', # PLAYCD
-        #209: '', # PAUSECD
-        #210: '', # PROG3
-        #211: '', # PROG4
-        #212: '', # AL Dashboard
-        #213: 'SDL_SCANCODE_SLEEP', # Sleep/suspend
-        #214: '', # AC Close
-        #215: '', # PLAY
-        #216: '', # FASTFORWARD
-        #217: '', # BASSBOOST
-        #218: '', # AC Print
-        #219: '', # HP
-        #220: '', # CAMERA
-        #221: '', # SOUND
-        #222: '', # QUESTION
-        #223: '', # EMAIL
-        #224: '', # CHAT
-        225: 'SDL_SCANCODE_AC_SEARCH', # Search
-        #226: '', # CONNECT
-        #227: '', # AL Checkbook/Finance
-        #228: '', # SPORT
-        #229: '', # SHOP
-        #230: '', # ALTERASE
-        #231: '', # AC Cancel
-        #232: '', # BRIGHTNESSDOWN
-        #233: '', # BRIGHTNESSUP
-        234: 'SDL_SCANCODE_MEDIASELECT', # Media
-        #235: '', # SWITCHVIDEOMODE
-        #236: '', # KBDILLUMTOGGLE
-        #237: '', # KBDILLUMDOWN
-        #238: '', # KBDILLUMUP
-        #239: '', # AC Send
-        #240: '', # AC Reply
-        #241: '', # AC Forward Msg
-        #242: '', # AC Save
-        #243: '', # DOCUMENTS
-        #244: '', # BATTERY
-        #245: '', # BLUETOOTH
-        #246: '', # WLAN
-        #247: '', # UWB
-        #248: '', # UNKNOWN
-        #249: '', # VIDEO_NEXT
-        #250: '', # VIDEO_PREV
-        #251: '', # BRIGHTNESS_CYCLE
-        #252: '', # BRIGHTNESS_ZERO
-        #253: '', # DISPLAY_OFF
-        #254: '', # WWAN/WIMAX
-        #255: '', # RFKILL
-        #256: '', # MICMUTE
-    }
+    ### evdev: https://github.com/xkbcommon/libxkbcommon/blob/master/test/evdev-scancodes.h
+    ### win32: https://gitlab.gnome.org/GNOME/gtk/raw/master/gdk/gdkkeysyms.h
+    ### https://github.com/GNOME/gtk/blob/master/gdk/win32/gdkkeys-win32.c
+    if platform == "Linux":
+        switch = {
+            ### <gtk keycode value + 8>: <sdl scancode value>, #<character present on US keyboard>
+            0: 'SDL_SCANCODE_UNKNOWN',
+            9: 'SDL_SCANCODE_ESCAPE', # Escape
+            10: 'SDL_SCANCODE_1', # 1
+            11: 'SDL_SCANCODE_2', # 2
+            12: 'SDL_SCANCODE_3', # 3
+            13: 'SDL_SCANCODE_4', # 4
+            14: 'SDL_SCANCODE_5', # 5
+            15: 'SDL_SCANCODE_6', # 6
+            16: 'SDL_SCANCODE_7', # 7
+            17: 'SDL_SCANCODE_8', # 8
+            18: 'SDL_SCANCODE_9', # 9
+            19: 'SDL_SCANCODE_0', # 0
+            20: 'SDL_SCANCODE_MINUS', # < - (minus)> <'>
+            21: 'SDL_SCANCODE_EQUALS', # < = (equal)> <ì>
+            22: 'SDL_SCANCODE_BACKSPACE', # Return/backspace
+            23: 'SDL_SCANCODE_TAB', # TAB
+            24: 'SDL_SCANCODE_Q', # Q
+            25: 'SDL_SCANCODE_W', # W
+            26: 'SDL_SCANCODE_E', # E
+            27: 'SDL_SCANCODE_R', # R
+            28: 'SDL_SCANCODE_T', # T
+            29: 'SDL_SCANCODE_Y', # Y
+            30: 'SDL_SCANCODE_U', # U
+            31: 'SDL_SCANCODE_I', # I
+            32: 'SDL_SCANCODE_O', # O
+            33: 'SDL_SCANCODE_P', # P
+            34: 'SDL_SCANCODE_LEFTBRACKET', # <[> <è>
+            35: 'SDL_SCANCODE_RIGHTBRACKET', # <]> <+>
+            36: 'SDL_SCANCODE_RETURN', # # Enter/Return
+            37: 'SDL_SCANCODE_LCTRL', #L-ctrl
+            38: 'SDL_SCANCODE_A', # A
+            39: 'SDL_SCANCODE_S', # S
+            40: 'SDL_SCANCODE_D', # D
+            41: 'SDL_SCANCODE_F', # F
+            42: 'SDL_SCANCODE_G', # G
+            43: 'SDL_SCANCODE_H', # H
+            44: 'SDL_SCANCODE_J', # J
+            45: 'SDL_SCANCODE_K', # K
+            46: 'SDL_SCANCODE_L', # L
+            47: 'SDL_SCANCODE_SEMICOLON', # <;> <ò>
+            48: 'SDL_SCANCODE_APOSTROPHE', # <'> <à>
+            49: 'SDL_SCANCODE_GRAVE', # ` (grave), \
+            50: 'SDL_SCANCODE_LSHIFT', # L-shift
+            51: 'SDL_SCANCODE_BACKSLASH', # <\> <ù>
+            52: 'SDL_SCANCODE_Z', # Z
+            53: 'SDL_SCANCODE_X', # X
+            54: 'SDL_SCANCODE_C', # C
+            55: 'SDL_SCANCODE_V', # V
+            56: 'SDL_SCANCODE_B', # B
+            57: 'SDL_SCANCODE_N', # N
+            58: 'SDL_SCANCODE_M', # M
+            59: 'SDL_SCANCODE_COMMA', # <,>
+            60: 'SDL_SCANCODE_PERIOD', # <.>
+            61: 'SDL_SCANCODE_SLASH', # </> <->
+            62: 'SDL_SCANCODE_RSHIFT', # R-shift
+            63: 'SDL_SCANCODE_KP_MULTIPLY', # <*>
+            64: 'SDL_SCANCODE_LALT', # L-alt
+            65: 'SDL_SCANCODE_SPACE', # Space
+            66: 'SDL_SCANCODE_CAPSLOCK', # Caps lock
+            67: 'SDL_SCANCODE_F1', # F1
+            68: 'SDL_SCANCODE_F2', # F2
+            69: 'SDL_SCANCODE_F3', # F3
+            70: 'SDL_SCANCODE_F4', # F4
+            71: 'SDL_SCANCODE_F5', # F5
+            72: 'SDL_SCANCODE_F6', # F6
+            73: 'SDL_SCANCODE_F7', # F7
+            74: 'SDL_SCANCODE_F8', # F8
+            75: 'SDL_SCANCODE_F9', # F9
+            76: 'SDL_SCANCODE_F10', #F10
+            77: 'SDL_SCANCODE_NUMLOCKCLEAR', # Num lock
+            78: 'SDL_SCANCODE_SCROLLLOCK', # Scroll lock
+            79: 'SDL_SCANCODE_KP_7', # KP 7
+            80: 'SDL_SCANCODE_KP_8', # KP 8
+            81: 'SDL_SCANCODE_KP_9', # KP 9
+            82: 'SDL_SCANCODE_KP_MINUS', # <KP -(minus)>
+            83: 'SDL_SCANCODE_KP_4', # KP 4
+            84: 'SDL_SCANCODE_KP_5', # KP 5
+            85: 'SDL_SCANCODE_KP_6', # KP 6
+            86: 'SDL_SCANCODE_KP_PLUS', # <KP + (plus)>
+            87: 'SDL_SCANCODE_KP_1', # KP 1
+            88: 'SDL_SCANCODE_KP_2', # KP 2
+            89: 'SDL_SCANCODE_KP_3', # KP 3
+            90: 'SDL_SCANCODE_KP_0', # KP 0
+            91: 'SDL_SCANCODE_KP_PERIOD', # <KP . (period)>
+            92: 'SDL_SCANCODE_UNKNOWN',
+            #93: '', # ZENKAKUHANKAKU
+            94: 'SDL_SCANCODE_NONUSBACKSLASH', # <> '<'
+            95: 'SDL_SCANCODE_F11', #F11
+            96: 'SDL_SCANCODE_F12', #F12
+            #97: '', # RO
+            #98: '', # Katakana
+            #99: '', # Hiragana
+            #100: '', # Henkan
+            #101: '', # Katakana/Hiragana
+            #102: '', # MUHENKAN
+            #103: '', # KP JP Comma
+            104: 'SDL_SCANCODE_KP_ENTER', # KP Enter
+            105: 'SDL_SCANCODE_RCTRL', # R-ctrl
+            106: 'SDL_SCANCODE_KP_DIVIDE', # <KP / (divide)>
+            107: 'SDL_SCANCODE_PRINTSCREEN', # Print Screen
+            108: 'SDL_SCANCODE_RALT', # Alt gr/Ralt
+            #109: '', # Linefeed
+            110: 'SDL_SCANCODE_HOME', # Start
+            111: 'SDL_SCANCODE_UP', # Up
+            112: 'SDL_SCANCODE_PAGEUP', # Pag up
+            113: 'SDL_SCANCODE_LEFT', # Left
+            114: 'SDL_SCANCODE_RIGHT', # Right
+            115: 'SDL_SCANCODE_END', # End
+            116: 'SDL_SCANCODE_DOWN', # Down
+            117: 'SDL_SCANCODE_PAGEDOWN', #Pag down
+            118: 'SDL_SCANCODE_INSERT', # Insert
+            119: 'SDL_SCANCODE_DELETE', # Del
+            #120: # Macro
+            121: 'SDL_SCANCODE_AUDIOMUTE', # Mute, or it was SDL_SCANCODE_MUTE?
+            122: 'SDL_SCANCODE_VOLUMEDOWN', # Vol -
+            123: 'SDL_SCANCODE_VOLUMEUP', # Vol +
+            #124: '', # SC System Power Down
+            #125: '', # KP Equal
+            #126: '', # KP Plus Minus
+            127: 'SDL_SCANCODE_PAUSE', # Pause/interrupt?
+            #128: '', # SCALE? AL Compiz Scale (Expose)
+            129: 'SDL_SCANCODE_KP_COMMA', # KP COMMA
+            #130: '', # HANGEUL
+            #131: '', # HANJA
+            #132: '', # YEN
+            133: 'SDL_SCANCODE_LGUI', # Super to the left
+            135: 'SDL_SCANCODE_RGUI', # Super/menu? to the right
+            #136: '', # COMPOSE
+            #137: '', # AC Stop
+            #138: '', # AC Properties
+            #139: '', # AC Undo
+            #140: '', # Front
+            #141: '', # AC Copy
+            #142: '', # AC Open
+            #143: '', # AC Paste
+            #144: '', # AC Search
+            #145: '', # AC Cut
+            #146: '', # AL Integrated Help Center
+            #147: '', # Menu (show menu)
+            148: 'SDL_SCANCODE_CALCULATOR', # Calculator
+            #149: '', # Setup?
+            #150: '', # SC System Sleep
+            #151: '', # System Wake Up
+            #152: '', # AL Local Machine Browser
+            #153: '', # SENDFILE
+            #154: '', # DELETEFILE
+            #155: '', # XFER
+            #156: '', # PROG1
+            #157: '', # PROG2
+            #158: '', # WWW
+            #159: '', # MSDOS
+            #160: '', # AL Terminal Lock/Screensaver
+            #161: '', # DIRECTION
+            #162: '', # CYCLEWINDOWS
+            163: 'SDL_SCANCODE_MAIL', # Email
+            164: 'SDL_SCANCODE_AC_BOOKMARKS', # Bookmark
+            166: 'SDL_SCANCODE_AC_BACK', # Back
+            167: 'SDL_SCANCODE_AC_FORWARD', # Forward
+            #168: '', # CLOSECD
+            #169: '', # EJECTCD
+            #170: '', # EJECTCLODECD
+            171: 'SDL_SCANCODE_AUDIONEXT', # Next, or it was SDL_SCANCODE_AUDIOFASTFORWARD?
+            172: 'SDL_SCANCODE_AUDIOPLAY', # Play/Pause
+            173: 'SDL_SCANCODE_AUDIOPREV', # Previous
+            174: 'SDL_SCANCODE_AUDIOSTOP', # Stop
+            #175: '', # RECORD
+            #176: 'SDL_SCANCODE_AUDIOREWIND', # REWIND
+            #177: '', # Media Select Telephone
+            #178: '', # ISO
+            #179: '', # AL Consumer Control Configuration
+            180: 'SDL_SCANCODE_AC_HOME', # Home
+            #181: '', # AC Refresh
+            #182: '', # AC Exit
+            #183: '', # MOVE
+            #184: '', # EDIT
+            #185: '', # SCROLLUP
+            #186: '', # SCROLLDOWN
+            #187: '', # KPLEFTPAREN
+            #188: '', # KPRIGHTPAREN
+            #189: '', # AC New
+            #190: '', # AC Redo/Repeat
+            191: 'SDL_SCANCODE_F13', #F13
+            192: 'SDL_SCANCODE_F14', #F14
+            193: 'SDL_SCANCODE_F15', #F15
+            194: 'SDL_SCANCODE_F16', #F16
+            195: 'SDL_SCANCODE_F17', #F17
+            196: 'SDL_SCANCODE_F18', #F18
+            197: 'SDL_SCANCODE_F19', #F19
+            198: 'SDL_SCANCODE_F20', #F20
+            199: 'SDL_SCANCODE_F21', #F21
+            200: 'SDL_SCANCODE_F22', #F22
+            201: 'SDL_SCANCODE_F23', #F23
+            202: 'SDL_SCANCODE_F24', #F24
+            #203: '', #
+            #204: '', #
+            #205: '', #
+            #206: '', #
+            #207: '', #
+            #208: '', # PLAYCD
+            #209: '', # PAUSECD
+            #210: '', # PROG3
+            #211: '', # PROG4
+            #212: '', # AL Dashboard
+            #213: 'SDL_SCANCODE_SLEEP', # Sleep/suspend
+            #214: '', # AC Close
+            #215: '', # PLAY
+            #216: '', # FASTFORWARD
+            #217: '', # BASSBOOST
+            #218: '', # AC Print
+            #219: '', # HP
+            #220: '', # CAMERA
+            #221: '', # SOUND
+            #222: '', # QUESTION
+            #223: '', # EMAIL
+            #224: '', # CHAT
+            225: 'SDL_SCANCODE_AC_SEARCH', # Search
+            #226: '', # CONNECT
+            #227: '', # AL Checkbook/Finance
+            #228: '', # SPORT
+            #229: '', # SHOP
+            #230: '', # ALTERASE
+            #231: '', # AC Cancel
+            #232: '', # BRIGHTNESSDOWN
+            #233: '', # BRIGHTNESSUP
+            234: 'SDL_SCANCODE_MEDIASELECT', # Media
+            #235: '', # SWITCHVIDEOMODE
+            #236: '', # KBDILLUMTOGGLE
+            #237: '', # KBDILLUMDOWN
+            #238: '', # KBDILLUMUP
+            #239: '', # AC Send
+            #240: '', # AC Reply
+            #241: '', # AC Forward Msg
+            #242: '', # AC Save
+            #243: '', # DOCUMENTS
+            #244: '', # BATTERY
+            #245: '', # BLUETOOTH
+            #246: '', # WLAN
+            #247: '', # UWB
+            #248: '', # UNKNOWN
+            #249: '', # VIDEO_NEXT
+            #250: '', # VIDEO_PREV
+            #251: '', # BRIGHTNESS_CYCLE
+            #252: '', # BRIGHTNESS_ZERO
+            #253: '', # DISPLAY_OFF
+            #254: '', # WWAN/WIMAX
+            #255: '', # RFKILL
+            #256: '', # MICMUTE
+        }
+    elif platform == "Windows":
+        switch = {
+            ### <gtk keycode value>: <sdl scancode value>, #<character present on US keyboard>
+            0: 'SDL_SCANCODE_UNKNOWN',
+
+            8: 'SDL_SCANCODE_BACKSPACE', # Return/backspace
+            9: 'SDL_SCANCODE_TAB', # TAB
+            13: 'SDL_SCANCODE_RETURN', # # Enter/Return
+
+            16: 'SDL_SCANCODE_LSHIFT', # L-shift
+            17: 'SDL_SCANCODE_LCTRL', #L-ctrl , Alt Gr???
+            18: 'SDL_SCANCODE_LALT', # L-alt
+            19: 'SDL_SCANCODE_PAUSE', # Pause/interrupt?
+
+            20: 'SDL_SCANCODE_CAPSLOCK', # Caps lock
+
+            27: 'SDL_SCANCODE_ESCAPE', # Escape
+
+            32: 'SDL_SCANCODE_SPACE', # Space
+            33: 'SDL_SCANCODE_PAGEUP', # Pag up
+            34: 'SDL_SCANCODE_PAGEDOWN', #Pag down
+            35: 'SDL_SCANCODE_END', # End
+            36: 'SDL_SCANCODE_HOME', # Start
+            37: 'SDL_SCANCODE_LEFT', # Left
+            38: 'SDL_SCANCODE_UP', # Up
+            39: 'SDL_SCANCODE_RIGHT', # Right
+            40: 'SDL_SCANCODE_DOWN', # Down
+
+            45: 'SDL_SCANCODE_INSERT', # Insert
+            46: 'SDL_SCANCODE_DELETE', # Del
+
+            48: 'SDL_SCANCODE_0', # 0
+            49: 'SDL_SCANCODE_1', # 1
+            50: 'SDL_SCANCODE_2', # 2
+            51: 'SDL_SCANCODE_3', # 3
+            52: 'SDL_SCANCODE_4', # 4
+            53: 'SDL_SCANCODE_5', # 5
+            54: 'SDL_SCANCODE_6', # 6
+            55: 'SDL_SCANCODE_7', # 7
+            56: 'SDL_SCANCODE_8', # 8
+            57: 'SDL_SCANCODE_9', # 9
+
+            65: 'SDL_SCANCODE_A', # A
+            66: 'SDL_SCANCODE_B', # B
+            67: 'SDL_SCANCODE_C', # C
+            68: 'SDL_SCANCODE_D', # D
+            69: 'SDL_SCANCODE_E', # E
+            70: 'SDL_SCANCODE_F', # F
+            71: 'SDL_SCANCODE_G', # G
+            72: 'SDL_SCANCODE_H', # H
+            73: 'SDL_SCANCODE_I', # I
+            74: 'SDL_SCANCODE_J', # J
+            75: 'SDL_SCANCODE_K', # K
+            76: 'SDL_SCANCODE_L', # L
+            77: 'SDL_SCANCODE_M', # M
+            78: 'SDL_SCANCODE_N', # N
+            79: 'SDL_SCANCODE_O', # O
+            80: 'SDL_SCANCODE_P', # P
+            81: 'SDL_SCANCODE_Q', # Q
+            82: 'SDL_SCANCODE_R', # R
+            83: 'SDL_SCANCODE_S', # S
+            84: 'SDL_SCANCODE_T', # T
+            85: 'SDL_SCANCODE_U', # U
+            86: 'SDL_SCANCODE_V', # V
+            87: 'SDL_SCANCODE_W', # W
+            88: 'SDL_SCANCODE_X', # X
+            89: 'SDL_SCANCODE_Y', # Y
+            90: 'SDL_SCANCODE_Z', # Z
+            91: 'SDL_SCANCODE_LGUI', # Super to the left
+
+            93: 'SDL_SCANCODE_RGUI', # Super/menu? to the right
+
+            95: 'SDL_SCANCODE_SLEEP', # Sleep/suspend
+            96: 'SDL_SCANCODE_KP_0', # KP 0
+            97: 'SDL_SCANCODE_KP_1', # KP 1
+            98: 'SDL_SCANCODE_KP_2', # KP 2
+            99: 'SDL_SCANCODE_KP_3', # KP 3
+            100: 'SDL_SCANCODE_KP_4', # KP 4
+            101: 'SDL_SCANCODE_KP_5', # KP 5
+            102: 'SDL_SCANCODE_KP_6', # KP 6
+            103: 'SDL_SCANCODE_KP_7', # KP 7
+            104: 'SDL_SCANCODE_KP_8', # KP 8
+            105: 'SDL_SCANCODE_KP_9', # KP 9
+            106: 'SDL_SCANCODE_KP_MULTIPLY', # <*>
+            107: 'SDL_SCANCODE_KP_PLUS', # <KP + (plus)>
+            109: 'SDL_SCANCODE_KP_MINUS', # <KP -(minus)>
+            110: 'SDL_SCANCODE_KP_PERIOD', # <KP . (period)>
+            111: 'SDL_SCANCODE_KP_DIVIDE', # <KP / (divide)>
+            112: 'SDL_SCANCODE_F1', # F1
+            113: 'SDL_SCANCODE_F2', # F2
+            114: 'SDL_SCANCODE_F3', # F3
+            115: 'SDL_SCANCODE_F4', # F4
+            116: 'SDL_SCANCODE_F5', # F5
+            117: 'SDL_SCANCODE_F6', # F6
+            118: 'SDL_SCANCODE_F7', # F7
+            119: 'SDL_SCANCODE_F8', # F8
+            120: 'SDL_SCANCODE_F9', # F9
+            121: 'SDL_SCANCODE_F10', #F10
+            122: 'SDL_SCANCODE_F11', #F11
+            123: 'SDL_SCANCODE_F12', #F12
+
+            144: 'SDL_SCANCODE_NUMLOCKCLEAR', # Num lock
+
+            161: 'SDL_SCANCODE_RSHIFT', # R-shift
+
+            163: 'SDL_SCANCODE_RCTRL', # R-ctrl
+            165: 'SDL_SCANCODE_RALT', # Alt gr/Ralt
+
+            183: 'SDL_SCANCODE_CALCULATOR', # Calculator
+
+            186: 'SDL_SCANCODE_LEFTBRACKET', # <[> <è>
+            187: 'SDL_SCANCODE_RIGHTBRACKET', # <]> <+>
+            188: 'SDL_SCANCODE_COMMA', # <,>
+            189: 'SDL_SCANCODE_SLASH', # </> <->
+            190: 'SDL_SCANCODE_PERIOD', # <.>
+            191: 'SDL_SCANCODE_BACKSLASH', # <\> <ù>
+            192: 'SDL_SCANCODE_SEMICOLON', # <;> <ò>
+
+            219: 'SDL_SCANCODE_MINUS', # < - (minus)> <'>
+            220: 'SDL_SCANCODE_GRAVE', # ` (grave), \
+            221: 'SDL_SCANCODE_EQUALS', # < = (equal)> <ì>
+            222: 'SDL_SCANCODE_APOSTROPHE', # <'> <à>
+
+            226: 'SDL_SCANCODE_NONUSBACKSLASH', # <> '<'
+
+        }
 
     return Scancodes[switch.get(param, 'SDL_SCANCODE_UNKNOWN')]

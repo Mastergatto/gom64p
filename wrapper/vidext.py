@@ -77,7 +77,7 @@ class Vidext():
             c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
             drawingarea_gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareahwnd.__gpointer__, None)
             # get the win32 handle
-            libgdk = c.CDLL("libgdk-3-0.dll")
+            libgdk = c.CDLL("gdk-3-vs16.dll")
             handle = libgdk.gdk_win32_window_get_handle(drawingarea_gpointer)
             self.foreign_window = sdl.SDL_CreateWindowFrom(handle)
         elif self.window.platform == 'Darwin':
@@ -170,7 +170,7 @@ class Vidext():
 
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            log.error("Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL: \n > {sdl.SDL_GetError().decode('utf-8')}")
+            log.error(f"Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL: \n > {sdl.SDL_GetError().decode('utf-8')}")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_get_proc(self, proc):
