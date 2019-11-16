@@ -267,7 +267,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
     ### SIGNALS (clicked for button, activate for menu)
 
-    def quit_cb(self, widget, event):
+    def quit_cb(self, *args):
+        #three arguments: self, widget, event
         if self.running == True:
             #TODO: There should be a dialog asking if the user wants to stop emulation first
             self.main_menu.on_action_stop()

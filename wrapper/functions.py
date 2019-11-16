@@ -68,7 +68,6 @@ class API():
 
         self.config_handle = None
         self.config_ext_handle = None
-        self.system = None
 
         # We must check first if plugins, all that are found, are compatible
         self.plugins_validate()
@@ -1743,16 +1742,21 @@ class API():
                         print("Unknown plugin")
                 except OSError as e:
                     log.warning(f"{filename}: Plugin not working or not compatible, skipping it. \n > {e}")
-        except:
-            log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly.")
+        except AttributeError as e:
+            log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly. \n > {e}")
 
     def load_module(self, path):
-        if self.system == 'Windows':
+        if self.platform == 'Windows':
             os.chdir(self.plugins_dir)
             c.windll.kernel32.SetDllDirectoryW(self.plugins_dir)
             dylib = c.cdll.LoadLibrary(path)
             os.chdir(self.frontend.m64p_dir)
-            cwindll.kernel32.SetDllDirectoryW(sys._MEIPASS)
+            try:
+                # PyInstaller creates a temp folder and stores path in _MEIPASS
+                c.windll.kernel32.SetDllDirectoryW(sys._MEIPASS)
+            except AttributeError:
+                c.windll.kernel32.SetDllDirectoryW(os.path.abspath("."))
+
             return dylib
         else:
             return c.cdll.LoadLibrary(path)
