@@ -106,8 +106,8 @@ class PropertiesDialog(Gtk.Dialog):
 
         country_entry = self.insert_entry("Country:", self.header["country"])
         crc_box = Gtk.HBox()
-        crc1_entry = self.insert_entry("CRC1:", self.header["crc1"])
-        crc2_entry = self.insert_entry("CRC2:", self.header["crc2"])
+        crc1_entry = self.insert_entry("CRC1:", self.header["crc1"].upper())
+        crc2_entry = self.insert_entry("CRC2:", self.header["crc2"].upper())
 
         internal_entry = self.insert_entry("Internal name:", self.header["internalname"], "internal")
         manufacturer_entry = self.insert_entry("Manufacturer:", self.header["manufacturer"])

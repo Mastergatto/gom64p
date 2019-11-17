@@ -1248,6 +1248,13 @@ class API():
             log.error("CoreDoCommand: Close ROM file failed!")
         return status
 
+    def check_length(self, crc):
+        if len(crc) < 8:
+            string = f"{(8 - len(crc)) * '0'}{crc}"
+            return string
+        else:
+            return crc
+
     def rom_get_header(self):
         #M64CMD_ROM_GET_HEADER = 3
         #TODO: Almost all outputs are raw (in integer). How to convert them to string?
@@ -1265,8 +1272,8 @@ class API():
         pc = self.rom_header.PC
         release = self.rom_header.Release
         # Since mupen64plus reads the rom in little endian order, and the ROM could be in big endian order, so let's byteswap the CRCs in that order.
-        crc1 = hex(int.from_bytes(self.rom_header.CRC1.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L")
-        crc2 = hex(int.from_bytes(self.rom_header.CRC2.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L")
+        crc1 = self.check_length(hex(int.from_bytes(self.rom_header.CRC1.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L"))
+        crc2 = self.check_length(hex(int.from_bytes(self.rom_header.CRC2.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L"))
 
         # The internal name is NUL-terminated. For the sake of completeness, we currently remove this NUL bit. Or should we not?
         raw_name = self.rom_header.Name[:]
@@ -1318,7 +1325,7 @@ class API():
             country = 'I'
             cartridge_region = "ITA"
             cartridge_letter = "I"
-        elif country_raw == 83:
+        elif country_raw == 83 or country_raw == 339:
             country = 'S'
             cartridge_region = "ESP"
             cartridge_letter = "S"
@@ -1742,7 +1749,7 @@ class API():
                         print("Unknown plugin")
                 except OSError as e:
                     log.warning(f"{filename}: Plugin not working or not compatible, skipping it. \n > {e}")
-        except AttributeError as e:
+        except (AttributeError, TypeError) as e:
             log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly. \n > {e}")
 
     def load_module(self, path):
