@@ -49,8 +49,9 @@ class List:
         germany = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/germany.svg")), size_flag, -1, True)
         italy = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/italy.svg")), size_flag, -1, True)
         spain = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/spain.svg")), size_flag, -1, True)
-        #brazil = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/brazil.svg")), size_flag, -1, True)
+        brazil = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/brazil.svg")), size_flag, -1, True)
         #china = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/china.svg")), size_flag, -1, True)
+        #korea = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/korea.svg")), size_flag, -1, True)
         unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/unknown.svg")), size_flag, -1, True)
 
         zero = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating0.svg")), size_rating, -1, True)
@@ -81,10 +82,12 @@ class List:
                 j[0] = italy
             elif flag == "S":
                 j[0] = spain
-            #elif flag == "B":
-            #    j[0] = brazil
-            #elif flag == "C":
+            elif flag == "B":
+                j[0] = brazil
+            #elif flag == "Ch":
             #    j[0] = china
+            #elif flag == "K":
+            #    j[0] = korea
             else:
                 j[0] = unknown
 
@@ -118,7 +121,7 @@ class List:
     def game_filter_func(self, model, iterator, data):
         #in the second brackets the value correspond to that of a column
         searchList = model[iterator][1]
-        if self.game_search_current is "" or self.game_search_current == None:
+        if self.game_search_current == "" or self.game_search_current == None:
             return True
         else:
             return self.game_search_current.lower() in searchList.lower()

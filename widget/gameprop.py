@@ -8,6 +8,7 @@
 ## MODULES ##
 #############
 from gi.repository import Gtk
+import os.path
 
 import widget.cheats as w_cht
 
@@ -95,7 +96,7 @@ class PropertiesDialog(Gtk.Dialog):
         # Tab ROM handler#
         info_box = Gtk.VBox()
 
-        file_entry = self.insert_entry("File name:", self.game) #TODO: filter to just the last part
+        file_entry = self.insert_entry("File name:", os.path.basename(self.game))
         path_entry = self.insert_entry("Path:", self.game)
         name_entry = self.insert_entry("Name:", self.settings["goodname"])
         md5_entry = self.insert_entry("MD5 checksum:", self.settings["md5"])
@@ -106,8 +107,8 @@ class PropertiesDialog(Gtk.Dialog):
 
         country_entry = self.insert_entry("Country:", self.header["country"])
         crc_box = Gtk.HBox()
-        crc1_entry = self.insert_entry("CRC1:", self.header["crc1"].upper())
-        crc2_entry = self.insert_entry("CRC2:", self.header["crc2"].upper())
+        crc1_entry = self.insert_entry("CRC1:", self.header["crc1"])
+        crc2_entry = self.insert_entry("CRC2:", self.header["crc2"])
 
         internal_entry = self.insert_entry("Internal name:", self.header["internalname"], "internal")
         manufacturer_entry = self.insert_entry("Manufacturer:", self.header["manufacturer"])

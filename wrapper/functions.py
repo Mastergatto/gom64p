@@ -1272,8 +1272,8 @@ class API():
         pc = self.rom_header.PC
         release = self.rom_header.Release
         # Since mupen64plus reads the rom in little endian order, and the ROM could be in big endian order, so let's byteswap the CRCs in that order.
-        crc1 = self.check_length(hex(int.from_bytes(self.rom_header.CRC1.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L"))
-        crc2 = self.check_length(hex(int.from_bytes(self.rom_header.CRC2.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L"))
+        crc1 = self.check_length(hex(int.from_bytes(self.rom_header.CRC1.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L")).upper()
+        crc2 = self.check_length(hex(int.from_bytes(self.rom_header.CRC2.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L")).upper()
 
         # The internal name is NUL-terminated. For the sake of completeness, we currently remove this NUL bit. Or should we not?
         raw_name = self.rom_header.Name[:]
@@ -1307,7 +1307,6 @@ class API():
             country = 'E'
             cartridge_region = "EUR"
             cartridge_letter = "P"
-            #TODO: Handle UKV cases (also X for Top Gear Rally 2 and Michael Owen's World League Soccer 2000)
         elif country_raw == 85:
             country = 'A'
             cartridge_region = "AUS"
@@ -1329,14 +1328,60 @@ class API():
             country = 'S'
             cartridge_region = "ESP"
             cartridge_letter = "S"
+        elif country_raw == 66:
+            country = 'B'
+            cartridge_region = "BRA"
+            cartridge_letter = "B"
         else:
+            log.debug(f"Code country: {country_raw}")
             country = 'Unk'
             log.warning(f'Unknown region for {name}.')
 
         cartridge_bit = bytes(c.cast(self.rom_header.Cartridge_ID, c.c_char_p)).decode("cp932", "replace").rstrip("\x00")
 
+        # There are exceptions, though...
+
+        if crc1 == "E48E01F5" and crc2 == "E6E51F9B":
+            # Carmageddon 64 (E) (M4) (Eng-Spa-Fre-Ita) [!]
+            cartridge_letter = "Y"
+        elif crc1 == "580162EC" and crc2 == "E3108BF1":
+            # Carmageddon 64 (E) (M4) (Eng-Spa-Fre-Ger) [!]
+            cartridge_letter = "X"
+            cartridge_region = "EUU"
+        elif crc1 == "874733A4" and crc2 == "A823745A":
+            # Gex 3 - Deep Cover Gecko (E) (M2) (Fre-Ger) [!]
+            cartridge_letter = "X"
+            cartridge_region = "EUU"
+        elif crc1 == "72611D7D" and crc2 == "9919BDD2":
+            # HSV Adventure Racing (A) [!]
+            cartridge_letter = "X"
+        elif crc1 == "336364A0" and crc2 == "06C8D5BF":
+            # International Superstar Soccer 2000 (E) (M2) (Eng-Ger) [!]
+            cartridge_letter = "X"
+        elif crc1 == "BAE8E871" and crc2 == "35FF944E":
+            # International Superstar Soccer 2000 (E) (M2) (Fre-Ita) [!]
+            cartridge_letter = "Y"
+            cartridge_region = "EUU"
+        elif crc1 == "E36166C2" and crc2 == "8613A2E5":
+            # Michael Owens WLS 2000 (E) [!]
+            cartridge_region = "UKV"
+            cartridge_letter = "X"
+        if crc1 == "D84EEA84" and crc2 == "45B2F1B4":
+            # Shadowgate 64 - Trials Of The Four Towers (E) [!]
+            cartridge_region = "UKV"
+        elif crc1 == "02B46F55" and crc2 == "61778D0B":
+            # Shadowgate 64 - Trials Of The Four Towers (E) (M2) (Ita-Spa) [!]
+            cartridge_letter = "Y"
+            cartridge_region = "ITA"
+        elif crc1 == "2BC1FCF2" and crc2 == "7B9A0DF4":
+            # Shadowgate 64 - Trials Of The Four Towers (E) (M3) (Fre-Ger-Dut) [!]
+            cartridge_letter = "X"
+        elif crc1 == "B6BE20A5" and crc2 == "FACAF66D":
+            # Turok - Rage Wars (E) (M3) (Eng-Fre-Ita) [!]
+            pass
+
         if country_raw == 65:
-            cartridge = f'NUS-NTEE-USA/NUS-NTEJ-JPN'
+            cartridge = f'NUS-N{cartridge_bit}E-USA/NUS-N{cartridge_bit}J-JPN'
         else:
             cartridge = f'NUS-N{cartridge_bit}{cartridge_letter}-{cartridge_region}'
 
