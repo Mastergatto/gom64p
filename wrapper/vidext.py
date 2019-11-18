@@ -305,11 +305,11 @@ class Vidext():
 
     def video_resize_window(self, width, height):
         #This reacts to the resizing of the window with the cursor
-        log.debug("Vidext: video_resize_window(width: {str(width)}, height: {str(height)})")
+        log.debug(f"Vidext: video_resize_window(width: {str(width)}, height: {str(height)})")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_get_fb_name(self):
-        log.debug("Vidext: video_get_fb_name()")
+        log.debug("Vidext: video_get_fb_name() returns 0 as name")
         return 0
 
 

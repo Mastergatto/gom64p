@@ -129,7 +129,6 @@ class Environment:
                 return library
 
         elif self.system == 'Darwin':
-            # Does Mac OS X support python 3?
             # TODO: Untested
             library = cu.find_library("mupen64plus")
             print(library)
@@ -153,7 +152,6 @@ class Environment:
                 plugins_directory = str(parent) + "/mupen64plus/"
                 return plugins_directory
         elif self.system == 'Darwin':
-            # Does Mac OS X support python 3?
             # TODO: Untested
             library = cu.find_library("mupen64plus")
             if library != None:

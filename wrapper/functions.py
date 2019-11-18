@@ -857,7 +857,6 @@ class API():
     ## Generic Get/Set Functions
     def ConfigSetParameter(self, name, paramvalue):
         #m64p_error ConfigSetParameter(m64p_handle ConfigSectionHandle, const char *ParamName, m64p_type ParamType, const void *ParamValue)
-        #TODO: Check if there are memory corruption
 
         param_type = self.ConfigGetParameterType(name)
         #param_type = wrp_dt.m64p_type(param_result)
