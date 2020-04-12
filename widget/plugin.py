@@ -12,7 +12,7 @@ import os.path, threading, time, pathlib
 
 import wrapper.callback as cb
 import widget.keysym as w_key
-import external.sdl2 as sdl
+import sdl2 as sdl
 
 #############
 ## CLASSES ##

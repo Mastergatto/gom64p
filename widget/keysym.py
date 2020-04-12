@@ -5,7 +5,7 @@
 #####################
 import platform
 
-import external.sdl2 as sdl
+import sdl2 as sdl
 from enum import Enum
 
 class Scancodes(Enum):

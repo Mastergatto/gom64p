@@ -15,13 +15,17 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 #Gdk.set_allowed_backends("x11, win32, quartz")
 system = platform.system()
 if system == 'Linux':
+    #TODO: For now force x11 backend on linux, remove this later.
     os.environ['GDK_BACKEND'] = 'x11'
-    try:
-        import ctypes
-        x11 = ctypes.cdll.LoadLibrary('libX11.so')
-        x11.XInitThreads()
-    except:
-        print("Warning: failed to XInitThreads()")
+    if os.environ['GDK_BACKEND'] == 'x11':
+        try:
+            import ctypes
+            x11 = ctypes.cdll.LoadLibrary('libX11.so')
+            x11.XInitThreads()
+        except:
+            print("Warning: failed to XInitThreads()")
+    if not os.environ.get( 'PYOPENGL_PLATFORM' ):
+        os.environ['PYOPENGL_PLATFORM'] = 'egl'
 elif system == 'Windows':
     os.environ["PYSDL2_DLL_PATH"] = f"{os.path.dirname(os.path.realpath(__file__))}\\"
 elif system == 'Darwin':
