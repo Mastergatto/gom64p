@@ -15,6 +15,7 @@ import sdl2 as sdl
 import wrapper.callback as cb
 import widget.keysym as w_key
 
+
 #############
 ## CLASSES ##
 #############

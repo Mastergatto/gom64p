@@ -102,8 +102,9 @@ CB_PARAMETERS = PARAMETERSPROTO(list_param_callback)
 
 
 
-#FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend (segfault, double free or corruption(out), invalid pointer)
+#FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend (segfault, double free or corruption(out or !prev), invalid pointer, corrupted size vs. prev_size while consolidating)
 #GLib.strdup(str) ?
+# A workaround would be: export LD_PRELOAD="/usr/lib/libtcmalloc_minimal.so"
 class Media_callback(object):
     cart_rom_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)
     cart_ram_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)

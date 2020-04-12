@@ -11,13 +11,30 @@ import ctypes as c
 from gi.repository import Gtk
 import sys, time
 import logging as log
+import OpenGL as gl
+import OpenGL.GL as ogl
+import OpenGL.EGL as egl
 
-import external.sdl2 as sdl
+#import sdl2 as sdl
 import wrapper.datatypes as wrp_dt
 
 ###############
 ## VARIABLES ##
 ###############
+
+# self.info = sdl.SDL_SysWMinfo()
+# version = sdl.SDL_GetVersion(c.byref(self.info.version))
+# self.window_info = sdl.SDL_GetWindowWMInfo(self.foreign_window, c.byref(self.info))
+# if self.info.subsystem == sdl.SDL_SYSWM_X11:
+#     log.debug("The OS is Linux, using X11")
+    #TODO: How to get to info.x11.window?
+#     log.debug(repr(self.info))
+# elif self.info.subsystem == sdl.SDL_SYSWM_WAYLAND:
+#     log.debug("The OS is Linux, using Wayland")
+# elif self.info.subsystem == sdl.SDL_SYSWM_WINDOWS:
+#     log.debug("The OS is Windows")
+# elif self.info.subsystem == sdl.SDL_SYSWM_COCOA:
+#     log.debug("The OS is Mac OS X")
 
 #############
 ## CLASSES ##
@@ -25,9 +42,7 @@ import wrapper.datatypes as wrp_dt
 
 class Vidext():
     def __init__(self):
-        self.sdl_context = None
         self.window = None
-        self.foreign_window = None
         self.title = None
         self.fullscreen_window = None
 
@@ -37,86 +52,86 @@ class Vidext():
         self.height = 0
         self.former_size = None
 
+        # OpenGL visual format
+        self.double_buffer = 0
+        self.buffer_size = 0
+        self.depth_size = 16
+        self.red_size = 0
+        self.green_size = 0
+        self.blue_size = 0
+        self.alpha_size = 0
+        self.swap_control = 0
+        self.multisample_buffer = 0
+        self.multisample_samples = 0
+        
+        self.context_major = 0
+        self.context_minor = 0
+        self.profile_mask = 0
+
+        self.egl_attributes = None
+        self.window_attributes = None
+        
+        self.egl_display = egl.EGL_NO_DISPLAY
+        self.egl_config = None
+        self.egl_context = egl.EGL_NO_CONTEXT
+        self.egl_surface = egl.EGL_NO_SURFACE
+        self.new_surface = True
+
     def set_window(self, window):
         self.window = window
 
     def video_init(self):
         log.debug("Vidext: video_init()")
-        sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO)
-        sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK) #TODO: Is it really necessary?
+        #sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO)
+        #sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK) #TODO: Is it really necessary?
 
         #source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L34
-        display = sdl.SDL_DisplayMode()
-        for mode in range(sdl.SDL_GetNumDisplayModes(0)):
-            ret = sdl.SDL_GetDisplayMode(0, mode, c.byref(display))
-            if (display.w, display.h) not in self.modes:
-                self.modes.append((display.w, display.h))
+        #display = sdl.SDL_DisplayMode()
+        #for mode in range(sdl.SDL_GetNumDisplayModes(0)):
+        #    ret = sdl.SDL_GetDisplayMode(0, mode, c.byref(display))
+        #    if (display.w, display.h) not in self.modes:
+        #        self.modes.append((display.w, display.h))
 
-        log.debug(self.modes)
+        #log.debug(self.modes)
 
         # Mandatory since we're doing the hack for embedding SDL into GTK+, otherwise gamepads won't work here since GTK+ doesn't handle those inputs.
-        sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
-
-        if self.window.platform == 'Linux':
-            from gi.repository import GdkX11
-            # Hack to embed sdl window into the frontend.
-            # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
-            self.foreign_window = sdl.SDL_CreateWindowFrom(self.window.canvas.get_property('window').get_xid())
-            # for wayland maybe use gdk_wayland_surface_get_window_geometry + gdk_surface_get_geometry?
-        elif self.window.platform == 'Windows':
-            #sdl.SDL_SetHint(sdl.SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT, x)
-            sdl.SDL_SetHint(sdl.SDL_HINT_RENDER_DRIVER, b"opengl")
-
-            # https://stackoverflow.com/questions/23021327/how-i-can-get-drawingarea-window-handle-in-gtk3/27236258#27236258
-            # https://gitlab.gnome.org/GNOME/gtk/issues/510
-            drawingareahwnd = self.window.canvas.get_property("window")
-            # make sure to call ensure_native before e.g. on realize
-            if not drawingareahwnd.has_native():
-                log.warning("Vidext: Your window is gonna freeze as soon as you move or resize it...")
-            c.pythonapi.PyCapsule_GetPointer.restype = c.c_void_p
-            c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
-            drawingarea_gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareahwnd.__gpointer__, None)
-            # get the win32 handle
-            libgdk = c.CDLL("gdk-3-vs16.dll")
-            handle = libgdk.gdk_win32_window_get_handle(drawingarea_gpointer)
-            self.foreign_window = sdl.SDL_CreateWindowFrom(handle)
-        elif self.window.platform == 'Darwin':
-            # https://gitlab.gnome.org/GNOME/pygobject/issues/112
-            drawingareahnd = self.window.canvas.get_property("window")
-            # make sure to call ensure_native before e.g. on realize
-            if not drawingareahnd.has_native():
-                log.warning("Vidext: Your window is gonna freeze as soon as you move or resize it...")
-            c.pythonapi.PyCapsule_GetPointer.restype = c.c_void_p
-            c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
-            gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareahnd.__gpointer__, None)
-            libgdk = c.CDLL ("libgdk-3.0.dylib")
-            #gdk_quartz_window_get_nswindow segfaults.
-            libgdk.gdk_quartz_window_get_nsview.restype = c.c_void_p
-            libgdk.gdk_quartz_window_get_nsview.argtypes = [c.c_void_p]
-            handle = libgdk.gdk_quartz_window_get_nsview(gpointer)
-
-            self.foreign_window = sdl.SDL_CreateWindowFrom(handle)
-
-        # XXX: since SDL_window is a pointer, we can't set flags normally with Python, so we use the special function pointer() so that we can modify directly it.
-        ### HACK: we have to wrapper SDL_Window struct so that we can make it expose its fields to be modified. Thus we add the SDL_WINDOW_OPENGL flag to it.
-        # Lastly, we unload GL library. Why? WILD GUESS: without SDL_WINDOW_OPENGL flag, SDL creates the window with only OpenGL 1.x, which isn't what we need to render anything,
-        # we need at least OpenGL 3.x. So by unloading GL library, it forces SDL to reload, but this time with the right version of OpenGL. ###
-        old_flags = c.pointer(self.foreign_window)[0] # Dereference it
-        self.foreign_window.contents.flags = sdl.SDL_WINDOW_FOREIGN | sdl.SDL_WINDOW_OPENGL # It should return 2054 instead of 2050, but regardless it works.
-        new_flags = c.pointer(self.foreign_window) # Re-reference it
-        sdl.SDL_GL_LoadLibrary(None) #XXX Necessary to make the hack work.
-        ### End hack ###
-
-        self.sdl_context = sdl.SDL_GL_CreateContext(self.foreign_window)
-        sdl.SDL_GL_MakeCurrent(self.foreign_window, self.sdl_context)
-
-        return wrp_dt.m64p_error.M64ERR_SUCCESS.value
+        #sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
+        
+        self.xid = self.window.canvas.get_property('window').get_xid()
+        
+        self.egl_display = egl.eglGetDisplay(egl.EGL_DEFAULT_DISPLAY)
+        if self.egl_display == egl.EGL_NO_DISPLAY:
+            log.error(f"eglGetDisplay() returned error: {egl.eglGetError()}")
+            return wrp_dt.m64p_error.M64ERR_INVALID_STATE.value
+        
+        retval = egl.eglInitialize(self.egl_display, c.c_int(0), c.c_int(0))
+        #what about ES?
+        egl.eglBindAPI(egl.EGL_OPENGL_API)
+        
+        if retval == egl.EGL_TRUE:
+            return wrp_dt.m64p_error.M64ERR_SUCCESS.value
+        else:
+            log.error(f"eglInitialize() returned error: {egl.eglGetError()}")
+            return wrp_dt.m64p_error.M64ERR_INVALID_STATE.value
 
     def video_quit(self):
         log.debug("Vidext: video_quit()")
-        sdl.SDL_GL_DeleteContext(self.sdl_context)
-        sdl.SDL_DestroyWindow(self.foreign_window)
-        sdl.SDL_Quit()
+
+        if self.egl_context != egl.EGL_NO_CONTEXT:
+            egl.eglDestroyContext(self.egl_display, self.egl_context)
+            self.egl_context = egl.EGL_NO_CONTEXT
+
+        egl.eglMakeCurrent(self.egl_display, egl.EGL_NO_SURFACE, egl.EGL_NO_SURFACE, egl.EGL_NO_CONTEXT)
+        if self.egl_surface != egl.EGL_NO_SURFACE:
+            egl.eglDestroySurface(self.egl_display, self.egl_surface)
+            self.egl_surface = egl.EGL_NO_SURFACE
+
+        if self.egl_display != egl.EGL_NO_DISPLAY:
+            egl.eglTerminate(self.egl_display)
+            self.egl_display = egl.EGL_NO_DISPLAY  
+            
+        self.new_surface = True     
+        
         if self.title != None:
             self.window.set_title(self.title)
         self.window.set_resizable(True)
@@ -128,11 +143,11 @@ class Vidext():
     def video_list_modes(self, sizearray, numsizes):
         log.debug(f"Vidext: video_list_modes(sizearray: {sizearray}, {numsizes}, {numsizes}")
         # source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L80
-        numsizes.contents.value = len(self.modes)
-        for num, mode in enumerate(self.modes):
-            width, height = mode
-            sizearray[num].uiWidth = width
-            sizearray[num].uiHeight = height
+        #numsizes.contents.value = len(self.modes)
+        #for num, mode in enumerate(self.modes):
+        #    width, height = mode
+        #    sizearray[num].uiWidth = width
+        #    sizearray[num].uiHeight = height
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_set_mode(self, width, height, bits, screenmode, flags):
@@ -147,34 +162,71 @@ class Vidext():
         self.window.canvas.set_size_request(width, height)
         # It doesn't just get the preferred size, it DOES resize the window too
         self.window.canvas.get_preferred_size()
+        
+        print(self.double_buffer, self.buffer_size, self.depth_size, self.red_size, self.green_size, self.blue_size, self.alpha_size, self.swap_control, self.multisample_buffer, self.multisample_samples, self.context_major, self.context_minor, self.profile_mask)
+        self.egl_attributes = gl.arrays.GLintArray.asArray([
+            egl.EGL_BUFFER_SIZE, self.buffer_size,
+            egl.EGL_DEPTH_SIZE, self.depth_size,
+            egl.EGL_RED_SIZE, self.red_size,
+            egl.EGL_GREEN_SIZE, self.green_size,
+            egl.EGL_BLUE_SIZE, self.blue_size,
+            egl.EGL_ALPHA_SIZE, self.alpha_size,
+            egl.EGL_SAMPLE_BUFFERS, self.multisample_buffer,
+            egl.EGL_SAMPLES, self.multisample_samples,
+            egl.EGL_RENDERABLE_TYPE, self.profile_mask,
+            egl.EGL_NONE        
+            ])
+        
+        self.window_attributes = gl.arrays.GLintArray.asArray([
+            egl.EGL_RENDER_BUFFER, self.double_buffer,
+            egl.EGL_NONE
+            ])
+        
+        self.opengl_version = gl.arrays.GLintArray.asArray([
+            egl.EGL_CONTEXT_MAJOR_VERSION, self.context_major,
+            egl.EGL_CONTEXT_MINOR_VERSION, self.context_minor,
+            #egl.EGL_CONTEXT_OPENGL_PROFILE_MASK, self.profile_mask,
+            egl.EGL_NONE
+        ])
+        
+        num_configs = c.c_long()
+        self.egl_config = (egl.EGLConfig*2)()
+        config_chosen = egl.eglChooseConfig(self.egl_display, self.egl_attributes, self.egl_config, 2, num_configs)
+        if config_chosen == None:
+            log.error(f"eglChooseConfig() returned error: {egl.eglGetError()}")
+            return wrp_dt.m64p_error.M64ERR_INVALID_STATE.value
+        
+        if self.new_surface:
+            log.info("VidExtFuncSetMode: Initializing surface")
+            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.xid, self.window_attributes)
+            
+            self.egl_context = egl.eglCreateContext(self.egl_display, self.egl_config[0], egl.EGL_NO_CONTEXT, self.opengl_version)
+        
+            if self.egl_context == egl.EGL_NO_CONTEXT:
+                raise RuntimeError( 'Unable to create context' )
+            try:
+                egl.eglMakeCurrent(self.egl_display, self.egl_surface, self.egl_surface, self.egl_context)
+                egl.eglSwapBuffers(self.egl_display, self.egl_surface)
+            except:
+                log.error(f"eglMakeCurrent() returned error: {egl.eglGetError()}")
+            
+            self.new_surface = False
+        
+        else:
+            log.error("VidExtFuncSetMode called before surface has been set");
 
-        log.debug(f"video_set_mode context: {self.sdl_context}")
-        if self.sdl_context != None:
-            self.sdl_context2 = sdl.SDL_GL_GetCurrentContext()
-            log.debug(f"Context SDL: {self.sdl_context}, {self.sdl_context2}")
+        retval = True
 
-            self.info = sdl.SDL_SysWMinfo()
-            #version = sdl.SDL_VERSION(c.byref(info.version))
-            version = sdl.SDL_GetVersion(c.byref(self.info.version))
-            self.window_info = sdl.SDL_GetWindowWMInfo(self.foreign_window, c.byref(self.info))
-            if self.info.subsystem == sdl.SDL_SYSWM_X11:
-                log.debug("The OS is Linux, using X11")
-            #TODO: How to get to info.x11.window?
-                log.debug(repr(self.info))
-            elif self.info.subsystem == sdl.SDL_SYSWM_WAYLAND:
-                log.debug("The OS is Linux, using Wayland")
-            elif self.info.subsystem == sdl.SDL_SYSWM_WINDOWS:
-                log.debug("The OS is Windows")
-            elif self.info.subsystem == sdl.SDL_SYSWM_COCOA:
-                log.debug("The OS is Mac OS X")
-
+        #log.debug(f"video_set_mode context: {context}")
+        if retval == True:
+            log.debug(f"Vidext: video_set_mode() has reported M64ERR_SUCCESS")
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            log.error(f"Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL: \n > {sdl.SDL_GetError().decode('utf-8')}")
+            log.error(f"Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_get_proc(self, proc):
-        address = sdl.SDL_GL_GetProcAddress(proc)
+        address = egl.eglGetProcAddress(proc)
         if address is not None:
             return address
         else:
@@ -183,90 +235,118 @@ class Vidext():
     def gl_get_attr(self, attr, pvalue):
         attr = wrp_dt.m64p_GLattr(attr).name
         log.debug(f"Vidext: gl_get_attr(attr:{attr}, pvalue:{str(pvalue.contents.value)})")
-        retval = None
+        retval = 0
 
         if attr == 'M64P_GL_DOUBLEBUFFER':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_DOUBLEBUFFER, pvalue)
+            #self.double_buffer = pvalue.contents.value
+            pass
         elif attr == 'M64P_GL_BUFFER_SIZE':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_BUFFER_SIZE, pvalue)
+            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_BUFFER_SIZE, pvalue)
         elif attr == 'M64P_GL_DEPTH_SIZE':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_DEPTH_SIZE, pvalue)
+            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_DEPTH_SIZE, pvalue)
         elif attr == 'M64P_GL_RED_SIZE':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_RED_SIZE, pvalue)
+            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_RED_SIZE, pvalue)
         elif attr == 'M64P_GL_GREEN_SIZE':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_GREEN_SIZE, pvalue)
+            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_GREEN_SIZE, pvalue)
         elif attr == 'M64P_GL_BLUE_SIZE':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_BLUE_SIZE, pvalue)
+            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_BLUE_SIZE, pvalue)
         elif attr == 'M64P_GL_ALPHA_SIZE':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_ALPHA_SIZE, pvalue)
+            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_ALPHA_SIZE, pvalue)
         elif attr == 'M64P_GL_SWAP_CONTROL':
-            retval = sdl.SDL_GL_GetSwapInterval()
+            #self.swap_control = pvalue.contents.value
+            pass
         elif attr == 'M64P_GL_MULTISAMPLEBUFFERS':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_MULTISAMPLEBUFFERS, pvalue)
+            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_SAMPLE_BUFFERS, pvalue)
         elif attr == 'M64P_GL_MULTISAMPLESAMPLES':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_MULTISAMPLESAMPLES, pvalue)
+            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_SAMPLES, pvalue)
         elif attr == 'M64P_GL_CONTEXT_MAJOR_VERSION':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_CONTEXT_MAJOR_VERSION, pvalue)
+            #self.context_major = pvalue.contents.value
+            ogl.glGetIntegerv(ogl.GL_MAJOR_VERSION, pvalue)
         elif attr == 'M64P_GL_CONTEXT_MINOR_VERSION':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_CONTEXT_MINOR_VERSION, pvalue)
+            #self.context_minor = pvalue.contents.value
+            ogl.glGetIntegerv(ogl.GL_MINOR_VERSION, pvalue)
         elif attr == 'M64P_GL_CONTEXT_PROFILE_MASK':
-            retval = sdl.SDL_GL_GetAttribute(sdl.SDL_GL_CONTEXT_PROFILE_MASK, pvalue)
+            #self.profile_mask = pvalue.contents.value
+            ogl.glGetIntegerv(ogl.GL_CONTEXT_PROFILE_MASK, pvalue)
         else:
             log.warning("gom64p doesn't know how to handle {attr}")
 
         if retval == 0:
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            log.error(f"Vidext: gl_get_attr() has reported M64ERR_SYSTEM_FAIL, tried to set {pvalue.contents.value} for {attr}, but it returned: \n > {sdl.SDL_GetError().decode('utf-8')}")
+            log.error(f"Vidext: gl_get_attr() has reported M64ERR_SYSTEM_FAIL, tried to set {pvalue.contents.value} for {attr}, but it returned error")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_set_attr(self, attr, value):
         attr = wrp_dt.m64p_GLattr(attr).name
         log.debug(f"Vidext.gl_set_attr(): attr '{str(attr)}'; value '{str(value)}'")
-        retval = None
+        retval = 0
 
         if attr == 'M64P_GL_DOUBLEBUFFER':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_DOUBLEBUFFER, value)
+            if value == 0:
+                self.double_buffer = egl.EGL_SINGLE_BUFFER
+            elif value == 1:
+                self.double_buffer = egl.EGL_BACK_BUFFER
         elif attr == 'M64P_GL_BUFFER_SIZE':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_BUFFER_SIZE, value)
+            self.buffer_size = value
         elif attr == 'M64P_GL_DEPTH_SIZE':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_DEPTH_SIZE, value)
+            self.depth_size = value
         elif attr == 'M64P_GL_RED_SIZE':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_RED_SIZE, value)
+            self.red_size = value
         elif attr == 'M64P_GL_GREEN_SIZE':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_GREEN_SIZE, value)
+            self.green_size = value
         elif attr == 'M64P_GL_BLUE_SIZE':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_BLUE_SIZE, value)
+            self.blue_size = value
         elif attr == 'M64P_GL_ALPHA_SIZE':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_ALPHA_SIZE, value)
+            self.alpha_size = value
         elif attr == 'M64P_GL_SWAP_CONTROL':
-            retval = sdl.SDL_GL_SetSwapInterval(value)
+            self.swap_control = value
         elif attr == 'M64P_GL_MULTISAMPLEBUFFERS':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_MULTISAMPLEBUFFERS, value)
+            self.multisample_buffer = value
         elif attr == 'M64P_GL_MULTISAMPLESAMPLES':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_MULTISAMPLESAMPLES, value)
+            self.multisample_samples = value
         elif attr == 'M64P_GL_CONTEXT_MAJOR_VERSION':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_CONTEXT_MAJOR_VERSION, value)
+            self.context_major = value
         elif attr == 'M64P_GL_CONTEXT_MINOR_VERSION':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_CONTEXT_MINOR_VERSION, value)
+            self.context_minor = value
         elif attr == 'M64P_GL_CONTEXT_PROFILE_MASK':
-            retval = sdl.SDL_GL_SetAttribute(sdl.SDL_GL_CONTEXT_PROFILE_MASK, value)
+            if value == wrp_dt.m64p_GLContextType.M64P_GL_CONTEXT_PROFILE_CORE.value:
+                egl.eglBindAPI(egl.EGL_OPENGL_API)
+                #self.profile_mask = egl.EGL_OPENGL_BIT
+                self.profile_mask = egl.EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT
+            elif value == wrp_dt.m64p_GLContextType.M64P_GL_CONTEXT_PROFILE_COMPATIBILITY.value:
+                egl.eglBindAPI(egl.EGL_OPENGL_API)
+                #self.profile_mask = egl.EGL_OPENGL_BIT
+                self.profile_mask = egl.EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT
+            elif value == wrp_dt.m64p_GLContextType.M64P_GL_CONTEXT_PROFILE_ES.value:
+                egl.eglBindAPI(egl.EGL_OPENGL_ES_API)
+                self.profile_mask = egl.EGL_OPENGL_ES2_BIT   
         else:
-            log.warning("gom64p doesn't know how to handle {attr}")
+            log.warning(f"Vidext: gom64p doesn't know how to handle {attr}")
 
         if retval == 0:
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            log.error(f"Vidext: gl_set_attr() has reported M64ERR_SYSTEM_FAIL, tried to set {value} for {attr}, but it returned: \n > {sdl.SDL_GetError().decode('utf-8')}")
+            log.error(f"Vidext: gl_set_attr() has reported M64ERR_SYSTEM_FAIL, tried to set {value} for {attr}, but it returned error")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_swap_buffer(self):
         #XXX: It can spam this message in the output, better turn off it.
         #log.debug("Vidext: gl_swap_buffer()")
-        if self.fullscreen == 1:
-            sdl.SDL_GL_SwapWindow(self.fullscreen_window)
+        if self.new_surface:
+            log.info("VidExtFuncGLSwapBuf: New surface has been detected")
+            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.xid, self.window_attributes)
+            
+            try:
+                egl.eglMakeCurrent(self.egl_display, self.egl_surface, self.egl_surface, self.egl_context)
+                #egl.eglSwapBuffers(self.egl_display, self.egl_surface)
+            except:
+                log.error(f"eglMakeCurrent() returned error: {egl.eglGetError()}")
+            
+            self.new_surface = False
         else:
-            sdl.SDL_GL_SwapWindow(self.foreign_window)
+            if self.window.running == True:
+                egl.eglSwapBuffers(self.egl_display, self.egl_surface)
 
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
@@ -277,30 +357,19 @@ class Vidext():
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_toggle_fs(self):
+        #TODO: Unimplemented
         log.debug("Vidext: video_toggle_fs()")
         retval = None
         if self.fullscreen == 0:
             # Makes it fullscreen
             self.fullscreen = 1
-            # XXX: SDL_WINDOW_FULLSCREEN is a bit overkill, because it changes the desktop's resolution too.
-            #self.fullscreen_window = sdl.SDL_CreateWindow(b"Fullscreen", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED, 1920, 1080, sdl.SDL_WINDOW_OPENGL)
-            self.fullscreen_window = sdl.SDL_CreateWindow(b"Fullscreen", sdl.SDL_WINDOWPOS_UNDEFINED, sdl.SDL_WINDOWPOS_UNDEFINED, self.width, self.height, sdl.SDL_WINDOW_OPENGL)
-            retval = sdl.SDL_SetWindowFullscreen(self.fullscreen_window, sdl.SDL_WINDOW_FULLSCREEN_DESKTOP)
-            sdl.SDL_GL_MakeCurrent(self.fullscreen_window, self.sdl_context)
         else:
-            # Makes the screen back to normal size.
-            # FIXME: Investigate why it doesn't set back the resolution
             self.fullscreen = 0
-            #sdl.SDL_SetWindowSize(self.fullscreen_window, 1920, 1080)
-            retval = sdl.SDL_SetWindowFullscreen(self.fullscreen_window, 0)
-            sdl.SDL_GL_MakeCurrent(self.foreign_window, self.sdl_context)
-            sdl.SDL_DestroyWindow(self.fullscreen_window)
-            #sdl.SDL_SetWindowSize(self.foreign_window, 400, 200)
 
         if retval == 0:
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            log.error(f"Vidext: video_toggle_fs() has reported M64ERR_SYSTEM_FAIL: \n > {sdl.SDL_GetError().decode('utf-8')}")
+            log.error(f"Vidext: video_toggle_fs() has reported M64ERR_SYSTEM_FAIL: \n > {egl.eglGetError()}")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def video_resize_window(self, width, height):
@@ -311,7 +380,7 @@ class Vidext():
     def video_get_fb_name(self):
         log.debug("Vidext: video_get_fb_name() returns 0 as name")
         return 0
-
+    
 
 m64p_video = Vidext()
 vidext_struct = wrp_dt.m64p_video_extension_functions()
