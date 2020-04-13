@@ -15,79 +15,71 @@ import logging as log
 #############
 class FileChooserDialog(Gtk.FileChooserDialog):
     def __init__(self, parent, category, options=None):
+        title = "Dialog"
         self.path = None
+        accept = "_Select"
+        cancel = "_Cancel"
+        
+        self.dialog = Gtk.FileChooserNative.new(title, parent, Gtk.FileChooserAction.OPEN, accept, cancel)
+        #self.dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        
         if category == "directory":
-            self.directory_chooser(parent)
+            self.directory_chooser()
         elif category == "rom":
-            self.rom_chooser(parent)
+            self.rom_chooser()
         elif category == "gameboy":
-            self.gb_chooser(parent, options)
+            self.gb_chooser(options)
         elif category == "64dd":
-            self.n64dd_chooser(parent, options)
+            self.n64dd_chooser(options)
         elif category == "snapshot":
             if options == 0:
-                self.snapshot_loader(parent)
+                self.snapshot_loader()
             elif options == 1:
-                self.snapshot_saver(parent)
+                self.snapshot_saver()
         elif category == "library":
-            self.library_chooser(parent)
+            self.library_chooser()
 
-    def directory_chooser(self, parent):
-        dialog = Gtk.FileChooserDialog(title="Please select the directory", transient_for=parent, action=2, add_buttons=0)
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Select", Gtk.ResponseType.ACCEPT)
-        #dialog.set_default_size(800, 400)
-        dialog.set_type_hint(1) #=Dialog
-        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-
-        response = dialog.run()
+    def directory_chooser(self):
+        self.dialog.set_title("Please select the directory")
+        self.dialog.set_action(Gtk.FileChooserAction.SELECT_FOLDER)
+        response = self.dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
             import platform
             system = platform.system()
             if system == "Windows":
-                self.path = dialog.get_filename() + "\\"
+                self.path = self.dialog.get_filename() + "\\"
             else:
-                self.path = dialog.get_filename() + "/"
+                self.path = self.dialog.get_filename() + "/"
             log.debug(f"Directory selected: {self.path}")
-        dialog.destroy()
+        self.dialog.destroy()
 
-    def rom_chooser(self, parent):
-        dialog = Gtk.FileChooserDialog(title="Please choose a N64 game image", transient_for=parent, action=0, add_buttons=0)
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Open", Gtk.ResponseType.ACCEPT)
-        #dialog.set_default_size(800, 400)
-        dialog.set_type_hint(1) #=Dialog
-        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+    def rom_chooser(self):
+        self.dialog.set_title("Please select a N64 game image")
 
-        filter_text = Gtk.FileFilter()
-        filter_text.set_name("N64 image (.n64, .v64, .z64)")
-        #filter_text.add_mime_type("application/x-n64-rom")
-        filter_text.add_pattern("*.n64")
-        filter_text.add_pattern("*.v64")
-        filter_text.add_pattern("*.z64")
-        dialog.add_filter(filter_text)
+        filter_extension = Gtk.FileFilter()
+        filter_extension.set_name("N64 image (.n64, .v64, .z64)")
+        #filter_extension.add_mime_type("application/x-n64-rom")
+        filter_extension.add_pattern("*.n64")
+        filter_extension.add_pattern("*.v64")
+        filter_extension.add_pattern("*.z64")
+        self.dialog.add_filter(filter_extension)
 
         filter_any = Gtk.FileFilter()
         filter_any.set_name("Any files")
         filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
+        self.dialog.add_filter(filter_any)
 
-        response = dialog.run()
+        response = self.dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
-            self.path = dialog.get_filename()
+            self.path = self.dialog.get_filename()
             log.debug(f"File selected: {self.path}")
         elif response == Gtk.ResponseType.CANCEL:
             pass
-        dialog.response(response)
-        dialog.destroy()
+        self.dialog.destroy()
 
-    def gb_chooser(self, parent, file):
-        dialog = Gtk.FileChooserDialog(title="Please select the SAV/GB file", transient_for=parent, action=0, add_buttons=0)
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Select", Gtk.ResponseType.ACCEPT)
-        #dialog.set_default_size(800, 400)
-        dialog.set_type_hint(1) #=Dialog
-        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+    def gb_chooser(self, file):
+        self.dialog.set_title("Please select the SAV/GB file")
+        
         filter_text = Gtk.FileFilter()
         if file == "rom":
             filter_text.set_name("Gameboy image file (.gb)")
@@ -95,26 +87,21 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         elif file == "ram":
             filter_text.set_name("Gameboy save file (.sav)")
             filter_text.add_pattern("*.sav")
-        dialog.add_filter(filter_text)
+        self.dialog.add_filter(filter_text)
 
         filter_any = Gtk.FileFilter()
         filter_any.set_name("Any files")
         filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
+        self.dialog.add_filter(filter_any)
 
-        response = dialog.run()
+        response = self.dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
-            self.path = dialog.get_filename()
+            self.path = self.dialog.get_filename()
             log.debug(f"File selected: {self.path}")
-        dialog.destroy()
+        self.dialog.destroy()
 
-    def n64dd_chooser(self, parent, file):
-        dialog = Gtk.FileChooserDialog(title="Please select the IPL/Disk ROM binary", transient_for=parent, action=0, add_buttons=0)
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Select", Gtk.ResponseType.ACCEPT)
-        #dialog.set_default_size(800, 400)
-        dialog.set_type_hint(1) #=Dialog
-        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+    def n64dd_chooser(self, file):
+        self.dialog.set_title("Please select the IPL/Disk ROM binary")        
 
         filter_text = Gtk.FileFilter()
         if file == "ipl":
@@ -124,104 +111,89 @@ class FileChooserDialog(Gtk.FileChooserDialog):
         elif file == "disk":
             filter_text.set_name("Disk image game (*.ndd)")
             filter_text.add_pattern("*.ndd")
-        dialog.add_filter(filter_text)
+        self.dialog.add_filter(filter_text)
 
         filter_any = Gtk.FileFilter()
         filter_any.set_name("Any files")
         filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
+        self.dialog.add_filter(filter_any)
 
-        response = dialog.run()
+        response = self.dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
-            self.path = dialog.get_filename()
+            self.path = self.dialog.get_filename()
             log.debug(f"File selected: {self.path}")
-        dialog.destroy()
+        self.dialog.destroy()
 
-    def snapshot_loader(self, parent):
-        dialog = Gtk.FileChooserDialog(title="Please select the stX/pjX file", transient_for=parent, action=0, add_buttons=0)
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Select", Gtk.ResponseType.ACCEPT)
-        #dialog.set_default_size(800, 400)
-        dialog.set_type_hint(1) #=Dialog
-        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-
+    def snapshot_loader(self):
+        self.dialog.set_title("Please select the stX/pjX file")
+        
         filter_snapshot = Gtk.FileFilter()
         filter_snapshot.set_name("Mupen64plus/Project64 save state (.st*, .pj*")
         filter_snapshot.add_pattern("*.st*")
         filter_snapshot.add_pattern("*.zip")
         filter_snapshot.add_pattern("*.pj*")
-        dialog.add_filter(filter_snapshot)
+        self.dialog.add_filter(filter_snapshot)
 
         filter_any = Gtk.FileFilter()
         filter_any.set_name("Any files")
         filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
+        self.dialog.add_filter(filter_any)
 
-        response = dialog.run()
+        response = self.dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
             self.path = dialog.get_filename()
             log.debug(f"File selected: {self.path}")
-        dialog.destroy()
+        self.dialog.destroy()
 
-    def snapshot_saver(self, parent):
+    def snapshot_saver(self):
         #TODO: too many things like setting automatically extension name or returning the format
-        dialog = Gtk.FileChooserDialog(title="Please choose a name for file to save", transient_for=parent, action=1, add_buttons=0)
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Select", Gtk.ResponseType.ACCEPT)
-        #dialog.set_default_size(800, 400)
-        dialog.set_type_hint(1) #=Dialog
-        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-        dialog.set_current_name("Untitled.st0")
-        dialog.set_do_overwrite_confirmation(True)
-
+        self.dialog.set_title("Please select a name for file to save")
+        self.dialog.set_action(Gtk.FileChooserAction.SAVE)
+        self.dialog.set_current_name("Untitled.st0")
+        self.dialog.set_do_overwrite_confirmation(True)
 
         filter_m64p = Gtk.FileFilter()
         filter_m64p.set_name("Mupen64plus save state (.st*)")
         filter_m64p.add_pattern("*.st")
-        dialog.add_filter(filter_m64p)
+        self.dialog.add_filter(filter_m64p)
 
         #filter_pjc = Gtk.FileFilter()
         #filter_pjc.set_name("Compressed PJ64 save state")
         #filter_pjc.add_pattern("*.pj.zip")
-        #dialog.add_filter(filter_pjc)
+        #self.dialog.add_filter(filter_pjc)
 
         #filter_pj64 = Gtk.FileFilter()
         #filter_pj64.set_name("Project64 save state")
         #filter_pj64.add_pattern("*.pj")
-        #dialog.add_filter(filter_pj64)
+        #self.dialog.add_filter(filter_pj64)
 
-        response = dialog.run()
+        response = self.dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
-            self.path = dialog.get_filename()
+            self.path = self.dialog.get_filename()
             #self.ret_type =
             log.debug(f"File selected: {self.path}")
-        dialog.destroy()
+        self.dialog.destroy()
 
-    def library_chooser(self, parent):
-        dialog = Gtk.FileChooserDialog(title="Please find the Mupen64plus library", transient_for=parent, action=0, add_buttons=0)
-        dialog.add_button("_Cancel", Gtk.ResponseType.CANCEL)
-        dialog.add_button("_Select", Gtk.ResponseType.ACCEPT)
-        #dialog.set_default_size(800, 400)
-        dialog.set_type_hint(1) #=Dialog
-        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+    def library_chooser(self):
+        self.dialog.set_title("Please select the Mupen64plus library") 
 
         filter_text = Gtk.FileFilter()
         filter_text.set_name("Mupen64plus library (.so, .dll)")
         #filter_text.add_mime_type("application/x-n64-rom")
         filter_text.add_pattern("libmupen64plus.so*")
         filter_text.add_pattern("mupen64plus.dll")
-        dialog.add_filter(filter_text)
+        self.dialog.add_filter(filter_text)
 
         filter_any = Gtk.FileFilter()
         filter_any.set_name("Any files")
         filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
+        self.dialog.add_filter(filter_any)
 
-        response = dialog.run()
+        response = self.dialog.run()
         if response == Gtk.ResponseType.ACCEPT:
-            self.path = dialog.get_filename()
+            self.path = self.dialog.get_filename()
             log.debug(f"File selected: {self.path}")
-        dialog.destroy()
+        self.dialog.destroy()
 
 class DialogAbout(Gtk.Dialog):
     def __init__(self, parent, whichtype):
