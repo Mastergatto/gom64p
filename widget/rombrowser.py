@@ -25,7 +25,6 @@ class List:
     def __init__(self, parent):
         self.parent = parent
         self.recent_manager = Gtk.RecentManager.get_default()
-        self.selected_game = None
         self.rom_list = None
         self.parsed_list = None
 
@@ -116,7 +115,7 @@ class List:
             for game in self.parsed_list:
                 self.romlist_store_model.append(list(game))
         else:
-            log.warning("Rombrowser:The list is empty!")
+            log.warning("Rombrowser: The list is empty!")
 
     def game_filter_func(self, model, iterator, data):
         #in the second brackets the value correspond to that of a column
@@ -189,13 +188,14 @@ class List:
     def on_row_activated(self, treeview, treepath, column):
         model = treeview.get_model()
         treeiter = model.get_iter(treepath)
-        self.rom = model.get_value(treeiter, 3)
-        rom_uri = GLib.filename_to_uri(self.rom, None)
+        self.parent.rom = model.get_value(treeiter, 3)
+        
+        rom_uri = GLib.filename_to_uri(self.parent.rom, None)
         if self.recent_manager.has_item(rom_uri) == False:
             self.recent_manager.add_item(rom_uri)
 
-        if self.rom != None and self.parent.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation", target=self.rom_startup)
+        if self.parent.rom != None and self.parent.m64p_wrapper.compatible == True:
+            thread = threading.Thread(name="Emulation", target=self.parent.action.rom_startup)
             try:
                 thread.start()
                 return thread
@@ -204,13 +204,12 @@ class List:
                 threading.main_thread()
 
     def on_playitem_activated(self, widget):
-        self.rom = self.selected_game
-        rom_uri = GLib.filename_to_uri(self.rom, None)
+        rom_uri = GLib.filename_to_uri(self.parent.rom, None)
         if self.recent_manager.has_item(rom_uri) == False:
             self.recent_manager.add_item(rom_uri)
 
-        if self.rom != None and self.parent.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation", target=self.rom_startup)
+        if self.parent.rom != None and self.parent.m64p_wrapper.compatible == True:
+            thread = threading.Thread(name="Emulation", target=self.parent.action.rom_startup)
             try:
                 thread.start()
                 return thread
@@ -219,7 +218,7 @@ class List:
                 threading.main_thread()
 
     def on_properties_activated(self, widget, tab):
-        dialog = w_gprop.PropertiesDialog(self.parent, self.selected_game, tab)
+        dialog = w_gprop.PropertiesDialog(self.parent, self.parent.rom, tab)
 
     def menu(self):
         # Context menu
@@ -253,24 +252,10 @@ class List:
                 selection = tv.get_selection()
                 (model, treeiter) = selection.get_selected()
                 log.debug(f"You selected {model[treeiter][3]}")
-                self.selected_game = model[treeiter][3]
+                self.parent.rom = model[treeiter][3]
 
                 self.treeview_menu.show_all()
                 self.treeview_menu.popup_at_pointer(event)
-
-    def rom_startup(self):
-        GLib.idle_add(self.parent.add_video_tab)
-        self.parent.running = True
-        #self.parent.frontend_conf.open_section("Frontend")
-        if self.parent.frontend_conf.get_bool("Frontend", "Vidext") == True:
-            self.parent.m64p_wrapper.vext_override = True
-        else:
-            self.parent.m64p_wrapper.vext_override = False
-        self.parent.m64p_wrapper.run(self.rom)
-
-        # Clean everything
-        GLib.idle_add(self.parent.remove_video_tab)
-        self.parent.running = False
 
     #UNUSED
     def header(self,crc1,crc2):
@@ -329,17 +314,6 @@ class Cache:
                         #elif item_path.lower().endswith(self.format64dd_allowed):
                         #    self.total64dd += [(item_path, str.upper(self.hashify(onerom[i])))]
 
-    def scan_element(self, rom):
-        '''Method that opens and reads a ROM, and finally returns valuable
-         informations that are in it'''
-        self.parent.m64p_wrapper.rom_open(rom)
-        header = self.parent.m64p_wrapper.rom_get_header()
-        settings = self.parent.m64p_wrapper.rom_get_settings()
-        self.parent.m64p_wrapper.rom_close()
-
-        element = [(header['country'], settings['goodname'], settings['status'], rom, settings['md5'])]
-        return element
-
     def scan(self):
         '''Threaded method to scan those ROMs that are indicated.'''
         log.info(f'Start scanning the directories')
@@ -350,7 +324,7 @@ class Cache:
         GLib.idle_add(self.progressbar.set_amount, self.amount_roms)
 
         for rom in total_paths:
-            element = self.scan_element(rom)
+            element = self.parent.action.scan_element(rom, "browser")
             GLib.idle_add(self.progressbar.tick)
             self.rom_list += element
 
@@ -386,7 +360,7 @@ class Cache:
 
             if new_elements:
                 for rom in new_elements:
-                    element = self.scan_element(rom)
+                    element = self.parent.action.scan_element(rom, "browser")
                     self.rom_list += element
                     GLib.idle_add(self.progressbar.tick)
             if missing_elements:

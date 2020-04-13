@@ -16,6 +16,7 @@ import utils.cache as u_cache
 import utils.config as u_conf
 #import utils.logging as u_log
 import utils.environment as u_env
+import widget.actions as w_act
 import widget.menu as w_m
 import widget.rombrowser as w_brw
 import widget.keysym as w_key
@@ -47,6 +48,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.args = self.application.args
         self.cache = None
         self.m64p_dir = None
+        self.rom = None
 
         args_debug = self.application.args.debug
         args_csd = self.application.args.enable_csd
@@ -67,6 +69,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.lock = self.m64p_wrapper.lock
 
         self.cheats = u_conf.CheatsCfg(self.window)
+        self.action = w_act.Actions(self.window)
 
         if args_debug == True:
             self.application.logger.set_level(log.DEBUG)
@@ -118,7 +121,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         ## Statusbar ##
         self.Statusbar = Gtk.Statusbar()
         self.StatusbarContext = self.Statusbar.get_context_id("m64p_status")
-        self.Statusbar.push(self.StatusbarContext,"Welcome to Good Old M64+!")
+        self.action.status_push("Welcome to Good Old M64+!")
 
         self.main_menu = w_m.Menu(self)
 
@@ -271,7 +274,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         #three arguments: self, widget, event
         if self.running == True:
             #TODO: There should be a dialog asking if the user wants to stop emulation first
-            self.main_menu.on_action_stop()
+            self.action.on_stop()
             return True
         else:
             self.application.quit()
@@ -279,7 +282,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def focus_cb(self, *args):
         if self.running == True:
             if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
-                self.main_menu.on_action_pause()
+                self.action.on_pause()
                 log.debug("The window has lost the focus! Stopping the emulation.")
 
     def on_text_change(self, entry):
@@ -307,9 +310,9 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             self.frontend_conf.set("Frontend", "StatusConfig", "False")
 
     def on_reload(self, widget):
-        self.Statusbar.push(self.StatusbarContext,"Refreshing the list...")
+        self.action.status_push("Refreshing the list...")
         self.browser_list.cache.generate()
-        self.Statusbar.push(self.StatusbarContext,"Refreshing the list...DONE")
+        self.action.status_push("Refreshing the list...DONE")
 
     def on_key_events(self, widget, event):
         #https://lazka.github.io/pgi-docs/Gdk-3.0/mapping.html
@@ -345,15 +348,15 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
                 self.main_menu.sensitive_menu_stop()
                 self.running = False
-                self.Statusbar.push(self.StatusbarContext, "*** Emulation STOPPED ***")
+                self.action.status_push( "*** Emulation STOPPED ***")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_RUNNING':
                 self.main_menu.sensitive_menu_run()
                 self.running = True
-                self.Statusbar.push(self.StatusbarContext, "*** Emulation STARTED ***")
+                self.action.status_push( "*** Emulation STARTED ***")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_PAUSED':
                 self.main_menu.sensitive_menu_pause()
                 self.running = False
-                self.Statusbar.push(self.StatusbarContext, "*** Emulation PAUSED ***")
+                self.action.status_push( "*** Emulation PAUSED ***")
 
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_video_mode(value).name}")
@@ -362,41 +365,41 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 self.m64p_wrapper.current_slot = value
                 self.main_menu.save_slot_items[value].set_active(True)
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}, SLOT: {value}")
-            self.Statusbar.push(self.StatusbarContext, "Slot selected: " + str(value))
+            self.action.status_push( "Slot selected: " + str(value))
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_FACTOR.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}%")
-            self.Statusbar.push(self.StatusbarContext, "Emulation speed: " + str(value) + "%")
+            self.action.status_push( "Emulation speed: " + str(value) + "%")
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_LIMITER.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}, {value}")
-            self.Statusbar.push(self.StatusbarContext, "Speed limit: " + str(value))
+            self.action.status_push( "Speed limit: " + str(value))
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value:
             #TODO:Not yet mapped, (ScreenWidth << 16) + ScreenHeight
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param)}, {str(value).encode('utf-8')}")
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_VOLUME.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}%")
-            self.Statusbar.push(self.StatusbarContext, "Audio volume: " + str(value) + "%")
+            self.action.status_push( "Audio volume: " + str(value) + "%")
         elif param == wrp_dt.m64p_core_param.M64CORE_AUDIO_MUTE.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")
             if value == 1:
-                self.Statusbar.push(self.StatusbarContext, "Audio has been muted!")
+                self.action.status_push( "Audio has been muted!")
             else:
-                self.Statusbar.push(self.StatusbarContext, "Audio has been unmuted.")
+                self.action.status_push( "Audio has been unmuted.")
         elif param == wrp_dt.m64p_core_param.M64CORE_INPUT_GAMESHARK.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")
             if value == 1:
-                self.Statusbar.push(self.StatusbarContext, "Gameshark button has been pressed!")
+                self.action.status_push( "Gameshark button has been pressed!")
         elif param == wrp_dt.m64p_core_param.M64CORE_STATE_LOADCOMPLETE.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")
             if value == 1:
-                self.Statusbar.push(self.StatusbarContext, "Save state is loaded successfully.")
+                self.action.status_push( "Save state is loaded successfully.")
             else:
-                self.Statusbar.push(self.StatusbarContext, "WARNING: Save state has failed to load!")
+                self.action.status_push( "WARNING: Save state has failed to load!")
         elif param == wrp_dt.m64p_core_param.M64CORE_STATE_SAVECOMPLETE.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")
             if value == 1:
-                self.Statusbar.push(self.StatusbarContext, "Save state is done successfully.")
+                self.action.status_push( "Save state is done successfully.")
             else:
-                self.Statusbar.push(self.StatusbarContext, "WARNING: Unable to create a save state!")
+                self.action.status_push( "WARNING: Unable to create a save state!")
         else:
             # Unmapped params go here.
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {value}")

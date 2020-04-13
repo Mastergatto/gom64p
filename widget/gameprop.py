@@ -20,9 +20,9 @@ class PropertiesDialog(Gtk.Dialog):
     def __init__(self, parent, path, tab):
         self.parent = parent
         self.game = path
-        self.header = None
-        self.settings = None
-        self.scan_element(path)
+        info = parent.action.scan_element(path)
+        self.header = info['header']
+        self.settings = info['settings']
 
         self.cheats = w_cht.Cheats(self.parent)
 
@@ -150,14 +150,6 @@ class PropertiesDialog(Gtk.Dialog):
         tab_area.add(label)
 
         return tab_area
-
-    def scan_element(self, rom):
-        '''Method that opens and reads a ROM, and finally returns valuable
-         informations that are in it'''
-        self.parent.m64p_wrapper.rom_open(rom)
-        self.header = self.parent.m64p_wrapper.rom_get_header()
-        self.settings = self.parent.m64p_wrapper.rom_get_settings()
-        self.parent.m64p_wrapper.rom_close()
 
     def insert_entry(self, text, field, case=None):
         box = Gtk.HBox()
