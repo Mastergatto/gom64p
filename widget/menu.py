@@ -8,15 +8,12 @@
 ## MODULES ##
 #############
 from gi.repository import Gtk, GLib
-import threading
 import logging as log
 
 import widget.configure as w_conf
 import widget.dialog as w_dialog
 import widget.plugin as w_plugin
 import widget.media as w_media
-import wrapper.datatypes as wrp_dt
-
 
 ###############
 ## VARIABLES ##
@@ -29,7 +26,6 @@ import wrapper.datatypes as wrp_dt
 class Menu:
     def __init__(self, parent):
         self.parent = parent
-        self.rom = None
         self.active_slot = self.parent.m64p_wrapper.current_slot # Don't ever remove it!
         self.toolbar_call()
         self.menubar_call()
@@ -37,19 +33,19 @@ class Menu:
     def toolbar_call(self):
         self.toolbar = Gtk.Toolbar()
 
-        self.toolbar_load_rom = self.insert_toolbar_item("document-open", self.return_state_lock(), self.on_ChoosingRom)
-        self.toolbar_play = self.insert_toolbar_item("media-playback-start", False, self.on_ResumeAction)
-        self.toolbar_pause = self.insert_toolbar_item("media-playback-pause", False, self.on_action_pause)
-        self.toolbar_stop = self.insert_toolbar_item("media-playback-stop", False, self.on_action_stop)
-        self.toolbar_next = self.insert_toolbar_item("media-skip-forward", False, self.on_advance_action)
-        self.toolbar_save_state = self.insert_toolbar_item("document-save", False, self.on_SaveStateAction)
-        self.toolbar_load_state = self.insert_toolbar_item("document-revert", False, self.on_LoadStateAction)
+        self.toolbar_load_rom = self.insert_toolbar_item("document-open", self.parent.action.return_state_lock(), self.on_choosing_rom)
+        self.toolbar_play = self.insert_toolbar_item("media-playback-start", False, self.parent.action.on_resume)
+        self.toolbar_pause = self.insert_toolbar_item("media-playback-pause", False, self.parent.action.on_pause)
+        self.toolbar_stop = self.insert_toolbar_item("media-playback-stop", False, self.parent.action.on_stop)
+        self.toolbar_next = self.insert_toolbar_item("media-skip-forward", False, self.parent.action.on_advance)
+        self.toolbar_save_state = self.insert_toolbar_item("document-save", False, self.parent.action.on_savestate)
+        self.toolbar_load_state = self.insert_toolbar_item("document-revert", False, self.parent.action.on_loadstate)
 
         self.toolbar_configure = Gtk.ToolButton(icon_name="preferences-system")
         self.toolbar_configure.connect_object("clicked", w_conf.ConfigDialog, self.parent)
 
-        self.toolbar_fullscreen = self.insert_toolbar_item("view-fullscreen", False, self.on_fullscreen_action)
-        self.toolbar_screenshot = self.insert_toolbar_item("camera-photo", False, self.on_screenshot_action)
+        self.toolbar_fullscreen = self.insert_toolbar_item("view-fullscreen", False, self.parent.action.on_fullscreen)
+        self.toolbar_screenshot = self.insert_toolbar_item("camera-photo", False, self.parent.action.on_screenshot)
 
         self.toolbar.insert(self.toolbar_load_rom, 0)
         self.toolbar.insert(Gtk.SeparatorToolItem(), 1)
@@ -76,10 +72,10 @@ class Menu:
         self.file_menu_label.set_submenu(self.file_menu)
 
 
-        self.file_menu_loadrom = self.insert_menu_item("Load ROM", self.return_state_lock(), self.on_ChoosingRom, None)
+        self.file_menu_loadrom = self.insert_menu_item("Load ROM", self.parent.action.return_state_lock(), self.on_choosing_rom, None)
 
         self.file_menu_reload = Gtk.MenuItem(label="Refresh list")
-        self.file_menu_reload.set_sensitive(self.return_state_lock())
+        self.file_menu_reload.set_sensitive(self.parent.action.return_state_lock())
         #self.file_menu_reload.connect("activate", self.on_UnloadRom)
 
         #self.recent_chooser_cb = Gtk.RecentChooser
@@ -91,7 +87,7 @@ class Menu:
         self.recent_filter.add_pattern('*.n64')
 
         self.file_menu_recents = Gtk.MenuItem(label="Recents")
-        self.file_menu_recents.set_sensitive(self.return_state_lock())
+        self.file_menu_recents.set_sensitive(self.parent.action.return_state_lock())
         self.file_menu_recents_submenu = Gtk.RecentChooserMenu.new_for_manager(self.recent_manager)
         self.file_menu_recents_submenu.set_show_numbers(False)
         self.file_menu_recents_submenu.add_filter(self.recent_filter)
@@ -115,33 +111,16 @@ class Menu:
         self.emulation_menu_label = Gtk.MenuItem(label="Emulation")
         self.emulation_menu_label.set_submenu(self.emulation_menu)
 
-        self.emulation_menu_play = self.insert_menu_item("Play", False, self.on_ResumeAction, None)
-        self.emulation_menu_pause = self.insert_menu_item("Pause", False, self.on_action_pause, None)
-        self.emulation_menu_stop = self.insert_menu_item("Stop", False, self.on_action_stop, None)
-        self.emulation_menu_soft_reset = self.insert_menu_item("Soft reset", False, self.on_SResetAction, None)
-        self.emulation_menu_hard_reset = self.insert_menu_item("Hard reset", False, self.on_HResetAction, None)
-        #self.emulation_menu_savestate = self.insert_menu_item("Save state", False, self.on_SaveStateAction, None)
-        #self.emulation_menu_savestate_as = self.insert_menu_item("Save state as...", False, self.on_SaveStateAction, None)
-        #self.emulation_menu_loadstate = self.insert_menu_item("Load state", False, self.on_LoadStateAction, None)
-        #self.emulation_menu_loadstate_from = self.insert_menu_item("Load state from...", False, self.on_LoadStateAction, None)
+        self.emulation_menu_play = self.insert_menu_item("Play", False, self.parent.action.on_resume, None)
+        self.emulation_menu_pause = self.insert_menu_item("Pause", False, self.parent.action.on_pause, None)
+        self.emulation_menu_stop = self.insert_menu_item("Stop", False, self.parent.action.on_stop, None)
+        self.emulation_menu_soft_reset = self.insert_menu_item("Soft reset", False, self.parent.action.on_sreset, None)
+        self.emulation_menu_hard_reset = self.insert_menu_item("Hard reset", False, self.parent.action.on_hreset, None)
+        self.emulation_menu_save_state = self.insert_menu_item("Save state", False, self.parent.action.on_savestate, option=False)
+        self.emulation_menu_save_state_as = self.insert_menu_item("Save state as...", False, self.parent.action.on_savestate, option=True)
+        self.emulation_menu_load_state = self.insert_menu_item("Load state", False, self.parent.action.on_loadstate, option=False)
+        self.emulation_menu_load_state_from = self.insert_menu_item("Load state from...", False, self.parent.action.on_loadstate, option=True)
 
-        self.emulation_menu_save_state = Gtk.MenuItem(label="Save state")
-        self.emulation_menu_save_state.connect("activate", self.on_SaveStateAction, False)
-        self.emulation_menu_save_state.set_sensitive(False)
-
-        self.emulation_menu_save_state_as = Gtk.MenuItem(label="Save state as...")
-        self.emulation_menu_save_state_as.connect("activate", self.on_SaveStateAction, True)
-        self.emulation_menu_save_state_as.set_sensitive(False)
-
-        self.emulation_menu_load_state = Gtk.MenuItem(label="Load state")
-        self.emulation_menu_load_state.connect("activate", self.on_LoadStateAction, False)
-        self.emulation_menu_load_state.set_sensitive(False)
-
-        self.emulation_menu_load_state_from = Gtk.MenuItem(label="Load state from...")
-        self.emulation_menu_load_state_from.connect("activate", self.on_LoadStateAction, True)
-        self.emulation_menu_load_state_from.set_sensitive(False)
-
-        #FIXME: It's a bit rough, needs to be rewritten better.
         self.save_slot_menu = Gtk.Menu()
         self.save_slot_items = list(["Slot 0", "Slot 1", "Slot 2", "Slot 3", "Slot 4", "Slot 5", "Slot 6", "Slot 7", "Slot 8", "Slot 9"])
         group = []
@@ -153,7 +132,7 @@ class Menu:
             menu_item.connect("activate", self.on_slot_select, i)
 
         self.emulation_menu_current_slot = self.insert_menu_item("Current save state slot", False, None, self.save_slot_menu)
-        self.emulation_menu_transfer_pak = self.insert_menu_item_obj("Media Loader", self.return_state_lock(), w_media.MediaDialog, self.parent)
+        self.emulation_menu_transfer_pak = self.insert_menu_item_obj("Media Loader", self.parent.action.return_state_lock(), w_media.MediaDialog, self.parent)
 
 
         self.emulation_menu.append(self.emulation_menu_play)
@@ -172,36 +151,7 @@ class Menu:
         self.emulation_menu.append(Gtk.SeparatorMenuItem())
         self.emulation_menu.append(self.emulation_menu_transfer_pak)
         self.menubar.append(self.emulation_menu_label)
-
-
-        #self.SaveSlotMenu = Gtk.Menu()
-        #self.EmulationMenuSaveSlot.set_submenu(self.SaveSlotMenu)
-
-
-        #self.SaveSlotMenu0 = Gtk.RadioMenuItem.new_with_label(None, "Slot 0")
-        #self.SaveSlotMenu1 = Gtk.RadioMenuItem.new_with_label([self.SaveSlotMenu0], "Slot 1")
-        #self.SaveSlotMenu2 = Gtk.RadioMenuItem.new_with_label([self.SaveSlotMenu0], "Slot 2")
-        #self.SaveSlotMenu3 = Gtk.RadioMenuItem.new_with_label([self.SaveSlotMenu0], "Slot 3")
-        #self.SaveSlotMenu4 = Gtk.RadioMenuItem.new_with_label([self.SaveSlotMenu0], "Slot 4")
-        #self.SaveSlotMenu5 = Gtk.RadioMenuItem.new_with_label([self.SaveSlotMenu0], "Slot 5")
-        #self.SaveSlotMenu6 = Gtk.RadioMenuItem.new_with_label([self.SaveSlotMenu0], "Slot 6")
-        #self.SaveSlotMenu7 = Gtk.RadioMenuItem.new_with_label([self.SaveSlotMenu0], "Slot 7")
-        #self.SaveSlotMenu8 = Gtk.RadioMenuItem.new_with_label([self.SaveSlotMenu0], "Slot 8")
-        #self.SaveSlotMenu9 = Gtk.RadioMenuItem.new_with_label([self.SaveSlotMenu0], "Slot 9")
-
-        #self.SaveSlotMenu.append(self.SaveSlotMenu0)
-        #self.SaveSlotMenu.append(self.SaveSlotMenu1)
-        #self.SaveSlotMenu.append(self.SaveSlotMenu2)
-        #self.SaveSlotMenu.append(self.SaveSlotMenu3)
-        #self.SaveSlotMenu.append(self.SaveSlotMenu4)
-        #self.SaveSlotMenu.append(self.SaveSlotMenu5)
-        #self.SaveSlotMenu.append(self.SaveSlotMenu6)
-        #self.SaveSlotMenu.append(self.SaveSlotMenu7)
-        #self.SaveSlotMenu.append(self.SaveSlotMenu8)
-        #self.SaveSlotMenu.append(self.SaveSlotMenu9)
-
         # End submenu
-
 
         ## "Options" Menu ##
         self.options_menu = Gtk.Menu()
@@ -209,11 +159,11 @@ class Menu:
         self.options_menu_label.set_submenu(self.options_menu)
 
         self.options_menu_configure = self.insert_menu_item_obj("Configure", True, w_conf.ConfigDialog, self.parent)
-        self.options_menu_gfx_configure = self.insert_menu_item_obj("Graphics Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.parent, 'gfx')
-        self.options_menu_audio_configure = self.insert_menu_item_obj("Audio Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.parent, 'audio')
-        self.options_menu_input_configure = self.insert_menu_item_obj("Input Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.parent, 'input')
-        self.options_menu_rsp_configure = self.insert_menu_item_obj("RSP Plugin", self.return_state_lock(), w_plugin.PluginDialog, self.parent, 'rsp')
-        self.options_menu_fullscreen = self.insert_menu_item("Full screen", False, self.on_fullscreen_action, None)
+        self.options_menu_gfx_configure = self.insert_menu_item_obj("Graphics Plugin", self.parent.action.return_state_lock(), w_plugin.PluginDialog, self.parent, 'gfx')
+        self.options_menu_audio_configure = self.insert_menu_item_obj("Audio Plugin", self.parent.action.return_state_lock(), w_plugin.PluginDialog, self.parent, 'audio')
+        self.options_menu_input_configure = self.insert_menu_item_obj("Input Plugin", self.parent.action.return_state_lock(), w_plugin.PluginDialog, self.parent, 'input')
+        self.options_menu_rsp_configure = self.insert_menu_item_obj("RSP Plugin", self.parent.action.return_state_lock(), w_plugin.PluginDialog, self.parent, 'rsp')
+        self.options_menu_fullscreen = self.insert_menu_item("Full screen", False, self.parent.action.on_fullscreen, None)
 
         self.options_menu.append(self.options_menu_configure)
         self.options_menu.append(Gtk.SeparatorMenuItem())
@@ -234,7 +184,7 @@ class Menu:
         self.view_menu_status = Gtk.CheckMenuItem(label="Status")
         self.view_menu_debugger = Gtk.MenuItem(label="Debugger")
 
-        self.view_menu_toolbar.connect("toggled", self.on_EnableToolbar_toggle)
+        self.view_menu_toolbar.connect("toggled", self.parent.action.on_toolbar_toggle)
 
         self.view_menu.append(self.view_menu_toolbar)
         self.view_menu.append(self.view_menu_filter)
@@ -263,8 +213,6 @@ class Menu:
         # End submenu
         self.menubar.append(self.view_menu_label)
 
-
-
         ## "Help" Menu
         self.help_menu = Gtk.Menu()
         self.help_menu_label = Gtk.MenuItem(label="Help")
@@ -279,119 +227,29 @@ class Menu:
 
         return self.menubar
 
-    def on_EnableToolbar_toggle(self, *args):
-        if self.view_menu_toolbar.get_active() == True:
-            self.toolbar.show_all()
-            self.parent.frontend_conf.set("Frontend", "ToolbarConfig", "True")
-        else:
-            self.toolbar.hide()
-            self.parent.frontend_conf.set("Frontend", "ToolbarConfig", "False")
+    # def on_EnableToolbar_toggle(self, *args):
+    #     if self.view_menu_toolbar.get_active() == True:
+    #         self.toolbar.show_all()
+    #         self.parent.frontend_conf.set("Frontend", "ToolbarConfig", "True")
+    #     else:
+    #         self.toolbar.hide()
+    #         self.parent.frontend_conf.set("Frontend", "ToolbarConfig", "False")
 
-    def item_activated(self, recentchoosermenu):
-        item = recentchoosermenu.get_current_item()
-
-        if item:
-            name = item.get_display_name()
-            uri = item.get_uri()
-
-            log.debug(f"Recent item selected: {name}, {uri}")
-
-    def add_filters(self, dialog):
-        filter_text = Gtk.FileFilter()
-        filter_text.set_name("N64 image (.n64, .v64, .z64)")
-        #filter_text.add_mime_type("application/x-n64-rom")
-        filter_text.add_pattern("*.n64")
-        filter_text.add_pattern("*.v64")
-        filter_text.add_pattern("*.z64")
-        dialog.add_filter(filter_text)
-
-        filter_any = Gtk.FileFilter()
-        filter_any.set_name("Any files")
-        filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
-
-    def rom_startup(self):
-        GLib.idle_add(self.parent.add_video_tab)
-        self.parent.running = True
-        #self.parent.frontend_conf.open_section("Frontend")
-        #print("Rombrowser:", self.parent.frontend_conf.get_bool("Vidext"))
-        if self.parent.frontend_conf.get_bool("Frontend", "Vidext") == True:
-            self.parent.m64p_wrapper.vext_override = True
-        else:
-            self.parent.m64p_wrapper.vext_override = False
-        self.parent.m64p_wrapper.run(self.rom)
-
-        # Clean everything
-        GLib.idle_add(self.parent.remove_video_tab)
-        self.parent.running = False
-
-    def on_ChoosingRom(self, *args):
+    def on_choosing_rom(self, *args):
         dialog = w_dialog.FileChooserDialog(self.parent, "rom")
         self.parent.Statusbar.push(self.parent.StatusbarContext, "Selecting the ROM...")
-        self.rom = dialog.path
+        self.parent.rom = dialog.path
         if dialog.path != None:
-            rom_uri = GLib.filename_to_uri(self.rom, None)
+            rom_uri = GLib.filename_to_uri(self.parent.rom, None)
             if self.recent_manager.has_item(rom_uri) == False:
                 self.recent_manager.add_item(rom_uri)
 
-            if self.rom != None and self.parent.m64p_wrapper.compatible == True:
-                thread = threading.Thread(name="Emulation", target=self.rom_startup)
-                try:
-                    thread.start()
-                    return thread
-                except:
-                    log.error("The emulation thread has encountered an unexpected error")
-                    threading.main_thread()
-            #except (KeyboardInterrupt, SystemExit):
-            #    #https://docs.python.org/3/library/signal.html
-            #    thread.stop()
-            #    sys.exit()
-
-    def on_action_stop(self, *args):
-        self.parent.m64p_wrapper.stop()
-        self.parent.running = False
-
-    def on_action_pause(self, *args):
-        self.parent.m64p_wrapper.pause()
-        #self.parent.Statusbar.push(self.parent.StatusbarContext, "*** Emulation PAUSED ***")
-
-    def on_ResumeAction(self, *args):
-        self.parent.m64p_wrapper.resume()
-        #self.parent.Statusbar.push(self.parent.StatusbarContext, "*** Emulation RESUMED ***")
-
-    def on_SResetAction(self, *args):
-        self.parent.m64p_wrapper.reset(0)
-        self.parent.Statusbar.push(self.parent.StatusbarContext, "*** Emulation RESETTED ***")
-
-    def on_HResetAction(self, *args):
-        self.parent.m64p_wrapper.reset(1)
-        self.parent.Statusbar.push(self.parent.StatusbarContext, "*** Emulation RESETTED ***")
-
-    def on_SaveStateAction(self, widget, path=False, *args):
-        if path == True:
-            dialog = w_dialog.FileChooserDialog(self.parent, "snapshot", 1) # Gtk.FileChooserAction for save
-            file = dialog.path
-            self.parent.m64p_wrapper.state_save(file) #TODO:Currently hardcoded to always create a m64+ save state.
-        else:
-            self.parent.m64p_wrapper.state_save()
-        self.parent.Statusbar.push(self.parent.StatusbarContext, "Saved")
-
-    def on_LoadStateAction(self, widget, path=False, *args):
-        if path == True:
-            dialog = w_dialog.FileChooserDialog(self.parent, "snapshot", 0) #Gtk.FileChooserAction for load
-            file = dialog.path
-            self.parent.m64p_wrapper.state_load(file)
-        else:
-            self.parent.m64p_wrapper.state_load()
-        self.parent.Statusbar.push(self.parent.StatusbarContext, "Loaded")
+        self.parent.action.thread_rom()
 
     def on_slot_select(self, widget, slot):
         if self.active_slot != slot:
             self.active_slot = slot
             self.parent.m64p_wrapper.state_set_slot(slot)
-
-    def on_fullscreen_action(self, widget):
-        self.parent.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value, wrp_dt.m64p_video_mode.M64VIDEO_FULLSCREEN.value)
 
     def sensitive_menu_run(self, *args):
         self.file_menu_loadrom.set_sensitive(False)
@@ -469,11 +327,11 @@ class Menu:
 
         return item
 
-    def insert_menu_item(self, label, sensitive, action=None, submenu=None):
+    def insert_menu_item(self, label, sensitive, action=None, option=None, submenu=None):
         item = Gtk.MenuItem(label=label)
         item.set_sensitive(sensitive)
         if action != None:
-            item.connect("activate", action)
+            item.connect("activate", action, option)
         #if append_item != None:
         #    item.append(append_item)
         if submenu != None:
@@ -492,28 +350,15 @@ class Menu:
             item.connect_object("activate", obj, value1, value2, value3)
         return item
 
-    def on_screenshot_action(self, widget):
-        self.parent.m64p_wrapper.take_next_screenshot()
-
-    def on_advance_action(self, widget):
-        self.parent.m64p_wrapper.advance_frame()
-
-    def return_state_lock(self):
-        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
-            return False
-        else:
-            return True
-
     def on_recent_activated(self, widget):
+        #item = recentchoosermenu.get_current_item()
+        #if item:
+        #    name = item.get_display_name()
+        #    uri = item.get_uri()
+        #   log.debug(f"Recent item selected: {name}, {uri}")
+            
         rom_uri = widget.get_current_uri()
         raw_path = GLib.filename_from_uri(rom_uri)
-        self.rom = raw_path[0]
+        self.parent.rom = raw_path[0]
 
-        if self.rom != None and self.parent.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation", target=self.rom_startup)
-            try:
-                thread.start()
-                return thread
-            except:
-                log.error("The emulation thread has encountered an unexpected error")
-                threading.main_thread()
+        self.parent.action.thread_rom()

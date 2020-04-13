@@ -119,8 +119,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             log.debug("CSD enabled")
 
         ## Statusbar ##
-        self.Statusbar = Gtk.Statusbar()
-        self.StatusbarContext = self.Statusbar.get_context_id("m64p_status")
+        self.statusbar = Gtk.Statusbar()
+        self.statusbar_context = self.statusbar.get_context_id("m64p_status")
         self.action.status_push("Welcome to Good Old M64+!")
 
         self.main_menu = w_m.Menu(self)
@@ -132,9 +132,9 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.file_menu_reload = self.main_menu.file_menu_reload
         self.file_menu_reload.connect('activate', self.on_reload)
         self.view_menu_filter = self.main_menu.view_menu_filter
-        self.view_menu_filter.connect("toggled", self.on_EnableFilter_toggle)
+        self.view_menu_filter.connect("toggled", self.action.on_filter_toggle)
         self.view_menu_status = self.main_menu.view_menu_status
-        self.view_menu_status.connect("toggled", self.on_EnableStatusBar_toggle)
+        self.view_menu_status.connect("toggled", self.action.on_statusbar_toggle)
 
         ## Toolbar ##
         self.toolbar = self.main_menu.toolbar_call()
@@ -186,7 +186,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.main_box.pack_start(self.menubar, False, False, 0)
         self.main_box.pack_start(self.toolbar, False, False, 0)
         self.main_box.pack_start(self.notebook, True, True, 0)
-        self.main_box.pack_end(self.Statusbar, False, False, 0)
+        self.main_box.pack_end(self.statusbar, False, False, 0)
 
         self.window.add(self.main_box)
 
@@ -203,11 +203,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         self.main_box.show()
         self.menubar.show_all()
-        #self.toolbar.hide()
-        #self.filter_box.hide()
 
         self.notebook.show_all()
-        #self.Statusbar.hide()
         self.window.show()
 
     def csd(self):
@@ -288,26 +285,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def on_text_change(self, entry):
         self.browser_list.game_search_current = entry.get_text()
         self.browser_list.game_search_filter.refilter()
-
-    def on_EnableFilter_toggle(self, *args):
-        filter_checkbox = self.view_menu_filter
-        n64list_filter = self.filter_box
-        if filter_checkbox.get_active() == 1:
-            n64list_filter.show_all()
-            self.frontend_conf.set("Frontend", "FilterConfig", "True")
-        else:
-            n64list_filter.hide()
-            self.frontend_conf.set("Frontend", "FilterConfig", "False")
-
-    def on_EnableStatusBar_toggle(self, *args):
-        statusbar_checkbox = self.view_menu_status
-        m64p_statusbar = self.Statusbar
-        if statusbar_checkbox.get_active() == 1:
-            m64p_statusbar.show()
-            self.frontend_conf.set("Frontend", "StatusConfig", "True")
-        else:
-            m64p_statusbar.hide()
-            self.frontend_conf.set("Frontend", "StatusConfig", "False")
 
     def on_reload(self, widget):
         self.action.status_push("Refreshing the list...")

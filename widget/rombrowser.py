@@ -194,28 +194,14 @@ class List:
         if self.recent_manager.has_item(rom_uri) == False:
             self.recent_manager.add_item(rom_uri)
 
-        if self.parent.rom != None and self.parent.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation", target=self.parent.action.rom_startup)
-            try:
-                thread.start()
-                return thread
-            except:
-                log.error("The emulation thread has encountered an unexpected error")
-                threading.main_thread()
-
+        self.parent.action.thread_rom()
+        
     def on_playitem_activated(self, widget):
         rom_uri = GLib.filename_to_uri(self.parent.rom, None)
         if self.recent_manager.has_item(rom_uri) == False:
             self.recent_manager.add_item(rom_uri)
 
-        if self.parent.rom != None and self.parent.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation", target=self.parent.action.rom_startup)
-            try:
-                thread.start()
-                return thread
-            except:
-                log.error("The emulation thread has encountered an unexpected error")
-                threading.main_thread()
+        self.parent.action.thread_rom()
 
     def on_properties_activated(self, widget, tab):
         dialog = w_gprop.PropertiesDialog(self.parent, self.parent.rom, tab)
