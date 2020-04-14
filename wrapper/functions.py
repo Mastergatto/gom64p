@@ -792,10 +792,10 @@ class API():
         status = function()
 
         if status == 1:
-            print(section + ": Changes detected!")
+            log.debug(section + ": Changes detected!")
             return True
         else:
-            print(section + ": No unsaved changes. Move along, nothing to see here.")
+            log.debug(section + ": No unsaved changes. Move along, nothing to see here.")
             return False
 
     ## Modifier functions
@@ -1028,7 +1028,7 @@ class API():
         if status != None:
             return status.decode("utf-8")
         else:
-            print("No description is available for this parameter: ", name)
+            log.warning(f"No description is available for this parameter: {name}")
 
     ##Special Get/Set Functions
     def ConfigSetDefaultInt(self, name, value, help):
@@ -1110,7 +1110,7 @@ class API():
         if status:
             return status
         else:
-            print("ConfigGetParamInt error:" + name)
+            log.error(f"ConfigGetParamInt error: {name}")
 
     def ConfigGetParamFloat(self, name):
         #float ConfigGetParamFloat(m64p_handle ConfigSectionHandle, const char *ParamName)
@@ -1123,7 +1123,7 @@ class API():
         if status:
             return status
         else:
-            print("ConfigGetParamFloat error:" + name)
+            log.error(f"ConfigGetParamFloat error:  {name}")
 
     def ConfigGetParamBool(self, name):
         #int ConfigGetParamBool(m64p_handle ConfigSectionHandle, const char *ParamName)
@@ -1136,7 +1136,7 @@ class API():
         if status:
             return c_bool(status).value
         else:
-            print("ConfigGetParamBool error:" + name)
+            log.error(f"ConfigGetParamBool error: {name}")
 
     def ConfigGetParamString(self, name):
         #const char *ConfigGetParamString(m64p_handle ConfigSectionHandle, const char *ParamName)
@@ -1150,7 +1150,7 @@ class API():
         if status != None:
             return status
         else:
-            print("ConfigGetParamString error:" + name)
+            log.error(f"ConfigGetParamString error: {name}")
 
     ## OS-Abstraction Functions
     def ConfigGetSharedDataFilepath(self, string):
@@ -1790,7 +1790,7 @@ class API():
                     elif info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_RSP.value:
                         self.rsp_plugins[filename] = info["name"]
                     else:
-                        print("Unknown plugin")
+                        log.error("Unknown plugin")
                 except OSError as e:
                     log.warning(f"{filename}: Plugin not working or not compatible, skipping it. \n > {e}")
         except (AttributeError, TypeError) as e:

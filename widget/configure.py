@@ -47,7 +47,6 @@ class ConfigDialog(Gtk.Dialog):
         config_notebook.set_vexpand(True)
 
         ## Frontend tab ##
-        #self.parent.frontend_conf.open_section("Frontend")
         frontend_tab = Gtk.Label(label="Frontend")
 
         m64plib_frame = Gtk.Frame(label="mupen64plus library", shadow_type=1)
@@ -436,7 +435,6 @@ class ConfigDialog(Gtk.Dialog):
 
         paths_box.pack_start(m64p_frame, False, False, 0)
         paths_box.pack_start(gamedir_frame, False, False, 0)
-        #self.parent.frontend_conf.open_section("Frontend")
 
         config_notebook.append_page(paths_box, paths_tab)
 
@@ -602,7 +600,6 @@ class ConfigDialog(Gtk.Dialog):
         self.apply_button.set_sensitive(True)
         value = widget.get_text()
         if section == "Frontend" or section == "GameDirs":
-            #self.parent.frontend_conf.open_section(section)
             self.parent.frontend_conf.set(section, param, value)
         else:
             self.parent.m64p_wrapper.ConfigOpenSection(section)
@@ -629,7 +626,6 @@ class ConfigDialog(Gtk.Dialog):
 
     def former_update(self):
         self.is_changed = False
-        #self.parent.frontend_conf.open_section("Frontend")
         self.former_values['library'] = self.parent.frontend_conf.get("Frontend", 'M64pLib')
         self.former_values['plugins_dir'] = self.parent.frontend_conf.get("Frontend", 'PluginsDir')
         self.former_values['config_dir'] = self.parent.frontend_conf.get("Frontend", 'ConfigDir')
@@ -639,7 +635,6 @@ class ConfigDialog(Gtk.Dialog):
         self.former_values['input_plugin'] = self.parent.frontend_conf.get("Frontend", 'InputPlugin')
         self.former_values['rsp_plugin'] = self.parent.frontend_conf.get("Frontend", 'RSPPlugin')
         self.former_values['vidext'] = self.parent.frontend_conf.get("Frontend", 'Vidext')
-        #self.parent.frontend_conf.open_section("GameDirs")
         self.former_values['path1'] = self.parent.frontend_conf.get("GameDirs", 'path1')
         self.former_values['path2'] = self.parent.frontend_conf.get("GameDirs", 'path2')
         self.former_values['path3'] = self.parent.frontend_conf.get("GameDirs", 'path3')
@@ -672,7 +667,6 @@ class ConfigDialog(Gtk.Dialog):
         checkbox = Gtk.CheckButton.new_with_label(label)
         try:
             if config == "frontend":
-                #self.parent.frontend_conf.open_section(section)
                 if self.parent.frontend_conf.get(section, param) == "True":
                     checkbox.set_active(True)
                 checkbox.set_tooltip_text(help)
@@ -686,7 +680,6 @@ class ConfigDialog(Gtk.Dialog):
             checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
         except KeyError:
             if config == "frontend":
-                #self.parent.frontend_conf.open_section(section)
                 self.parent.frontend_conf.set(section, param, 'False')
                 log.warning(f'{param} parameter NOT found, setting new default value.')
             else:

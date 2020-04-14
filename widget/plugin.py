@@ -9,10 +9,11 @@
 #############
 from gi.repository import Gtk, Gdk, GLib, GdkPixbuf
 import os.path, threading, time, pathlib
+import logging as log
+import sdl2 as sdl
 
 import wrapper.callback as cb
 import widget.keysym as w_key
-import external.sdl2 as sdl
 
 #############
 ## CLASSES ##
@@ -40,7 +41,7 @@ class BindDialog(Gtk.MessageDialog):
             try:
                 thread.start()
             except:
-                print("The binding thread has encountered an unexpected error")
+                log.error("The binding thread has encountered an unexpected error")
                 threading.main_thread()
         self.run()
 
@@ -196,7 +197,7 @@ class PluginDialog(Gtk.Dialog):
                 grid.attach(entry, 1, counter, 1, 1)
                 counter += 1
             else:
-                print("Unknown option, ignored")
+                log.warning("Unknown option, ignored")
         if len(value_param) == 0:
             empty = Gtk.Label("No option have been found here!")
             grid.attach(empty, 0, counter, 1, 1)
@@ -443,7 +444,7 @@ class PluginDialog(Gtk.Dialog):
         try:
             thread.start()
         except:
-            print("The polling thread has encountered an unexpected error")
+            log.error("The polling thread has encountered an unexpected error")
             threading.main_thread()
 
     def poll_sdl_events(self):
@@ -486,8 +487,8 @@ class PluginDialog(Gtk.Dialog):
                             self.pages_list[page][1].set_active_id(str(self.gamepads_stored[page][0]))
                         page += 1
 
-                    print("Controller added: ", name)
-                    print("Current active controllers: ", sdl.SDL_NumJoysticks())
+                    log.info(f"Controller added: {name}")
+                    log.info(f"Current active controllers: {sdl.SDL_NumJoysticks()}")
                 elif event.type == sdl.SDL_JOYDEVICEREMOVED:
                     joy_id = event.jdevice.which
                     device = self.active_gamepads[joy_id]
@@ -501,9 +502,9 @@ class PluginDialog(Gtk.Dialog):
                             self.pages_list[page][1].set_active_id("-1")
                             self.pages_list[page][1].remove(self.gamepads_stored[page][0])
                         page += 1
-                    print("Controller removed: ", name)
+                    log.info(f"Controller removed: {name}")
                     self.active_gamepads.pop(joy_id)
-                    print("Current active controllers: ", sdl.SDL_NumJoysticks())
+                    log.info(f"Current active controllers: {sdl.SDL_NumJoysticks()}")
 
     def on_EntryChanged(self, widget, param, param_type, array, section):
         self.parent.m64p_wrapper.ConfigOpenSection(section)
@@ -519,7 +520,7 @@ class PluginDialog(Gtk.Dialog):
         else:
             array[param] = value
             self.parent.m64p_wrapper.ConfigSetParameter(param, value)
-        print(section, array)
+        log.debug(section, array)
 
     def on_CheckboxToggled(self, widget, section, param, array):
         #self.is_changed = True
@@ -529,7 +530,7 @@ class PluginDialog(Gtk.Dialog):
         if array != None:
             array[param] = value
         self.parent.m64p_wrapper.ConfigSetParameter(param, value)
-        print(section, array)
+        log.debug(section, array)
 
     def on_combobox_changed(self, widget, section, param):
         self.is_changed = True

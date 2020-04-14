@@ -227,17 +227,9 @@ class Menu:
 
         return self.menubar
 
-    # def on_EnableToolbar_toggle(self, *args):
-    #     if self.view_menu_toolbar.get_active() == True:
-    #         self.toolbar.show_all()
-    #         self.parent.frontend_conf.set("Frontend", "ToolbarConfig", "True")
-    #     else:
-    #         self.toolbar.hide()
-    #         self.parent.frontend_conf.set("Frontend", "ToolbarConfig", "False")
-
     def on_choosing_rom(self, *args):
         dialog = w_dialog.FileChooserDialog(self.parent, "rom")
-        self.parent.Statusbar.push(self.parent.StatusbarContext, "Selecting the ROM...")
+        self.parent.action.status_push("Selecting the ROM...")
         self.parent.rom = dialog.path
         if dialog.path != None:
             rom_uri = GLib.filename_to_uri(self.parent.rom, None)
