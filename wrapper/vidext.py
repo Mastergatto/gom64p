@@ -44,7 +44,6 @@ class Vidext():
     def __init__(self):
         self.window = None
         self.title = None
-        self.fullscreen_window = None
 
         self.modes = []
         self.fullscreen = 0
@@ -97,7 +96,40 @@ class Vidext():
         # Mandatory since we're doing the hack for embedding SDL into GTK+, otherwise gamepads won't work here since GTK+ doesn't handle those inputs.
         #sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
         
-        self.xid = self.window.canvas.get_property('window').get_xid()
+        
+        if self.window.platform == 'Linux':
+            from gi.repository import GdkX11
+            # Hack to embed sdl window into the frontend.
+            # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
+            self.window_handle = self.window.canvas.get_property('window').get_xid()
+            # for wayland maybe use gdk_wayland_surface_get_window_geometry + gdk_surface_get_geometry?
+        elif self.window.platform == 'Windows':
+            # https://stackoverflow.com/questions/23021327/how-i-can-get-drawingarea-window-handle-in-gtk3/27236258#27236258
+            # https://gitlab.gnome.org/GNOME/gtk/issues/510
+            drawingareahwnd = self.window.canvas.get_property("window")
+            # make sure to call ensure_native before e.g. on realize
+            if not drawingareahwnd.has_native():
+                log.warning("Vidext: Your window is gonna freeze as soon as you move or resize it...")
+            c.pythonapi.PyCapsule_GetPointer.restype = c.c_void_p
+            c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
+            drawingarea_gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareahwnd.__gpointer__, None)
+            # get the win32 handle
+            libgdk = c.CDLL("gdk-3-vs16.dll")
+            self.window_handle = libgdk.gdk_win32_window_get_handle(drawingarea_gpointer)
+        elif self.window.platform == 'Darwin':
+            # https://gitlab.gnome.org/GNOME/pygobject/issues/112
+            drawingareahnd = self.window.canvas.get_property("window")
+            # make sure to call ensure_native before e.g. on realize
+            if not drawingareahnd.has_native():
+                log.warning("Vidext: Your window is gonna freeze as soon as you move or resize it...")
+            c.pythonapi.PyCapsule_GetPointer.restype = c.c_void_p
+            c.pythonapi.PyCapsule_GetPointer.argtypes = [c.py_object]
+            gpointer = c.pythonapi.PyCapsule_GetPointer(drawingareahnd.__gpointer__, None)
+            libgdk = c.CDLL ("libgdk-3.0.dylib")
+            #gdk_quartz_window_get_nswindow segfaults.
+            libgdk.gdk_quartz_window_get_nsview.restype = c.c_void_p
+            libgdk.gdk_quartz_window_get_nsview.argtypes = [c.c_void_p]
+            self.window_handle = libgdk.gdk_quartz_window_get_nsview(gpointer)
         
         self.egl_display = egl.eglGetDisplay(egl.EGL_DEFAULT_DISPLAY)
         if self.egl_display == egl.EGL_NO_DISPLAY:
@@ -198,7 +230,7 @@ class Vidext():
         
         if self.new_surface:
             log.info("VidExtFuncSetMode: Initializing surface")
-            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.xid, self.window_attributes)
+            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.window_handle, self.window_attributes)
             
             self.egl_context = egl.eglCreateContext(self.egl_display, self.egl_config[0], egl.EGL_NO_CONTEXT, self.opengl_version)
         
@@ -335,7 +367,7 @@ class Vidext():
         #log.debug("Vidext: gl_swap_buffer()")
         if self.new_surface:
             log.info("VidExtFuncGLSwapBuf: New surface has been detected")
-            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.xid, self.window_attributes)
+            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.window_handle, self.window_attributes)
             
             try:
                 egl.eglMakeCurrent(self.egl_display, self.egl_surface, self.egl_surface, self.egl_context)
