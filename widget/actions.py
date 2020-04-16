@@ -11,6 +11,7 @@ from gi.repository import Gtk, GLib
 import threading
 
 import widget.dialog as w_dialog
+import wrapper.datatypes as wrp_dt
 
 #############
 ## CLASSES ##
@@ -43,7 +44,7 @@ class Actions:
     
     def rom_startup(self):
         GLib.idle_add(self.frontend.add_video_tab)
-        self.frontend.running = True
+        self.frontend.emulating = True
         #self.frontend.frontend_conf.open_section("Frontend")
         if self.frontend.frontend_conf.get_bool("Frontend", "Vidext") == True:
             self.frontend.m64p_wrapper.vext_override = True
@@ -53,13 +54,13 @@ class Actions:
 
         # Clean everything
         GLib.idle_add(self.frontend.remove_video_tab)
-        self.frontend.running = False
+        self.frontend.emulating = False
         
     ## Other ##
 
     def on_stop(self, *args):
         self.frontend.m64p_wrapper.stop()
-        self.frontend.running = False
+        self.frontend.emulating = False
 
     def on_pause(self, *args):
         self.frontend.m64p_wrapper.pause()
@@ -101,7 +102,10 @@ class Actions:
             self.frontend.m64p_wrapper.state_set_slot(slot)
 
     def on_fullscreen(self, widget):
-        self.frontend.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value, wrp_dt.m64p_video_mode.M64VIDEO_FULLSCREEN.value)
+        if self.frontend.isfullscreen == False:
+            self.frontend.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value, wrp_dt.m64p_video_mode.M64VIDEO_FULLSCREEN.value)
+        else:
+            self.frontend.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value, wrp_dt.m64p_video_mode.M64VIDEO_WINDOWED.value)
 
     def on_screenshot(self, widget):
         self.frontend.m64p_wrapper.take_next_screenshot()

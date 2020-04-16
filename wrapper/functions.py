@@ -228,10 +228,10 @@ class API():
         status = function()
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            log.debug(f"CoreDoCommand: {wrp_dt.m64p_command(command).name}")
-            return status
+            log.debug(f"CoreDoCommand: {wrp_dt.m64p_command(command).name}:{wrp_dt.m64p_core_param(arg1.value).name if arg1.value == 6 else arg1}:{arg2}")
         else:
             self.CoreErrorMessage(status, wrp_dt.m64p_command(command).name.encode("utf-8"))
+        return status
 
     ## ROM Handling
     def CoreGetRomSettings(self, crc1, crc2):
@@ -1520,15 +1520,15 @@ class API():
             log.error("CoreDoCommand: Unable to resume emulation")
         return status
 
-    def core_state_query(self, query):
+    def core_state_query(self, state):
         #M64CMD_CORE_STATE_QUERY = 9
         # M64CORE_EMU_STATE, M64CORE_VIDEO_MODE, M64CORE_SAVESTATE_SLOT, M64CORE_SPEED_FACTOR, M64CORE_SPEED_LIMITER, M64CORE_VIDEO_SIZE, M64CORE_AUDIO_VOLUME, M64CORE_AUDIO_MUTE, M64CORE_INPUT_GAMESHARK, M64CORE_STATE_LOADCOMPLETE, M64CORE_STATE_SAVECOMPLETE
 
-        state_param = c.c_void_p()
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_QUERY.value, c.c_int(query), c.byref(state_param))
+        state_query = c.pointer(c.c_int())
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_QUERY.value, c.c_int(state), c.byref(state_query))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to query the core")
-        return state_param.value
+        return state_query.contents.value
 
     def state_load(self, path=None):
         #M64CMD_STATE_LOAD = 10
@@ -1593,15 +1593,15 @@ class API():
             log.error("CoreDoCommand: Unable to take screenshot")
         return status
 
-    def core_state_set(self, query, value):
+    def core_state_set(self, state, value):
         #M64CMD_CORE_STATE_SET = 17
         # M64CORE_EMU_STATE, M64CORE_VIDEO_MODE, M64CORE_SAVESTATE_SLOT, M64CORE_SPEED_FACTOR, M64CORE_SPEED_LIMITER, M64CORE_VIDEO_SIZE, M64CORE_AUDIO_VOLUME, M64CORE_AUDIO_MUTE, M64CORE_INPUT_GAMESHARK, M64CORE_STATE_LOADCOMPLETE, M64CORE_STATE_SAVECOMPLETE
 
-        valueptr = c.byref(c.c_int(value))
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_SET.value, c.c_int(query), valueptr)
+        valueptr = c.pointer(c.c_int(value))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_SET.value, c.c_int(state), valueptr)
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            log.error("CoreDoCommand: Unable to set the core state")
-        return status
+            log.error(f"CoreDoCommand: Unable to set the core state, error is {wrp_dt.m64p_error(status).name}")
+        return valueptr.contents.value
 
     def read_screen(self, buffer_type, buffer_ptr):
         #M64CMD_READ_SCREEN = 18

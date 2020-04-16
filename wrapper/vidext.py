@@ -46,7 +46,6 @@ class Vidext():
         self.title = None
 
         self.modes = []
-        self.fullscreen = 0
         self.width = 0
         self.height = 0
         self.former_size = None
@@ -190,6 +189,8 @@ class Vidext():
         self.former_size = self.window.get_size()
         # Needed for get_preferred_size() to work
         self.window.set_resizable(False)
+        if wrp_dt.m64p_video_flags(flags).name == "M64VIDEOFLAG_SUPPORT_RESIZING":
+            self.window.set_resizable(True)
         # Necessary so that we tell the GUI to not shrink the window further than the size of the widget set by mupen64plus
         self.window.canvas.set_size_request(width, height)
         # It doesn't just get the preferred size, it DOES resize the window too
@@ -230,9 +231,9 @@ class Vidext():
         
         if self.new_surface:
             log.info("VidExtFuncSetMode: Initializing surface")
-            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.window_handle, self.window_attributes)
+            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.window_handle, None) #angrylion rdp+ doesn't like self.window_attributes
             
-            self.egl_context = egl.eglCreateContext(self.egl_display, self.egl_config[0], egl.EGL_NO_CONTEXT, self.opengl_version)
+            self.egl_context = egl.eglCreateContext(self.egl_display, self.egl_config[0], egl.EGL_NO_CONTEXT, None) #glide64mk and rice don't like self.opengl_version
         
             if self.egl_context == egl.EGL_NO_CONTEXT:
                 raise RuntimeError( 'Unable to create context' )
@@ -377,7 +378,7 @@ class Vidext():
             
             self.new_surface = False
         else:
-            if self.window.running == True:
+            if self.window.emulating == True:
                 egl.eglSwapBuffers(self.egl_display, self.egl_surface)
 
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
@@ -389,14 +390,20 @@ class Vidext():
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_toggle_fs(self):
-        #TODO: Unimplemented
         log.debug("Vidext: video_toggle_fs()")
-        retval = None
-        if self.fullscreen == 0:
+        retval = 0
+        if self.window.isfullscreen == False:
+            log.debug("Vidext: video_toggle_fs() set to fullscreen")
             # Makes it fullscreen
-            self.fullscreen = 1
+            self.window.isfullscreen = True
+            self.window.set_resizable(True)
+            self.window.fullscreen()
+
         else:
-            self.fullscreen = 0
+            log.debug("Vidext: video_toggle_fs() set to windowed")
+            self.window.isfullscreen = False
+            self.window.unfullscreen()
+            self.window.set_resizable(False)
 
         if retval == 0:
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
