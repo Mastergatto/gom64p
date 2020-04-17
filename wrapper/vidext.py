@@ -378,7 +378,7 @@ class Vidext():
             
             self.new_surface = False
         else:
-            if self.window.emulating == True:
+            if self.window.running == True:
                 egl.eglSwapBuffers(self.egl_display, self.egl_surface)
 
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
@@ -390,20 +390,12 @@ class Vidext():
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_toggle_fs(self):
-        log.debug("Vidext: video_toggle_fs()")
-        retval = 0
-        if self.window.isfullscreen == False:
+        retval = 0      
+        if self.window.isfullscreen == True:
             log.debug("Vidext: video_toggle_fs() set to fullscreen")
-            # Makes it fullscreen
-            self.window.isfullscreen = True
-            self.window.set_resizable(True)
-            self.window.fullscreen()
 
         else:
             log.debug("Vidext: video_toggle_fs() set to windowed")
-            self.window.isfullscreen = False
-            self.window.unfullscreen()
-            self.window.set_resizable(False)
 
         if retval == 0:
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value

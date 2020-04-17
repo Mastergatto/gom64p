@@ -284,7 +284,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
     ### SIGNALS (clicked for button, activate for menu)
 
-    def quit_cb(self, widget, event):
+    def quit_cb(self, *args):
         if self.emulating == True:
             #TODO: There should be a dialog asking if the user wants to stop emulation first
             self.action.on_stop()
@@ -362,9 +362,11 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         if param == wrp_dt.m64p_core_param.M64CORE_EMU_STATE.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_emu_state(value).name}")
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
-                self.main_menu.sensitive_menu_stop()
                 self.running = False
                 self.emulating = False
+                if self.window.isfullscreen == True:
+                    self.window.action.on_fullscreen(self, False)
+                self.main_menu.sensitive_menu_stop()
                 self.action.status_push( "*** Emulation STOPPED ***")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_RUNNING':
                 self.main_menu.sensitive_menu_run()
