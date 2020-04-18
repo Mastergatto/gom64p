@@ -44,7 +44,7 @@ class Menu:
         self.toolbar_configure = Gtk.ToolButton(icon_name="preferences-system")
         self.toolbar_configure.connect_object("clicked", w_conf.ConfigDialog, self.parent)
 
-        self.toolbar_fullscreen = self.insert_toolbar_item("view-fullscreen", False, self.parent.action.on_fullscreen)
+        self.toolbar_fullscreen = self.insert_toolbar_item_obj("view-fullscreen", False, self.parent.action.on_fullscreen, True)
         self.toolbar_screenshot = self.insert_toolbar_item("camera-photo", False, self.parent.action.on_screenshot)
 
         self.toolbar.insert(self.toolbar_load_rom, 0)
@@ -163,7 +163,7 @@ class Menu:
         self.options_menu_audio_configure = self.insert_menu_item_obj("Audio Plugin", self.parent.action.return_state_lock(), w_plugin.PluginDialog, self.parent, 'audio')
         self.options_menu_input_configure = self.insert_menu_item_obj("Input Plugin", self.parent.action.return_state_lock(), w_plugin.PluginDialog, self.parent, 'input')
         self.options_menu_rsp_configure = self.insert_menu_item_obj("RSP Plugin", self.parent.action.return_state_lock(), w_plugin.PluginDialog, self.parent, 'rsp')
-        self.options_menu_fullscreen = self.insert_menu_item("Full screen", False, self.parent.action.on_fullscreen, None)
+        self.options_menu_fullscreen = self.insert_menu_item_obj("Full screen", False, self.parent.action.on_fullscreen, True)
 
         self.options_menu.append(self.options_menu_configure)
         self.options_menu.append(Gtk.SeparatorMenuItem())
@@ -316,6 +316,13 @@ class Menu:
         item = Gtk.ToolButton(icon_name=name)
         item.set_sensitive(sensitive)
         item.connect("clicked", action)
+
+        return item
+
+    def insert_toolbar_item_obj(self, name, sensitive, action, value=None):
+        item = Gtk.ToolButton(icon_name=name)
+        item.set_sensitive(sensitive)
+        item.connect("clicked", action, value)
 
         return item
 

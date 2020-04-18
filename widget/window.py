@@ -17,6 +17,7 @@ import utils.config as u_conf
 #import utils.logging as u_log
 import utils.environment as u_env
 import widget.actions as w_act
+import widget.canvas as w_cvs
 import widget.menu as w_m
 import widget.rombrowser as w_brw
 import widget.keysym as w_key
@@ -102,6 +103,9 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         # It detectes changes to resizes of window.
         self.window.connect("configure-event", self.resize_cb)
+
+        # It tracks fullscreen/windowed state.
+        self.window.connect("window-state-event", self.resize_cb)
 
         # NOTE: This callback code has to be declared before launching the wrapper
         STATEPROTO = c.CFUNCTYPE(None, c.POINTER(c.c_void_p), c.c_int, c.c_int)
@@ -247,21 +251,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         if n_pages == 1:
             #self.frontend_conf.open_section("Frontend")
             if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
-                self.canvas = Gtk.DrawingArea()
-                self.canvas.set_can_focus(True)
-                #self.canvas.grab_add()
-                #self.canvas.add_device_events()
-                #self.canvas.add_events(1024) #KEY_PRESS_MASK, seems already enabled by default
-                self.canvas.connect("key-press-event", self.on_key_events)
-                #self.canvas.add_events(2048) #KEY_RELEASE_MASK, seems already enabled by default
-                self.canvas.connect("key-release-event", self.on_key_events)
-                #self.canvas.add_events(4) #POINTER_MOTION_MASK
-                #self.canvas.add_events(16) #BUTTON_MOTION_MASK
-                # Mouse related events
-                self.canvas.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK | Gdk.EventMask.BUTTON_PRESS_MASK)
-                self.canvas.connect("enter-notify-event", self.on_mouse_events)
-                self.canvas.connect("leave-notify-event", self.on_mouse_events)
-                self.canvas.connect("button-press-event", self.on_mouse_events)
+                self.canvas = w_cvs.Canvas(self.window)
                 import wrapper.vidext as wrp_vext
                 wrp_vext.m64p_video.set_window(self.window)
                 self.video_box.add(self.canvas)
@@ -305,9 +295,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                     self.window.height = height
                     self.window.changedsize = False
                     if self.emulating == True:
-                        # (ScreenWidth << 16) + ScreenHeight
-                        canvas_size = (self.canvas.get_allocated_width() << 16 ) + self.canvas.get_allocated_height()
-                        self.window.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value, canvas_size)
+                        self.window.canvas.register_size()
+                        self.window.canvas.resize()
         else:
             self.window.changedfocus = True
         if self.emulating == True and self.running == True:
@@ -317,8 +306,9 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
     def resize_cb(self, widget, event):
         #It detects window's size, position and stacking order changes
-        if self.window.changedfocus == True:
-            self.window.changedsize = True
+        if event.get_event_type() == Gdk.EventType.CONFIGURE:
+            if self.window.changedfocus == True:
+                self.window.changedsize = True
 
     def on_text_change(self, entry):
         self.browser_list.game_search_current = entry.get_text()
@@ -328,34 +318,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.action.status_push("Refreshing the list...")
         self.browser_list.cache.generate()
         self.action.status_push("Refreshing the list...DONE")
-
-    def on_key_events(self, widget, event):
-        #https://lazka.github.io/pgi-docs/Gdk-3.0/mapping.html
-        #print(event.hardware_keycode)
-        if event.get_event_type() == Gdk.EventType.KEY_PRESS:
-            if self.window.get_focus_visible() == True:
-                self.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
-        elif event.get_event_type() == Gdk.EventType.KEY_RELEASE:
-            if self.window.get_focus_visible() == True:
-                self.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(event.hardware_keycode).value)
-
-        return True
-
-    def on_mouse_events(self, widget, event):
-        #https://stackoverflow.com/questions/44453139/how-to-hide-mouse-pointer-in-gtk-c
-        # In case of Enter/leave notify we make sure that the cursor stays invisibile but only inside the canvas.
-        display = self.window.get_display()
-        if event.get_event_type() == Gdk.EventType.ENTER_NOTIFY:
-            pass
-        elif event.get_event_type() == Gdk.EventType.LEAVE_NOTIFY:
-            display.get_default_seat().ungrab()
-        elif event.get_event_type() == Gdk.EventType.BUTTON_PRESS:
-            self.window.mousepressed = True
-            cursor = Gdk.Cursor.new_for_display(display, Gdk.CursorType.BLANK_CURSOR)
-            display.get_default_seat().grab(self.window.canvas.get_property('window'), Gdk.SeatCapabilities.ALL, True, cursor)
-            log.debug("mouse has clicked on the canvas")
-        else:
-            log.debug(event.get_event_type())
 
     def state_callback(self, context, param, value):
         context_dec = c.cast(context, c.c_char_p).value.decode("utf-8")

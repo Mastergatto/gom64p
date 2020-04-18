@@ -46,8 +46,6 @@ class Vidext():
         self.title = None
 
         self.modes = []
-        self.width = 0
-        self.height = 0
         self.former_size = None
 
         # OpenGL visual format
@@ -167,7 +165,8 @@ class Vidext():
             self.window.set_title(self.title)
         self.window.set_resizable(True)
         self.window.canvas.set_size_request(1, 1) # First we must lift the restriction on the minimum size of the widget
-        time.sleep(0.1) #Workaround?
+
+        time.sleep(0.1) #XXX: Workaround because GTK is too slow
         self.window.resize(self.former_size[0], self.former_size[1])
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
@@ -184,17 +183,17 @@ class Vidext():
     def video_set_mode(self, width, height, bits, screenmode, flags):
         log.debug(f"Vidext: video_set_mode(width: {str(width)}, height: {str(height)}, bits: {str(bits)}, screenmode: {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
 
-        self.width = width
-        self.height = height
         self.former_size = self.window.get_size()
         # Needed for get_preferred_size() to work
         self.window.set_resizable(False)
-        if wrp_dt.m64p_video_flags(flags).name == "M64VIDEOFLAG_SUPPORT_RESIZING":
-            self.window.set_resizable(True)
-        # Necessary so that we tell the GUI to not shrink the window further than the size of the widget set by mupen64plus
-        self.window.canvas.set_size_request(width, height)
         # It doesn't just get the preferred size, it DOES resize the window too
         self.window.canvas.get_preferred_size()
+        # Necessary so that we tell the GUI to not shrink the window further than the size of the widget set by mupen64plus
+        self.window.canvas.set_size_request(width, height)
+        time.sleep(0.1) # XXX: Workaround because GTK is too slow.
+
+        if wrp_dt.m64p_video_flags(flags).name == "M64VIDEOFLAG_SUPPORT_RESIZING":
+            self.window.set_resizable(True)
         
         print(self.double_buffer, self.buffer_size, self.depth_size, self.red_size, self.green_size, self.blue_size, self.alpha_size, self.swap_control, self.multisample_buffer, self.multisample_samples, self.context_major, self.context_minor, self.profile_mask)
         self.egl_attributes = gl.arrays.GLintArray.asArray([

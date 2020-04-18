@@ -101,8 +101,10 @@ class Actions:
             self.active_slot = slot
             self.frontend.m64p_wrapper.state_set_slot(slot)
 
-    def on_fullscreen(self, widget, emulating=True):
+    def on_fullscreen(self, widget, emulating=False):
         if self.frontend.isfullscreen == False:
+            #First of all, let's remember the size of the canvas before fullscreening
+            self.frontend.canvas.register_size()
             self.frontend.isfullscreen = True
             self.frontend.fullscreen()
             self.frontend.notebook.set_margin_start(0)
@@ -110,6 +112,7 @@ class Actions:
             self.frontend.menubar.hide()
             self.frontend.toolbar.hide()
             self.frontend.statusbar.hide()
+
             self.frontend.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value, wrp_dt.m64p_video_mode.M64VIDEO_FULLSCREEN.value)
             desktop = Gdk.Monitor.get_geometry(Gdk.Display.get_default().get_primary_monitor())
             # (ScreenWidth << 16) + ScreenHeight
@@ -118,17 +121,18 @@ class Actions:
 
         else:
             self.frontend.isfullscreen = False
+            self.frontend.unfullscreen()
             self.frontend.notebook.set_margin_start(1)
             self.frontend.notebook.set_margin_end(1)
             self.frontend.menubar.show()
             self.frontend.toolbar.show()
             self.frontend.statusbar.show()
-            self.frontend.unfullscreen()
 
             if emulating == True:
                 self.frontend.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value, wrp_dt.m64p_video_mode.M64VIDEO_WINDOWED.value)
-                canvas_size = (self.frontend.width << 16 ) + self.frontend.height
-                self.frontend.m64p_wrapper.core_state_set(wrp_dt.m64p_core_param.M64CORE_VIDEO_SIZE.value, canvas_size)
+                #GLib.idle_add(self.frontend.canvas.resize)
+                self.frontend.canvas.resize()
+                self.frontend.canvas.set_size_request(self.frontend.canvas.width, self.frontend.canvas.height)
 
     def on_screenshot(self, widget):
         self.frontend.m64p_wrapper.take_next_screenshot()
