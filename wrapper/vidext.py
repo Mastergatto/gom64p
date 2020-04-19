@@ -44,26 +44,13 @@ class Vidext():
     def __init__(self):
         self.window = None
         self.title = None
+        self.height = None
+        self.width = None
 
         self.modes = []
         self.former_size = None
 
-        # OpenGL visual format
-        self.double_buffer = 0
-        self.buffer_size = 0
-        self.depth_size = 16
-        self.red_size = 0
-        self.green_size = 0
-        self.blue_size = 0
-        self.alpha_size = 0
-        self.swap_control = 0
-        self.multisample_buffer = 0
-        self.multisample_samples = 0
-        
-        self.context_major = 0
-        self.context_minor = 0
-        self.profile_mask = 0
-
+    def reset(self):
         self.egl_attributes = None
         self.window_attributes = None
         
@@ -72,6 +59,22 @@ class Vidext():
         self.egl_context = egl.EGL_NO_CONTEXT
         self.egl_surface = egl.EGL_NO_SURFACE
         self.new_surface = True
+
+        # OpenGL visual format
+        self.double_buffer = egl.EGL_BACK_BUFFER
+        self.buffer_size = egl.EGL_DONT_CARE
+        self.depth_size = egl.EGL_DONT_CARE
+        self.red_size = egl.EGL_DONT_CARE
+        self.green_size = egl.EGL_DONT_CARE
+        self.blue_size = egl.EGL_DONT_CARE
+        self.alpha_size = egl.EGL_DONT_CARE
+        self.swap_control = egl.EGL_DONT_CARE
+        self.multisample_buffer = egl.EGL_DONT_CARE
+        self.multisample_samples = egl.EGL_DONT_CARE
+
+        self.context_major = 3
+        self.context_minor = 0
+        self.profile_mask = egl.EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT
 
     def set_window(self, window):
         self.window = window
@@ -127,6 +130,8 @@ class Vidext():
             libgdk.gdk_quartz_window_get_nsview.restype = c.c_void_p
             libgdk.gdk_quartz_window_get_nsview.argtypes = [c.c_void_p]
             self.window_handle = libgdk.gdk_quartz_window_get_nsview(gpointer)
+
+        self.reset()
         
         self.egl_display = egl.eglGetDisplay(egl.EGL_DEFAULT_DISPLAY)
         if self.egl_display == egl.EGL_NO_DISPLAY:
@@ -183,6 +188,9 @@ class Vidext():
     def video_set_mode(self, width, height, bits, screenmode, flags):
         log.debug(f"Vidext: video_set_mode(width: {str(width)}, height: {str(height)}, bits: {str(bits)}, screenmode: {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
 
+        self.width = width
+        self.height = height
+
         self.former_size = self.window.get_size()
         # Needed for get_preferred_size() to work
         self.window.set_resizable(False)
@@ -195,7 +203,7 @@ class Vidext():
         if wrp_dt.m64p_video_flags(flags).name == "M64VIDEOFLAG_SUPPORT_RESIZING":
             self.window.set_resizable(True)
         
-        print(self.double_buffer, self.buffer_size, self.depth_size, self.red_size, self.green_size, self.blue_size, self.alpha_size, self.swap_control, self.multisample_buffer, self.multisample_samples, self.context_major, self.context_minor, self.profile_mask)
+        #print(self.double_buffer, self.buffer_size, self.depth_size, self.red_size, self.green_size, self.blue_size, self.alpha_size, self.swap_control, self.multisample_buffer, self.multisample_samples, self.context_major, self.context_minor, self.profile_mask)
         self.egl_attributes = gl.arrays.GLintArray.asArray([
             egl.EGL_BUFFER_SIZE, self.buffer_size,
             egl.EGL_DEPTH_SIZE, self.depth_size,
@@ -217,7 +225,7 @@ class Vidext():
         self.opengl_version = gl.arrays.GLintArray.asArray([
             egl.EGL_CONTEXT_MAJOR_VERSION, self.context_major,
             egl.EGL_CONTEXT_MINOR_VERSION, self.context_minor,
-            #egl.EGL_CONTEXT_OPENGL_PROFILE_MASK, self.profile_mask,
+            egl.EGL_CONTEXT_OPENGL_PROFILE_MASK, self.profile_mask,
             egl.EGL_NONE
         ])
         
@@ -230,15 +238,16 @@ class Vidext():
         
         if self.new_surface:
             log.info("VidExtFuncSetMode: Initializing surface")
-            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.window_handle, None) #angrylion rdp+ doesn't like self.window_attributes
+            self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.window_handle, self.window_attributes)
             
-            self.egl_context = egl.eglCreateContext(self.egl_display, self.egl_config[0], egl.EGL_NO_CONTEXT, None) #glide64mk and rice don't like self.opengl_version
+            self.egl_context = egl.eglCreateContext(self.egl_display, self.egl_config[0], egl.EGL_NO_CONTEXT, self.opengl_version)
         
             if self.egl_context == egl.EGL_NO_CONTEXT:
                 raise RuntimeError( 'Unable to create context' )
             try:
                 egl.eglMakeCurrent(self.egl_display, self.egl_surface, self.egl_surface, self.egl_context)
                 egl.eglSwapBuffers(self.egl_display, self.egl_surface)
+
             except:
                 log.error(f"eglMakeCurrent() returned error: {egl.eglGetError()}")
             

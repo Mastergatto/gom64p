@@ -23,6 +23,7 @@ import widget.rombrowser as w_brw
 import widget.keysym as w_key
 import wrapper.datatypes as wrp_dt
 import wrapper.functions as wrp
+import wrapper.vidext as wrp_vext
 
 ###############
 ## VARIABLES ##
@@ -252,7 +253,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             #self.frontend_conf.open_section("Frontend")
             if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
                 self.canvas = w_cvs.Canvas(self.window)
-                import wrapper.vidext as wrp_vext
                 wrp_vext.m64p_video.set_window(self.window)
                 self.video_box.add(self.canvas)
             else:
@@ -335,6 +335,9 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 self.running = True
                 self.emulating = True
                 self.action.status_push( "*** Emulation STARTED ***")
+                if (self.window.canvas.width != wrp_vext.m64p_video.width) or (self.window.canvas.height != wrp_vext.m64p_video.height):
+                    self.window.canvas.register_size()
+                    self.window.canvas.resize()
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_PAUSED':
                 self.main_menu.sensitive_menu_pause()
                 self.running = False
