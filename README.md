@@ -10,6 +10,8 @@ Frontend in GTK+ 3.x and python3 for mupen64plus. Tested on Linux, untested on o
 - GTK+ 3.22+ (with librsvg support)
 - python 3.6+
 - pygobject
+- pyopengl
+- pysdl2
 
 ## Issues
 
