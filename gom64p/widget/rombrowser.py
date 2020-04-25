@@ -39,26 +39,26 @@ class List:
         size_rating = 76 * self.parent.get_scale_factor()
         new_list = []
 
-        usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/united-states.svg")), size_flag, -1, True)
-        japan = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/japan.svg")), size_flag, -1, True)
-        jpn_usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/us-jp.svg")), size_flag, -1, True)
-        europe = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/european-union.svg")), size_flag, -1, True)
-        australia = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/australia.svg")), size_flag, -1, True)
-        france = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/france.svg")), size_flag, -1, True)
-        germany = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/germany.svg")), size_flag, -1, True)
-        italy = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/italy.svg")), size_flag, -1, True)
-        spain = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/spain.svg")), size_flag, -1, True)
-        brazil = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/brazil.svg")), size_flag, -1, True)
-        #china = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/china.svg")), size_flag, -1, True)
-        #korea = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/korea.svg")), size_flag, -1, True)
-        unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/unknown.svg")), size_flag, -1, True)
+        usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/united-states.svg")), size_flag, -1, True)
+        japan = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/japan.svg")), size_flag, -1, True)
+        jpn_usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/us-jp.svg")), size_flag, -1, True)
+        europe = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/european-union.svg")), size_flag, -1, True)
+        australia = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/australia.svg")), size_flag, -1, True)
+        france = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/france.svg")), size_flag, -1, True)
+        germany = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/germany.svg")), size_flag, -1, True)
+        italy = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/italy.svg")), size_flag, -1, True)
+        spain = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/spain.svg")), size_flag, -1, True)
+        brazil = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/brazil.svg")), size_flag, -1, True)
+        #china = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/china.svg")), size_flag, -1, True)
+        #korea = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/korea.svg")), size_flag, -1, True)
+        unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/unknown.svg")), size_flag, -1, True)
 
-        zero = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating0.svg")), size_rating, -1, True)
-        one = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating1.svg")), size_rating, -1, True)
-        two = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating2.svg")), size_rating, -1, True)
-        three = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating3.svg")), size_rating, -1, True)
-        four = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating4.svg")), size_rating, -1, True)
-        five = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/ui/icons/rating5.svg")), size_rating, -1, True)
+        zero = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating0.svg")), size_rating, -1, True)
+        one = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating1.svg")), size_rating, -1, True)
+        two = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating2.svg")), size_rating, -1, True)
+        three = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating3.svg")), size_rating, -1, True)
+        four = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating4.svg")), size_rating, -1, True)
+        five = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating5.svg")), size_rating, -1, True)
 
         for i in self.rom_list:
             flag = i[0]
@@ -189,13 +189,13 @@ class List:
         model = treeview.get_model()
         treeiter = model.get_iter(treepath)
         self.parent.rom = model.get_value(treeiter, 3)
-        
+
         rom_uri = GLib.filename_to_uri(self.parent.rom, None)
         if self.recent_manager.has_item(rom_uri) == False:
             self.recent_manager.add_item(rom_uri)
 
         self.parent.action.thread_rom()
-        
+
     def on_playitem_activated(self, widget):
         rom_uri = GLib.filename_to_uri(self.parent.rom, None)
         if self.recent_manager.has_item(rom_uri) == False:

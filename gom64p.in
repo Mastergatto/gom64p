@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+# Copyright © 2020 Mastergatto
+
+
+import gettext
+import locale
+import os
+import signal
+import sys
+
+_LOCAL = @local_build@
+
+if _LOCAL:
+    # In the local use case, use gom64p module from the sourcetree
+    sys.path.insert(1, '@pythondir@')
+
+    # In the local use case the installed schemas go in <builddir>/data
+    os.environ["XDG_DATA_DIRS"] = '@schemasdir@:' + os.environ.get("XDG_DATA_DIRS", "")
+
+import gi
+
+gi.require_version('Gtk', '3.0')
+gi.require_version('GIRepository', '2.0')
+from gi.repository import GIRepository, Gio, Gtk
+
+LOCALE_DIR = '@localedir@'
+PKGDATA_DIR = '@pkgdatadir@'
+
+
+def set_exception_hook():
+    """Configures sys.excepthook to enforce Gtk application exiting."""
+
+    def new_hook(etype, evalue, etb):
+        old_hook(etype, evalue, etb)
+        while Gtk.main_level():
+            Gtk.main_quit()
+        sys.exit()
+
+    old_hook = sys.excepthook
+    sys.excepthook = new_hook
+
+def set_internationalization():
+    """Sets application internationalization."""
+    locale.bindtextdomain('@application_id@', LOCALE_DIR)
+    locale.textdomain('@application_id@')
+    gettext.bindtextdomain('@application_id@', LOCALE_DIR)
+    gettext.textdomain('@application_id@')
+
+
+def set_resources():
+    """Sets application ressource file."""
+    resource = Gio.resource_load(
+        os.path.join(PKGDATA_DIR, '@rdnn_name@.gresource'))
+    Gio.Resource._register(resource)  # nopep8
+
+
+def run_application():
+    """Runs gom64p application and returns its exit code."""
+    from gom64p.main import GoodOldM64pApp
+
+    app = GoodOldM64pApp('@application_id@')
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    return app.run(sys.argv)
+
+
+def main():
+    """Sets environment and runs gom64p."""
+    set_exception_hook()
+    set_internationalization()
+    #set_resources()
+    return run_application()
+
+if __name__ == '__main__':
+    if _LOCAL:
+        print('Running from source tree, using local files.')
+    sys.exit(main())
+

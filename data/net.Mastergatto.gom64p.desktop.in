@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=gom64p
+GenericName=Nintendo 64 emulator
+GenericName[it]=Emulatore Nintendo 64
+Comment=Frontend written in Python and GTK for mupen64plus
+Comment[it]=Programma scritto in Python e GTK per mupen64plus
+Exec=gom64p
+Icon=gom64p
+Type=Application
+Categories=Game;Emulator;
+Encoding=UTF-8
+MimeType=application/x-n64;application/x-n64-rom
+Keywords=Emulator;Nintendo64;Mupen64plus;

@@ -1,0 +1,6 @@
+data/net.Mastergatto.gom64p.desktop.in
+data/net.Mastergatto.gom64p.appdata.xml.in
+data/net.Mastergatto.gom64p.gschema.xml
+src/gom64p
+src/window.py
+

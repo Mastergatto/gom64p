@@ -1,0 +1,54 @@
+{
+    "app-id" : "net.Mastergatto.gom64p.Devel",
+    "runtime" : "org.gnome.Platform",
+    "runtime-version" : "3.36",
+    "sdk" : "org.gnome.Sdk",
+    "command" : "gom64p",
+    "tags" : [
+        "devel",
+        "development",
+        "nightly"
+    ],
+    "desktop-file-name-suffix" : " ☢️",
+    "finish-args" : [
+        "--share=ipc",
+        "--share=network",
+        "--socket=wayland",
+        "--socket=fallback-x11",
+        "--socket=pulseaudio",
+        "--filesystem=xdg-music",
+        "--filesystem=xdg-run/dconf",
+        "--env=DCONF_USER_CONFIG_DIR=.config/dconf"
+    ],
+    "cleanup" : [
+        "/include",
+        "/lib/pkgconfig",
+        "/share/pkgconfig",
+        "/share/aclocal",
+        "/man",
+        "/share/man",
+        "/share/gtk-doc",
+        "/share/vala",
+        "*.la",
+        "*.a"
+    ],
+    "modules" : [
+        {
+            "name" : "gom64p",
+            "config-opts" : [
+                "-Dprofile=development"
+            ],
+            "buildsystem" : "meson",
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://github.com/Mastergatto/gom64p.git"
+                }
+            ]
+        }
+    ],
+    "build-options" : {
+        "env" : {
+        }
+    }
+}

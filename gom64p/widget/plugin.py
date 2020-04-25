@@ -282,41 +282,41 @@ class PluginDialog(Gtk.Dialog):
         #buttons_grid.set_hexpand(True)
 
         size = (50 * self.scale_factor)
-        label_a = self.insert_image("ui/icons/ButtonIcon-N64-A.svg", size)
+        label_a = self.insert_image("/icons/ButtonIcon-N64-A.svg", size)
         button_a = self.insert_bind_button('A Button', section, "A button")
-        label_b = self.insert_image("ui/icons/ButtonIcon-N64-B.svg", size)
+        label_b = self.insert_image("/icons/ButtonIcon-N64-B.svg", size)
         button_b = self.insert_bind_button('B Button',  section, "B button")
-        label_z = self.insert_image("ui/icons/ButtonIcon-N64-Z.svg", size)
+        label_z = self.insert_image("/icons/ButtonIcon-N64-Z.svg", size)
         button_z = self.insert_bind_button('Z Trig',  section, "Z trigger")
-        label_l = self.insert_image("ui/icons/ButtonIcon-N64-L.svg", size)
+        label_l = self.insert_image("/icons/ButtonIcon-N64-L.svg", size)
         button_l = self.insert_bind_button('L Trig',  section, "L trigger")
-        label_r = self.insert_image("ui/icons/ButtonIcon-N64-R.svg", size)
+        label_r = self.insert_image("/icons/ButtonIcon-N64-R.svg", size)
         button_r = self.insert_bind_button('R Trig',  section, "R trigger")
-        label_start = self.insert_image("ui/icons/ButtonIcon-N64-Start.svg", size)
+        label_start = self.insert_image("/icons/ButtonIcon-N64-Start.svg", size)
         button_start = self.insert_bind_button('Start',  section, "Start button")
-        label_c_up = self.insert_image("ui/icons/ButtonIcon-N64-C-Up.svg", size)
+        label_c_up = self.insert_image("/icons/ButtonIcon-N64-C-Up.svg", size)
         button_c_up = self.insert_bind_button('C Button U',  section, 'C↑ button')
-        label_c_left = self.insert_image("ui/icons/ButtonIcon-N64-C-Left.svg", size)
+        label_c_left = self.insert_image("/icons/ButtonIcon-N64-C-Left.svg", size)
         button_c_left = self.insert_bind_button('C Button L',  section, 'C← button')
-        label_c_right = self.insert_image("ui/icons/ButtonIcon-N64-C-Right.svg", size)
+        label_c_right = self.insert_image("/icons/ButtonIcon-N64-C-Right.svg", size)
         button_c_right = self.insert_bind_button('C Button R',  section, 'C→ button')
-        label_c_down = self.insert_image("ui/icons/ButtonIcon-N64-C-Down.svg", size)
+        label_c_down = self.insert_image("/icons/ButtonIcon-N64-C-Down.svg", size)
         button_c_down = self.insert_bind_button('C Button D',  section, 'C↓ button')
         label_mempak = Gtk.Label("Mempak ")
         button_mempak = self.insert_bind_button('Mempak switch',  section, "Mempak switch")
         label_rumble = Gtk.Label("Rumble ")
         button_rumble = self.insert_bind_button('Rumblepak switch',  section, "Rumblepak switch")
-        label_d_up = self.insert_image("ui/icons/ButtonIcon-N64-D-Pad-U.svg", size)
+        label_d_up = self.insert_image("/icons/ButtonIcon-N64-D-Pad-U.svg", size)
         button_d_up = self.insert_bind_button("DPad U",  section, 'DPad ↑')
-        label_d_left = self.insert_image("ui/icons/ButtonIcon-N64-D-Pad-L.svg", size)
+        label_d_left = self.insert_image("/icons/ButtonIcon-N64-D-Pad-L.svg", size)
         button_d_left = self.insert_bind_button("DPad L",  section, 'DPad ←')
-        label_d_right = self.insert_image("ui/icons/ButtonIcon-N64-D-Pad-R.svg", size)
+        label_d_right = self.insert_image("/icons/ButtonIcon-N64-D-Pad-R.svg", size)
         button_d_right = self.insert_bind_button("DPad R",  section, 'DPad →')
-        label_d_down = self.insert_image("ui/icons/ButtonIcon-N64-D-Pad-D.svg", size)
+        label_d_down = self.insert_image("/icons/ButtonIcon-N64-D-Pad-D.svg", size)
         button_d_down = self.insert_bind_button("DPad D",  section, 'DPad ↓')
-        x_axis_label = self.insert_image("ui/icons/ButtonIcon-N64-Control_Stick-LR.svg", size)
+        x_axis_label = self.insert_image("/icons/ButtonIcon-N64-Control_Stick-LR.svg", size)
         x_axis_button = self.insert_bind_button("X Axis",  section, 'X Axis', True)
-        y_axis_label = self.insert_image("ui/icons/ButtonIcon-N64-Control_Stick-UD.svg", size)
+        y_axis_label = self.insert_image("/icons/ButtonIcon-N64-Control_Stick-UD.svg", size)
         y_axis_button = self.insert_bind_button("Y Axis",  section, 'Y Axis', True)
 
         buttons_grid.attach(label_a, 0, 0, 1, 1)
@@ -683,7 +683,7 @@ class PluginDialog(Gtk.Dialog):
             self.binding(widget, param, device, name, controller, True)
 
     def insert_image(self, file, size):
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(file)), size, -1, True)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + file)), size, -1, True)
         image = Gtk.Image.new_from_pixbuf(pixbuf)
         return image
 
@@ -846,7 +846,7 @@ class PluginDialog(Gtk.Dialog):
     def filter_number(self, string):
         #alt: int(''.join(c for c in string if c.isdigit()))
         return int(''.join(filter(str.isdigit, string)))
-        
+
     def purify(self, string):
         # Workaround: For some reason SDL doesn't return the correct name for those key, so let's correct them.
         if string == b'\xc4\xb0':
