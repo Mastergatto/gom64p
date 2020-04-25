@@ -1701,8 +1701,13 @@ class API():
             try:
                 self.m64p_lib_audio = self.load_module(f'{self.plugins_dir}{os.sep}{self.audio_filename}{self.extension_filename}')
             except:
-                log.error(f"{self.audio_filename }: Plugin not found, cannot be used. Default plugin is used instead.")
-                self.m64p_lib_audio = self.load_module(f'{self.plugins_dir}{os.sep}mupen64plus-audio-hle{self.extension_filename}')
+                if self.audio_filename == "mupen64plus-audio-sdl":
+                    log.error(f"{self.audio_filename}: Plugin cannot be used. Dummy plugin is used instead, which means no audio.")
+                    self.audio_filename = "dummy"
+                else:
+                    #TODO: What if even the default plugin fails?
+                    log.error(f"{self.audio_filename}: Plugin not found, cannot be used. Default plugin is used instead.")
+                    self.m64p_lib_audio = self.load_module(f'{self.plugins_dir}{os.sep}mupen64plus-audio-sdl{self.extension_filename}')
 
         if self.input_filename != "dummy":
             try:
