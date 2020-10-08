@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component type="desktop">
-	<id>net.Mastergatto.gom64p.desktop</id>
+<component type="desktop-application">
+  <id type="desktop">net.Mastergatto.gom64p.desktop</id>
 	<metadata_license>CC0-1.0</metadata_license>
-	<project_license>GPL-2.0-or-later</project_license>
-	<description>Frontend written in GTK+3 and Python for mupen64plus, N64 emulator
+	<project_license>GPL-2.0 OR GPL-3.0</project_license>
+  <_name>gom64p</_name>
+  <_summary>Frontend written in GTK+3 and Python for mupen64plus, N64 emulator</_summary>
+	<description>
+    <_p>
+      Frontend written in GTK+3 and Python for mupen64plus, N64 emulator
+    </_p>
 	</description>
+  <url type="homepage">https://github.com/Mastergatto/gom64p/</url>
+  <!--  <screenshots>
+    <screenshot type="default">
+      <image type="source">https://www.example.org/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+  <update_contact>example_AT_domain.com</update_contact>-->
 </component>

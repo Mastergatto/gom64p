@@ -1,35 +1,36 @@
 #!/usr/bin/env python3
 # coding=utf-8
 # © 2019 Mastergatto
-# This code is covered under GPLv2+, see LICENSE
+# This code is covered under GPLv2+, see COPYING
 #####################
 
 ###############
 ## VARIABLES ##
 ###############
-import argparse, os, sys, platform
-# Set the current directory to that of this file.
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
+if __name__ == "__main__":
+    import os, platform
+    # Set the current directory to that of this file.
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-# Before importing or do anything, we must set those env variable so that this program can work correctly on Linux
-#Gdk.set_allowed_backends("x11, win32, quartz")
-system = platform.system()
-if system == 'Linux':
-    #TODO: For now force x11 backend on linux, remove this later.
-    os.environ['GDK_BACKEND'] = 'x11'
-    if os.environ['GDK_BACKEND'] == 'x11':
-        try:
-            import ctypes
-            x11 = ctypes.cdll.LoadLibrary('libX11.so')
-            x11.XInitThreads()
-        except:
-            print("Warning: failed to XInitThreads()")
-    if not os.environ.get( 'PYOPENGL_PLATFORM' ):
-        os.environ['PYOPENGL_PLATFORM'] = 'egl'
-elif system == 'Windows':
-    os.environ["PYSDL2_DLL_PATH"] = f"{os.path.dirname(os.path.realpath(__file__))}\\"
-elif system == 'Darwin':
-    pass
+    # Before importing or do anything, we must set those env variable so that this program can work correctly on Linux
+    #Gdk.set_allowed_backends("x11, win32, quartz")
+    system = platform.system()
+    if system == 'Linux':
+        #TODO: For now force x11 backend on linux, remove this later.
+        os.environ['GDK_BACKEND'] = 'x11'
+        if os.environ['GDK_BACKEND'] == 'x11':
+            try:
+                import ctypes
+                x11 = ctypes.cdll.LoadLibrary('libX11.so')
+                x11.XInitThreads()
+            except:
+                print("Warning: failed to XInitThreads()")
+        if not os.environ.get( 'PYOPENGL_PLATFORM' ):
+            os.environ['PYOPENGL_PLATFORM'] = 'egl'
+    elif system == 'Windows':
+        os.environ["PYSDL2_DLL_PATH"] = f"{os.path.dirname(os.path.realpath(__file__))}\\"
+    elif system == 'Darwin':
+        pass
 
 #############
 ## MODULES ##
@@ -42,6 +43,7 @@ gi.require_version("GLib", "2.0")
 
 from gi.repository import Gtk, Gdk, Gio, GLib
 from gettext import gettext as _
+import argparse, sys
 
 import logging as log
 import utils.logging as u_log
@@ -57,10 +59,10 @@ import widget.window as w_main
 
 class GoodOldM64pApp(Gtk.Application):
 
-    def __init__(self):
-        Gtk.Application.__init__(self,application_id="org.mupen64plus.good-old-m64p",
+    def __init__(self, app_id):
+        self.app_id = app_id
+        super().__init__(application_id=self.app_id,
                                 flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
-
         self.connect('command-line', self.do_command_line)
         GLib.set_application_name(_("Good Old Mupen64+"))
         GLib.set_prgname('gom64p')
@@ -135,7 +137,7 @@ if __name__ == "__main__":
 
     # Since GTK+ does not support KeyboardInterrupt, reset SIGINT to default.
     #Signal.signal(Signal.SIGINT, Signal.SIG_DFL)
-    application = GoodOldM64pApp()
+    application = GoodOldM64pApp('net.Mastergatto.gom64p')
     exit_status = application.run(sys.argv)
     sys.exit(exit_status)
 

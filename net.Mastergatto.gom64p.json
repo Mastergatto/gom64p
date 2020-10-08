@@ -1,7 +1,7 @@
 {
     "app-id" : "net.Mastergatto.gom64p.Devel",
-    "runtime" : "org.gnome.Platform",
-    "runtime-version" : "3.36",
+    "runtime" : "org.gnome.Sdk",
+    "runtime-version" : "3.38",
     "sdk" : "org.gnome.Sdk",
     "command" : "gom64p",
     "tags" : [
@@ -16,7 +16,10 @@
         "--socket=wayland",
         "--socket=fallback-x11",
         "--socket=pulseaudio",
-        "--filesystem=xdg-music",
+        "--allow=bluetooth",
+        "--device=dri",
+        "--device=all",
+        "--filesystem=host",
         "--filesystem=xdg-run/dconf",
         "--env=DCONF_USER_CONFIG_DIR=.config/dconf"
     ],
@@ -34,6 +37,34 @@
     ],
     "modules" : [
         {
+            "name" : "python3-pysdl2",
+            "buildsystem" : "simple",
+            "build-commands" : [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} pysdl2"
+            ],
+            "sources" : [
+                {
+                    "type" : "file",
+                    "url" : "https://files.pythonhosted.org/packages/60/ba/ddb48261848874eeb3d54963edbf3c74fff86499746aeb23151f123953bb/PySDL2-0.9.7-py3-none-any.whl",
+                    "sha256" : "35646eabee980ccc49f675e3de0aed9bf001045f46ecb6699a3c9ec074870141"
+                }
+            ]
+        },
+        {
+            "name" : "python3-pyopengl",
+            "buildsystem" : "simple",
+            "build-commands" : [
+                "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} pyopengl"
+            ],
+            "sources" : [
+                {
+                    "type" : "file",
+                    "url" : "https://files.pythonhosted.org/packages/47/9a/8d9364533ebcaa13621994a63dcc6a6051e27671ae5e1715dac4af18cac2/PyOpenGL-3.1.5-py3-none-any.whl",
+                    "sha256" : "36b4ac28220e4bfa29e5557525ad2967ca74558a94bccea48864fc742b18db11"
+                }
+            ]
+        },
+        {
             "name" : "gom64p",
             "config-opts" : [
                 "-Dprofile=development"
@@ -44,6 +75,14 @@
                     "type" : "git",
                     "url" : "https://github.com/Mastergatto/gom64p.git"
                 }
+            ]
+        },
+        {
+            "name" : "post-install",
+            "buildsystem" : "simple",
+            "build-commands" : [
+                "desktop-file-install --dir=/app/share/applications net.mastergatto.gom64p.desktop",
+                "install -D gom64p/icons/mupen64plus.svg /app/share/icons/hicolor/256x256/apps/net.mastergatto.gom64p.svg"
             ]
         }
     ],

@@ -38,7 +38,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         return '<gom64pwindow>'
 
     def __init__(self, app):
-        Gtk.ApplicationWindow.__init__(self, application=app)
+        super().__init__(application=app)
         self.window = self
 
         ### Frontend

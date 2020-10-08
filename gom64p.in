@@ -1,12 +1,19 @@
-#!/usr/bin/env python3
-# Copyright © 2020 Mastergatto
+#!@PYTHON@
+# coding=utf-8
+# © 2020 Mastergatto
+# This code is covered under GPLv2+, see COPYING
+#####################
 
-
+###############
+## VARIABLES ##
+###############
+import argparse, os, sys, platform
 import gettext
 import locale
-import os
 import signal
-import sys
+# Set the current directory to that of this file.
+launch_path = os.path.dirname(os.path.realpath(__file__))
+os.chdir(launch_path)
 
 _LOCAL = @local_build@
 
@@ -16,6 +23,36 @@ if _LOCAL:
 
     # In the local use case the installed schemas go in <builddir>/data
     os.environ["XDG_DATA_DIRS"] = '@schemasdir@:' + os.environ.get("XDG_DATA_DIRS", "")
+
+else:
+    if os.path.isdir(os.path.join(launch_path, "../gom64p")):
+        sys.dont_write_bytecode = True
+        source_path = os.path.normpath(os.path.join(launch_path, '..'))
+    else:
+        source_path = os.path.normpath(os.path.join(launch_path.rstrip("/bin"), "@pythondir@/gom64p".lstrip("/usr")))
+
+    sys.path.insert(1, source_path)
+    os.chdir(os.path.normpath(os.path.join(launch_path.rstrip("/bin"), "@pythondir@/gom64p".lstrip("/usr"))))
+
+# Before importing or do anything, we must set those env variable so that this program can work correctly on Linux
+#Gdk.set_allowed_backends("x11, win32, quartz")
+system = platform.system()
+if system == 'Linux':
+    #TODO: For now force x11 backend on linux, remove this later.
+    os.environ['GDK_BACKEND'] = 'x11'
+    if os.environ['GDK_BACKEND'] == 'x11':
+        try:
+            import ctypes
+            x11 = ctypes.cdll.LoadLibrary('libX11.so')
+            x11.XInitThreads()
+        except:
+            print("Warning: failed to XInitThreads()")
+    if not os.environ.get( 'PYOPENGL_PLATFORM' ):
+        os.environ['PYOPENGL_PLATFORM'] = 'egl'
+elif system == 'Windows':
+    os.environ["PYSDL2_DLL_PATH"] = f"{os.path.dirname(os.path.realpath(__file__))}\\"
+elif system == 'Darwin':
+    pass
 
 import gi
 
@@ -56,7 +93,7 @@ def set_resources():
 
 def run_application():
     """Runs gom64p application and returns its exit code."""
-    from gom64p.main import GoodOldM64pApp
+    from main import GoodOldM64pApp
 
     app = GoodOldM64pApp('@application_id@')
     signal.signal(signal.SIGINT, signal.SIG_DFL)

@@ -65,11 +65,14 @@ bin_config.set('pythondir', PYTHON_DIR)
 bin_config.set('schemasdir', PKGDATA_DIR)
 
 bin_config.set('local_build', 'False')
+bin_config.set('PYTHON', py_installation.path())
 
 configure_file(
     input: 'gom64p.in',
     output: 'gom64p',
     configuration: bin_config,
+    install_mode: 'rwxr-xr-x',
+    install: true,
     install_dir: get_option('bindir')
 )
 
@@ -83,6 +86,7 @@ local_config.set('pythondir', meson.source_root())
 local_config.set('schemasdir', join_paths(meson.build_root(), 'data'))
 
 local_config.set('local_build', 'True')
+local_config.set('PYTHON', py_installation.path())
 
 configure_file(
     input: 'gom64p.in',
@@ -92,5 +96,3 @@ configure_file(
 
 meson.add_postconf_script('build-aux/meson/post_conf.py')
 meson.add_install_script('build-aux/meson/post_install.py')
-
-
