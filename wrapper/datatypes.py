@@ -375,7 +375,9 @@ class m64p_GLattr(EnumC):
 vext_init = c.CFUNCTYPE(c.c_int)
 vext_quit = c.CFUNCTYPE(c.c_int)
 vext_list_modes = c.CFUNCTYPE(c.c_int, c.POINTER(m64p_2d_size), c.POINTER(c.c_int))
+vext_list_rates = c.CFUNCTYPE(c.c_int, m64p_2d_size, c.POINTER(c.c_int), c.POINTER(c.c_int))
 vext_set_mode = c.CFUNCTYPE(c.c_int, c.c_int, c.c_int, c.c_int, c.c_int, c.c_int)
+vext_set_mode_rate = c.CFUNCTYPE(c.c_int, c.c_int, c.c_int, c.c_int, c.c_int, c.c_int, c.c_int)
 vext_gl_getproc = c.CFUNCTYPE(c.c_void_p, c.c_char_p)
 vext_gl_setattr = c.CFUNCTYPE(c.c_int, c.c_int, c.c_int)
 vext_gl_getattr = c.CFUNCTYPE(c.c_int, c.c_int, c.POINTER(c.c_int))
@@ -390,7 +392,9 @@ class m64p_video_extension_functions(c.Structure):
         ("VidExtFuncInit", vext_init),
         ("VidExtFuncQuit", vext_quit),
         ("VidExtFuncListModes", vext_list_modes),
+        ("VidExtFuncListRates", vext_list_rates),
         ("VidExtFuncSetMode", vext_set_mode),
+        ("VidExtFuncSetModeWithRate", vext_set_mode_rate),
         ("VidExtFuncGLGetProc", vext_gl_getproc),
         ("VidExtFuncGLSetAttr", vext_gl_setattr),
         ("VidExtFuncGLGetAttr", vext_gl_getattr),

@@ -178,8 +178,18 @@ class Vidext():
     def video_list_modes(self, sizearray, numsizes):
         log.debug(f"Vidext: video_list_modes(sizearray: {sizearray}, {numsizes}, {numsizes}")
         # source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L80
-        #numsizes.contents.value = len(self.modes)
-        #for num, mode in enumerate(self.modes):
+        numsizes.contents.value = len(self.modes)
+        for num, mode in enumerate(self.modes):
+            width, height = mode
+            sizearray[num].uiWidth = width
+            sizearray[num].uiHeight = height
+            log.info(f"Vidext: {mode}: {width}x{height}")
+        return wrp_dt.m64p_error.M64ERR_SUCCESS.value
+
+    def video_list_rates(self, sizearray, numrates, rates):
+        log.debug(f"Vidext: video_list_rates(sizearray: {sizearray}, {numrates}, {rates}")
+        #numrates.contents.value = len(self.rates)
+        #for num, rate in enumerate(self.rates):
         #    width, height = mode
         #    sizearray[num].uiWidth = width
         #    sizearray[num].uiHeight = height
@@ -265,6 +275,15 @@ class Vidext():
         else:
             log.error(f"Vidext: video_set_mode() has reported M64ERR_SYSTEM_FAIL")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
+
+
+    def video_set_mode_rate(self, width, height, refreshrate, bits, screenmode, flags):
+        log.debug(f"Vidext: video_set_mode_Rate(width: {str(width)}, height: {str(height)}, \
+                    refresh rate: {str(refreshrate)}, bits: {str(bits)}, screenmode: \
+                    {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
+
+        return wrp_dt.m64p_error.M64ERR_UNSUPPORTED
+
 
     def gl_get_proc(self, proc):
         address = egl.eglGetProcAddress(proc)
@@ -423,13 +442,15 @@ class Vidext():
 
 m64p_video = Vidext()
 vidext_struct = wrp_dt.m64p_video_extension_functions()
-vidext_struct.Functions = 12
+vidext_struct.Functions = 14
 
 def enable_vidext():
     vidext_struct.VidExtFuncInit = wrp_dt.vext_init(m64p_video.video_init)
     vidext_struct.VidExtFuncQuit = wrp_dt.vext_quit(m64p_video.video_quit)
     vidext_struct.VidExtFuncListModes = wrp_dt.vext_list_modes(m64p_video.video_list_modes)
+    vidext_struct.VidExtFuncListRates = wrp_dt.vext_list_rates(m64p_video.video_list_rates)
     vidext_struct.VidExtFuncSetMode = wrp_dt.vext_set_mode(m64p_video.video_set_mode)
+    vidext_struct.VidExtFuncSetModeWithRate = wrp_dt.vext_set_mode_rate(m64p_video.video_set_mode_rate)
     vidext_struct.VidExtFuncGLGetProc = wrp_dt.vext_gl_getproc(m64p_video.gl_get_proc)
     vidext_struct.VidExtFuncGLSetAttr = wrp_dt.vext_gl_setattr(m64p_video.gl_set_attr)
     vidext_struct.VidExtFuncGLGetAttr = wrp_dt.vext_gl_getattr(m64p_video.gl_get_attr)
@@ -440,11 +461,13 @@ def enable_vidext():
     vidext_struct.VidExtFuncGLGetDefaultFramebuffer = wrp_dt.vext_get_default_fb(m64p_video.video_get_fb_name)
 
 def disable_vidext():
-    vidext_struct.Functions = 12
+    vidext_struct.Functions = 14
     vidext_struct.VidExtFuncInit = wrp_dt.vext_init(0)
     vidext_struct.VidExtFuncQuit = wrp_dt.vext_quit(0)
     vidext_struct.VidExtFuncListModes = wrp_dt.vext_list_modes(0)
+    vidext_struct.VidExtFuncListRates = wrp_dt.vext_list_rates(0)
     vidext_struct.VidExtFuncSetMode = wrp_dt.vext_set_mode(0)
+    vidext_struct.VidExtFuncSetModeWithRate = wrp_dt.vext_set_mode_rate(0)
     vidext_struct.VidExtFuncGLGetProc = wrp_dt.vext_gl_getproc(0)
     vidext_struct.VidExtFuncGLSetAttr = wrp_dt.vext_gl_setattr(0)
     vidext_struct.VidExtFuncGLGetAttr = wrp_dt.vext_gl_getattr(0)
