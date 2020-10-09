@@ -32,6 +32,13 @@ if __name__ == "__main__":
     elif system == 'Darwin':
         pass
 
+    #try:
+    #    # Keep GTK+ from mixing languages
+    #    #Locale.setlocale(Locale.LC_MESSAGES, "C")
+    #    locale.setlocale(locale.LC_ALL, "")
+    #except locale.Error:
+    #    log.err("Unsupported locale setting. Fix your locales")
+
 #############
 ## MODULES ##
 #############
@@ -132,14 +139,14 @@ class GoodOldM64pApp(Gtk.Application):
 
 
 if __name__ == "__main__":
-    # Keep GTK+ from mixing languages
-    #Locale.setlocale(Locale.LC_MESSAGES, "C")
+    try:
+        application = GoodOldM64pApp('net.Mastergatto.gom64p')
 
-    # Since GTK+ does not support KeyboardInterrupt, reset SIGINT to default.
-    #Signal.signal(Signal.SIGINT, Signal.SIG_DFL)
-    application = GoodOldM64pApp('net.Mastergatto.gom64p')
-    exit_status = application.run(sys.argv)
-    sys.exit(exit_status)
+        exit_status = application.run(sys.argv)
+        sys.exit(exit_status)
+    except KeyboardInterrupt:
+        log.warning("Keyboard interrupt (Ctrl + C), shutting down...")
+        sys.exit()
 
 
 

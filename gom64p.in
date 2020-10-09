@@ -11,6 +11,8 @@ import argparse, os, sys, platform
 import gettext
 import locale
 import signal
+import logging as log
+
 # Set the current directory to that of this file.
 launch_path = os.path.dirname(os.path.realpath(__file__))
 os.chdir(launch_path)
@@ -78,8 +80,15 @@ def set_exception_hook():
 
 def set_internationalization():
     """Sets application internationalization."""
-    locale.bindtextdomain('@application_id@', LOCALE_DIR)
-    locale.textdomain('@application_id@')
+    try:
+        locale.bindtextdomain('@application_id@', LOCALE_DIR)
+        locale.textdomain('@application_id@')
+    except AttributeError as e:
+        # Python built without gettext support does not have
+        # bindtextdomain() and textdomain().
+        log.err(f"Could not bind the gettext translation domain. \
+        Some translations will not work.\n> {format(e)}")
+
     gettext.bindtextdomain('@application_id@', LOCALE_DIR)
     gettext.textdomain('@application_id@')
 
@@ -93,11 +102,15 @@ def set_resources():
 
 def run_application():
     """Runs gom64p application and returns its exit code."""
-    from main import GoodOldM64pApp
+    import main
 
-    app = GoodOldM64pApp('@application_id@')
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-    return app.run(sys.argv)
+    try:
+        application = main.GoodOldM64pApp('@application_id@')
+
+        return application.run(sys.argv)
+    except KeyboardInterrupt:
+        log.warning("Keyboard interrupt (Ctrl + C), shutting down...")
+        sys.exit()
 
 
 def main():
