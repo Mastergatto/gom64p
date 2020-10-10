@@ -1,5 +1,6 @@
 project('gom64p', 'c',
     version: '0.0.1',
+    license: 'GPL2+',
     meson_version: '>= 0.50.0',)
 
 # Importing modules
@@ -43,7 +44,7 @@ dependency('gtk+-3.0', version: '>= 3.22.1')
 dependency('pygobject-3.0', version: '>= 3.29.1')
 
 #subdir('data/ui')
-#subdir('data/icons')
+subdir('data/icons')
 subdir('data')
 #subdir('help')
 #subdir('po')

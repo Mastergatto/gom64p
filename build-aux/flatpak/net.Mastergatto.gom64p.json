@@ -1,14 +1,9 @@
 {
-    "app-id" : "net.Mastergatto.gom64p.Devel",
-    "runtime" : "org.gnome.Sdk",
+    "app-id" : "net.Mastergatto.gom64p",
+    "runtime" : "org.gnome.Platform",
     "runtime-version" : "3.38",
     "sdk" : "org.gnome.Sdk",
     "command" : "gom64p",
-    "tags" : [
-        "devel",
-        "development",
-        "nightly"
-    ],
     "desktop-file-name-suffix" : " ☢️",
     "finish-args" : [
         "--share=ipc",
@@ -66,9 +61,7 @@
         },
         {
             "name" : "gom64p",
-            "config-opts" : [
-                "-Dprofile=development"
-            ],
+            "builddir" : true,
             "buildsystem" : "meson",
             "sources" : [
                 {
@@ -76,18 +69,9 @@
                     "url" : "https://github.com/Mastergatto/gom64p.git"
                 }
             ]
-        },
-        {
-            "name" : "post-install",
-            "buildsystem" : "simple",
-            "build-commands" : [
-                "desktop-file-install --dir=/app/share/applications net.mastergatto.gom64p.desktop",
-                "install -D gom64p/icons/mupen64plus.svg /app/share/icons/hicolor/256x256/apps/net.mastergatto.gom64p.svg"
-            ]
         }
     ],
     "build-options" : {
-        "env" : {
-        }
+        "env" : {        }
     }
 }

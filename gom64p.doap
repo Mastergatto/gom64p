@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:foaf="http://xmlns.com/foaf/0.1/"
+         xmlns:gnome="http://api.gnome.org/doap-extensions#"
+         xmlns="http://usefulinc.com/ns/doap#">
+
+  <name xml:lang="en">gom64p</name>
+  <shortdesc xml:lang="en">N64 emulator</shortdesc>
+  <description xml:lang="en">Frontend written in GTK+3 and Python for mupen64plus, N64 emulator</description>
+  <homepage rdf:resource="https://github.com/Mastergatto/gom64p" />
+  <!--><download-page rdf:resource="https://download.gnome.org/sources/gnome-builder/" />-->
+  <bug-database rdf:resource="https://github.com/Mastergatto/gom64p/issues" />
+
+  <category rdf:resource="http://api.gnome.org/doap-extensions#apps" />
+  <programming-language>Python</programming-language>
+
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Mastergatto</foaf:name>
+    </foaf:Person>
+  </maintainer>
+</Project>
