@@ -1,0 +1,30 @@
+pkgname=gom64p
+pkgver=0.0.1
+pkgrel=1
+pkgdesc='Frontend in GTK+ and Python for mupen64plus, a Nintendo 64 emulator'
+arch=('any')
+url='https://github.com/Mastergatto/gom64p'
+license=('GPL')
+depends=('mupen64plus-git' 'gtk3' 'sdl2' 'python' 'pygobject-devel' 'python-opengl' 'python-pysdl2')
+optdepends=('mupen64plus-rsp-cxd4-git' 'mupen64plus-video-angrylion-plus-git' 'mupen64plus-video-gliden64-git')
+makedepends=('meson')
+source=('git+https://github.com/Mastergatto/gom64p.git')
+sha256sums=('SKIP')
+
+prepare() {
+  cd $pkgname
+}
+
+#pkgver()  {
+#  cd $pkgname
+#  git describe | sed 's/-dev/dev/;s/-rc/rc/;s/-/+/g'
+#}
+
+build() {
+  arch-meson $pkgname _build
+  meson compile -C _build
+}
+
+package() {
+  DESTDIR="$pkgdir" meson install -C _build
+}

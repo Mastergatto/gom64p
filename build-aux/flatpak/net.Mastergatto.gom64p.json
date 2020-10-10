@@ -4,7 +4,7 @@
     "runtime-version" : "3.38",
     "sdk" : "org.gnome.Sdk",
     "command" : "gom64p",
-    "desktop-file-name-suffix" : " ☢️",
+    "desktop-file-name-suffix" : "",
     "finish-args" : [
         "--share=ipc",
         "--share=network",
