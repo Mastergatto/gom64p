@@ -15,26 +15,12 @@ import OpenGL as gl
 import OpenGL.GL as ogl
 import OpenGL.EGL as egl
 
-#import sdl2 as sdl
 import wrapper.datatypes as wrp_dt
 
 ###############
 ## VARIABLES ##
 ###############
 
-# self.info = sdl.SDL_SysWMinfo()
-# version = sdl.SDL_GetVersion(c.byref(self.info.version))
-# self.window_info = sdl.SDL_GetWindowWMInfo(self.foreign_window, c.byref(self.info))
-# if self.info.subsystem == sdl.SDL_SYSWM_X11:
-#     log.debug("The OS is Linux, using X11")
-    #TODO: How to get to info.x11.window?
-#     log.debug(repr(self.info))
-# elif self.info.subsystem == sdl.SDL_SYSWM_WAYLAND:
-#     log.debug("The OS is Linux, using Wayland")
-# elif self.info.subsystem == sdl.SDL_SYSWM_WINDOWS:
-#     log.debug("The OS is Windows")
-# elif self.info.subsystem == sdl.SDL_SYSWM_COCOA:
-#     log.debug("The OS is Mac OS X")
 
 #############
 ## CLASSES ##
@@ -81,28 +67,15 @@ class Vidext():
 
     def video_init(self):
         log.debug("Vidext: video_init()")
-        #sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO)
-        #sdl.SDL_InitSubSystem(sdl.SDL_INIT_JOYSTICK) #TODO: Is it really necessary?
-
-        #source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L34
-        #display = sdl.SDL_DisplayMode()
-        #for mode in range(sdl.SDL_GetNumDisplayModes(0)):
-        #    ret = sdl.SDL_GetDisplayMode(0, mode, c.byref(display))
-        #    if (display.w, display.h) not in self.modes:
-        #        self.modes.append((display.w, display.h))
-
-        #log.debug(self.modes)
-
-        # Mandatory since we're doing the hack for embedding SDL into GTK+, otherwise gamepads won't work here since GTK+ doesn't handle those inputs.
-        #sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
-        
         
         if self.window.platform == 'Linux':
+            #if self.window.wm == 'X11':
             from gi.repository import GdkX11
-            # Hack to embed sdl window into the frontend.
-            # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
             self.window_handle = self.window.canvas.get_property('window').get_xid()
-            # for wayland maybe use gdk_wayland_surface_get_window_geometry + gdk_surface_get_geometry?
+            #elif self.window.wm == 'Wayland':
+            #    # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
+            #    # for wayland maybe use gdk_wayland_surface_get_window_geometry + gdk_surface_get_geometry?
+            #    pass
         elif self.window.platform == 'Windows':
             # https://stackoverflow.com/questions/23021327/how-i-can-get-drawingarea-window-handle-in-gtk3/27236258#27236258
             # https://gitlab.gnome.org/GNOME/gtk/issues/510
@@ -169,21 +142,26 @@ class Vidext():
         if self.title != None:
             self.window.set_title(self.title)
         self.window.set_resizable(True)
-        self.window.canvas.set_size_request(1, 1) # First we must lift the restriction on the minimum size of the widget
 
-        time.sleep(0.1) #XXX: Workaround because GTK is too slow
+        # First we must lift the restriction on the minimum size of the widget
+        self.window.canvas.set_size_request(1, 1)
+
+        #XXX: Workaround because GTK is too slow
+        time.sleep(0.1)
+
         self.window.resize(self.former_size[0], self.former_size[1])
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_list_modes(self, sizearray, numsizes):
         log.debug(f"Vidext: video_list_modes(sizearray: {sizearray}, {numsizes}, {numsizes}")
-        # source: https://github.com/mupen64plus/mupen64plus-ui-python/blob/master/src/m64py/core/vidext.py#L80
-        numsizes.contents.value = len(self.modes)
-        for num, mode in enumerate(self.modes):
-            width, height = mode
-            sizearray[num].uiWidth = width
-            sizearray[num].uiHeight = height
-            log.info(f"Vidext: {mode}: {width}x{height}")
+
+        self.window.environment.get_current_mode()
+        mode = self.window.environment.current_mode
+
+        numsizes.contents.value = 1
+        sizearray[0].uiWidth = mode.width
+        sizearray[0].uiHeight = mode.height
+        log.info(f"Vidext: Current mode: {mode.width}x{mode.height}")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_list_rates(self, sizearray, numrates, rates):
@@ -193,9 +171,16 @@ class Vidext():
         #    width, height = mode
         #    sizearray[num].uiWidth = width
         #    sizearray[num].uiHeight = height
+
+        self.window.environment.get_current_mode()
+        mode = self.window.environment.current_mode
+        numrates.contents.value = 1
+
+        rates[0] = mode['refresh']
+        log.info(f"Vidext: Current refresh rate: {rates}")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
-    def video_set_mode(self, width, height, bits, screenmode, flags):
+    def video_set_mode(self, width, height, bits, screenmode, flags, refreshrate=None):
         log.debug(f"Vidext: video_set_mode(width: {str(width)}, height: {str(height)}, bits: {str(bits)}, screenmode: {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
 
         self.width = width
@@ -208,7 +193,8 @@ class Vidext():
         self.window.canvas.get_preferred_size()
         # Necessary so that we tell the GUI to not shrink the window further than the size of the widget set by mupen64plus
         self.window.canvas.set_size_request(width, height)
-        time.sleep(0.1) # XXX: Workaround because GTK is too slow.
+        # XXX: Workaround because GTK is too slow.
+        time.sleep(0.1)
 
         if wrp_dt.m64p_video_flags(flags).name == "M64VIDEOFLAG_SUPPORT_RESIZING":
             self.window.set_resizable(True)
@@ -278,9 +264,12 @@ class Vidext():
 
 
     def video_set_mode_rate(self, width, height, refreshrate, bits, screenmode, flags):
-        log.debug(f"Vidext: video_set_mode_Rate(width: {str(width)}, height: {str(height)}, \
+        log.debug(f"Vidext: video_set_mode_rate(width: {str(width)}, height: {str(height)}, \
                     refresh rate: {str(refreshrate)}, bits: {str(bits)}, screenmode: \
                     {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
+        #TODO
+
+        self.video_set_mode(self, width, height, bits, screenmode, flags, refreshrate)
 
         return wrp_dt.m64p_error.M64ERR_UNSUPPORTED
 

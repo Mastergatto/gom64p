@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import GLib
+from gi.repository import GLib, Gdk
 import platform, pathlib, os
 import ctypes.util as cu
 
@@ -18,19 +18,61 @@ import logging as log
 ###############
 
 class Environment:
-    def __init__(self):
-        self.parent = None
+    def __init__(self, parent):
+        self.parent = parent
         self.system = platform.system()
         self.current_path = None
         self.frontend_config_dir = None
         self.cache_dir = None
+        self.wm = None
+        self.modes = []
+        self.current_mode = None
 
     def query(self):
         return self.system
 
-    def set_current_path(self):
+    def get_current_path(self):
         self.current_path = os.getcwd()
         return self.current_path
+
+    def get_modes(self):
+        if self.system == "Windows":
+            #TODO
+            import win32api
+            print(len(win32api.EnumDisplayMonitors()))
+        elif self.system == "Darwin":
+            pass
+        else:
+            import subprocess
+            raw_output = subprocess.run('ls -1 /sys/class/drm/*/modes', shell=True, encoding="utf-8", capture_output=True)
+            output = raw_output.stdout.split('\n')[:-1]
+            for i in output:
+                raw_modes = subprocess.check_output(['cat', i])
+                modes = raw_modes.decode("utf-8").split('\n')
+                for j, k in list(enumerate(modes)):
+                    if modes[j] not in self.modes:
+                        if modes[j] != '':
+                            self.modes.append(k)
+
+    def get_current_mode(self, all_monitors=False):
+        "To be called after the main window has been realized."
+        modes = []
+        display = Gdk.Display.get_default()
+        if all_monitors == True:
+            n_monitors = display.get_n_monitors()
+            log.info(f'There are {n_monitors} monitor(s).')
+            for monitor in range(n_monitors):
+                monitor_handle = display.get_monitor(monitor)
+                geometry = monitor_handle.get_geometry()
+                rate = int(round(monitor_handle.get_refresh_rate()/1000, 0))
+                log.info(f'Monitor { monitor }: {geometry.width}x{geometry.height}, {rate} Hz')
+                modes.append((monitor, geometry.width, geometry.height, rate))
+        else:
+            cur_mon = display.get_monitor_at_window(self.parent.get_toplevel().get_window())
+            geometry = cur_mon.get_geometry()
+            rate = int(round(cur_mon.get_refresh_rate()/1000, 0))
+            self.current_mode = {"width":geometry.width, "height": geometry.height, "refresh": rate}
+            log.info(f'Monitor: {self.current_mode["width"]}x{self.current_mode["height"]}, {rate} Hz')
 
     def set_directories(self):
         # Sets up the paths for gom64p to store own config and data
@@ -61,6 +103,21 @@ class Environment:
             log.warning(f'The directory doesn\'t exist! Creating one at: {self.cache_dir}')
             self.cache_dir.mkdir(mode=0o755)
         log.info(f'User cache directory is: {self.cache_dir}')
+
+    def set_wm(self):
+        if self.system == "Darwin":
+            self.wm = "Quartz Compositor"
+        elif self.system == "Windows":
+            self.wm = "Desktop Window Manager"
+        else:
+            if os.getenv('WAYLAND_DISPLAY'):
+                self.wm = "Wayland"
+            else:
+                if os.getenv('DISPLAY'):
+                    self.wm = "X11"
+                else:
+                    self.wm = "Unknown"
+        return self.wm
 
     def set(self, parent):
         self.parent = parent

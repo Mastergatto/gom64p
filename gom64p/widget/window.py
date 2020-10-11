@@ -35,7 +35,7 @@ import wrapper.vidext as wrp_vext
 
 class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def __repr__(self):
-        return '<gom64pwindow>'
+        return '<gom64p_window>'
 
     def __init__(self, app):
         super().__init__(application=app)
@@ -65,9 +65,10 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         args_csd = self.application.args.enable_csd
 
         # environment
-        self.environment = u_env.Environment()
+        self.environment = u_env.Environment(self.window)
         self.environment.set_directories()
-        self.m64p_dir = self.environment.set_current_path()
+        self.environment.set_wm()
+        self.m64p_dir = self.environment.get_current_path()
         self.platform = self.environment.query()
         self.parameters['platform'] = self.platform
 
@@ -225,9 +226,10 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.notebook.show_all()
         self.window.show()
 
-        # Now that the window is shown, let's go get its size.
+        # Now that the window is shown, let's get its size.
         self.height = self.get_allocated_height()
         self.width = self.get_allocated_width()
+        self.environment.get_current_mode()
 
     def csd(self):
         # HeaderBar (Client Side Decoration, only for GNOME)

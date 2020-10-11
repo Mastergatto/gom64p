@@ -103,8 +103,8 @@ class GoodOldM64pApp(Gtk.Application):
         '''
 
         log.debug("Closing...")
-        self.frontend_conf.write()
-        #TODO: There's anything left to do?
+        if self.frontend_conf != None:
+            self.frontend_conf.write()
         Gtk.Application.do_shutdown(self)
 
     def do_command_line(self, argc, argv):
