@@ -1,5 +1,5 @@
 # gom64p
-[![Python version](https://img.shields.io/badge/Python-3.6|3.7-blue.svg)](https://github.com/Mastergatto/gom64p/blob/master/)
+[![Python version](https://img.shields.io/badge/Python-3.6|3.7|3.8|3.9-blue.svg)](https://github.com/Mastergatto/gom64p/blob/master/)
 [![License](https://img.shields.io/badge/license-GPL-blue.svg)](https://github.com/Mastergatto/gom64p/blob/master/LICENSE)
 
 Frontend in GTK+ 3.x and python3 for mupen64plus. Tested on Linux, untested on others platforms.

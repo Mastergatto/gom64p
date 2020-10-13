@@ -69,13 +69,13 @@ class Vidext():
         log.debug("Vidext: video_init()")
         
         if self.window.platform == 'Linux':
-            #if self.window.wm == 'X11':
+            #if self.window.environment.wm == 'X11':
             from gi.repository import GdkX11
             self.window_handle = self.window.canvas.get_property('window').get_xid()
-            #elif self.window.wm == 'Wayland':
+            #elif self.window.environment.wm == 'Wayland':
+            #    from gi.repository import GdkWayland # No bindings...?
             #    # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
-            #    # for wayland maybe use gdk_wayland_surface_get_window_geometry + gdk_surface_get_geometry?
-            #    pass
+            #    self.window_handle = GdkWayland.window_get_wl_surface(self.parent.get_window())
         elif self.window.platform == 'Windows':
             # https://stackoverflow.com/questions/23021327/how-i-can-get-drawingarea-window-handle-in-gtk3/27236258#27236258
             # https://gitlab.gnome.org/GNOME/gtk/issues/510
@@ -112,7 +112,7 @@ class Vidext():
             return wrp_dt.m64p_error.M64ERR_INVALID_STATE.value
         
         retval = egl.eglInitialize(self.egl_display, c.c_int(0), c.c_int(0))
-        #what about ES?
+        # What about ES?
         egl.eglBindAPI(egl.EGL_OPENGL_API)
         
         if retval == egl.EGL_TRUE:
@@ -267,12 +267,14 @@ class Vidext():
         log.debug(f"Vidext: video_set_mode_rate(width: {str(width)}, height: {str(height)}, \
                     refresh rate: {str(refreshrate)}, bits: {str(bits)}, screenmode: \
                     {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
-        #TODO
 
-        self.video_set_mode(self, width, height, bits, screenmode, flags, refreshrate)
-
-        return wrp_dt.m64p_error.M64ERR_UNSUPPORTED
-
+        #TODO:currently hardcoded to current display mode
+        if (self.window.environment.current_mode.width != width) or (self.window.environment.current_mode.height != height) \
+            or (self.window.environment.current_mode.refresh != refreshrate):
+            return wrp_dt.m64p_error.M64ERR_UNSUPPORTED.value
+        else:
+            self.video_set_mode(self, width, height, bits, screenmode, flags, refreshrate)
+            return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def gl_get_proc(self, proc):
         address = egl.eglGetProcAddress(proc)
@@ -380,7 +382,7 @@ class Vidext():
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_swap_buffer(self):
-        #XXX: It can spam this message in the output, better turn off it.
+        # Note: It can spam the message in the logs, it's best to never turn it on.
         #log.debug("Vidext: gl_swap_buffer()")
         if self.new_surface:
             log.info("VidExtFuncGLSwapBuf: New surface has been detected")
@@ -420,7 +422,7 @@ class Vidext():
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def video_resize_window(self, width, height):
-        #This reacts to the resizing of the window with the cursor
+        '''video_resize_window(): It reacts to the resizing of the window with the cursor'''
         log.debug(f"Vidext: video_resize_window(width: {str(width)}, height: {str(height)})")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 

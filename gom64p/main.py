@@ -18,13 +18,14 @@ if __name__ == "__main__":
     if system == 'Linux':
         #TODO: For now force x11 backend on linux, remove this later.
         os.environ['GDK_BACKEND'] = 'x11'
-        if os.environ['GDK_BACKEND'] == 'x11':
-            try:
-                import ctypes
-                x11 = ctypes.cdll.LoadLibrary('libX11.so')
-                x11.XInitThreads()
-            except:
-                print("Warning: failed to XInitThreads()")
+        if os.environ.get('GDK_BACKEND'):
+            if os.environ['GDK_BACKEND'] == 'x11':
+                try:
+                    import ctypes
+                    x11 = ctypes.cdll.LoadLibrary('libX11.so')
+                    x11.XInitThreads()
+                except:
+                    print("Warning: failed to XInitThreads()")
         if not os.environ.get( 'PYOPENGL_PLATFORM' ):
             os.environ['PYOPENGL_PLATFORM'] = 'egl'
     elif system == 'Windows':
