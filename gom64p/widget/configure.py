@@ -643,6 +643,8 @@ class ConfigDialog(Gtk.Dialog):
         self.parent.frontend_conf.set("Frontend", 'InputPlugin', self.former_values['input_plugin'])
         self.parent.frontend_conf.set("Frontend", 'RSPPlugin', self.former_values['rsp_plugin'])
         self.parent.frontend_conf.set("Frontend", 'Vidext', self.former_values['vidext'])
+        self.parent.frontend_conf.set("Frontend", 'PifNtscPath', self.former_values['pifntsc'])
+        self.parent.frontend_conf.set("Frontend", 'PifPalPath', self.former_values['pifpal'])
         #self.parent.frontend_conf.open_section("GameDirs")
         self.parent.frontend_conf.set("GameDirs", 'path1', self.former_values['path1'])
         self.parent.frontend_conf.set("GameDirs", 'path2', self.former_values['path2'])
@@ -659,6 +661,14 @@ class ConfigDialog(Gtk.Dialog):
         self.former_values['input_plugin'] = self.parent.frontend_conf.get("Frontend", 'InputPlugin')
         self.former_values['rsp_plugin'] = self.parent.frontend_conf.get("Frontend", 'RSPPlugin')
         self.former_values['vidext'] = self.parent.frontend_conf.get("Frontend", 'Vidext')
+        try:
+            self.former_values['pifntsc'] = self.parent.frontend_conf.get("Frontend", 'PifNtscPath')
+        except:
+            self.former_values['pifntsc'] = ''
+        try:
+            self.former_values['pifpal'] = self.parent.frontend_conf.get("Frontend", 'PifPalPath')
+        except:
+            self.former_values['pifpal'] = ''
         self.former_values['path1'] = self.parent.frontend_conf.get("GameDirs", 'path1')
         self.former_values['path2'] = self.parent.frontend_conf.get("GameDirs", 'path2')
         self.former_values['path3'] = self.parent.frontend_conf.get("GameDirs", 'path3')
@@ -668,18 +678,20 @@ class ConfigDialog(Gtk.Dialog):
             entry = Gtk.Entry()
             entry.set_placeholder_text(placeholder)
             entry.set_hexpand(True)
+            entry.connect("changed", self.on_entry_changed, section, param)
+
             if config == "frontend":
+                entry.set_tooltip_text(help)
                 if self.parent.frontend_conf.get(section, param) != None:
                     entry.set_text(self.parent.frontend_conf.get(section, param))
-                entry.set_tooltip_text(help)
+
             elif config == "m64p":
                 if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                    entry.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
                     if self.parent.m64p_wrapper.ConfigGetParameter(param) != None:
                         entry.set_text(self.parent.m64p_wrapper.ConfigGetParameter(param))
-                    entry.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
                 else:
                     entry.set_sensitive(False)
-            entry.connect("changed", self.on_entry_changed, section, param)
 
         except KeyError:
             if config == "frontend":
@@ -693,23 +705,23 @@ class ConfigDialog(Gtk.Dialog):
 
     def insert_checkbox(self, param, section, config, label, help=None):
         checkbox = Gtk.CheckButton.new_with_label(label)
+        checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
         try:
             if config == "frontend":
+                checkbox.set_tooltip_text(help)
                 if self.parent.frontend_conf.get(section, param) == "True":
                     checkbox.set_active(True)
-                checkbox.set_tooltip_text(help)
             elif config == "m64p":
+                checkbox.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
                 if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
                     if self.parent.m64p_wrapper.ConfigGetParameter(param) == True:
                         checkbox.set_active(True)
-                    checkbox.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
                 else:
                     checkbox.set_sensitive(False)
-            checkbox.connect("toggled", self.on_checkbox_toggled, section, param)
         except KeyError:
             if config == "frontend":
+                log.warning(f'{param} parameter NOT found, creating it and setting new default value: False.')
                 self.parent.frontend_conf.set(section, param, 'False')
-                log.warning(f'{param} parameter NOT found, setting new default value.')
             else:
                 log.warning(f'{param} parameter NOT found, thus disabling the checkpoint.')
             checkbox.set_sensitive(False)
@@ -723,22 +735,22 @@ class ConfigDialog(Gtk.Dialog):
 
         adjustment = Gtk.Adjustment(value=adj_value, lower=minimum, upper=maximum, step_increment=adj_step)
         spin = Gtk.SpinButton.new(adjustment, spin_climb, 0)
+        spin.set_snap_to_ticks(True)
+        spin.connect("value-changed", self.on_spinbutton_changed, section, param)
         try:
             if config == "frontend":
-                spin.set_value(self.parent.frontend_conf.get(section, param))
                 spin.set_tooltip_text(help)
+                spin.set_value(self.parent.frontend_conf.get(section, param))
             elif config == "m64p":
                 if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-                    spin.set_value(self.parent.m64p_wrapper.ConfigGetParameter(param))
                     spin.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param))
+                    spin.set_value(self.parent.m64p_wrapper.ConfigGetParameter(param))
                 else:
                     spin.set_sensitive(False)
-            spin.set_snap_to_ticks(True)
-            spin.connect("value-changed", self.on_spinbutton_changed, section, param)
 
         except KeyError:
-            spin.set_sensitive(False)
             log.warning(f'{param} parameter NOT found, thus disabling the spin button.')
+            spin.set_sensitive(False)
 
         return spin
 
