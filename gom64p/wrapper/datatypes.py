@@ -162,6 +162,11 @@ class m64p_command(EnumC):
     M64CMD_RESET = 19
     M64CMD_ADVANCE_FRAME = 20
     M64CMD_SET_MEDIA_LOADER = 21
+    M64CMD_NETPLAY_INIT = 22
+    M64CMD_NETPLAY_CONTROL_PLAYER = 23
+    M64CMD_NETPLAY_GET_VERSION = 24
+    M64CMD_NETPLAY_CLOSE = 25
+    M64CMD_PIF_OPEN = 26
 
 class m64p_cheat_code(c.Structure):
     _fields_ = [

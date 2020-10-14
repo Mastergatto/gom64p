@@ -62,7 +62,7 @@ class ConfigDialog(Gtk.Dialog):
 
         m64p_lib_entry = self.insert_entry('M64pLib', 'Frontend', 'frontend', "Mupen64plus library .so, .dll or .dylib", "Mupen64plus library .so, .dll or .dylib")
         m64p_lib_button = Gtk.Button.new_with_label("Open")
-        m64p_lib_button.connect("clicked", self.on_search_path_lib, m64p_lib_entry)
+        m64p_lib_button.connect("clicked", self.on_search_path, m64p_lib_entry, "library")
 
         m64p_plugins_entry = self.insert_entry('PluginsDir', 'Frontend', 'frontend', "Choose a dir where library and plugins are found", "Choose a dir where library and plugins are found")
         m64p_plugins_button = Gtk.Button.new_with_label("Open")
@@ -361,9 +361,13 @@ class ConfigDialog(Gtk.Dialog):
         gamedir1_box = Gtk.HBox()
         gamedir2_box = Gtk.HBox()
         gamedir3_box = Gtk.HBox()
+        pif_box = Gtk.VBox()
+        pif_ntsc_box = Gtk.HBox()
+        pif_pal_box = Gtk.HBox()
 
         m64p_frame = Gtk.Frame(label="mupen64plus directories", shadow_type=1)
         gamedir_frame = Gtk.Frame(label="game image directories", shadow_type=1)
+        pif_frame = Gtk.Frame(label="PIF ROM path", shadow_type=1)
 
         sram_dir_entry = self.insert_entry('SaveSRAMPath', 'Core', 'm64p', "Choose a dir where SRAM/EEPROM/FlashRAM saves will be stored", None)
         sram_dir_button = Gtk.Button.new_with_label("Open")
@@ -433,8 +437,28 @@ class ConfigDialog(Gtk.Dialog):
 
         gamedir_frame.add(gamedir_box)
 
+        pif_ntsc_path_entry = self.insert_entry('PifNtscPath', 'Frontend', 'frontend', "Indicate the location of the NTSC N64 PIF ROM", "Indicate the location of the NTSC N64 PIF ROM")
+        pif_ntsc_path_button = Gtk.Button.new_with_label("Open")
+        pif_ntsc_path_button.connect("clicked", self.on_search_path, pif_ntsc_path_entry, "pif")
+
+        pif_ntsc_box.pack_start(pif_ntsc_path_entry, True, True, 0)
+        pif_ntsc_box.pack_start(pif_ntsc_path_button, False, False, 0)
+
+        pif_pal_path_entry = self.insert_entry('PifPalPath', 'Frontend', 'frontend', "Indicate the location of the PAL N64 PIF ROM", "Indicate the location of the PAL N64 PIF ROM")
+        pif_pal_path_button = Gtk.Button.new_with_label("Open")
+        pif_pal_path_button.connect("clicked", self.on_search_path, pif_pal_path_entry, "pif")
+
+        pif_pal_box.pack_start(pif_pal_path_entry, True, True, 0)
+        pif_pal_box.pack_start(pif_pal_path_button, False, False, 0)
+
+        pif_box.pack_start(pif_ntsc_box, True, True, 0)
+        pif_box.pack_start(pif_pal_box, True, True, 0)
+
+        pif_frame.add(pif_box)
+
         paths_box.pack_start(m64p_frame, False, False, 0)
         paths_box.pack_start(gamedir_frame, False, False, 0)
+        paths_box.pack_start(pif_frame, False, False, 0)
 
         config_notebook.append_page(paths_box, paths_tab)
 
@@ -576,13 +600,13 @@ class ConfigDialog(Gtk.Dialog):
             self.parent.m64p_wrapper.ConfigOpenSection(section)
             self.parent.m64p_wrapper.ConfigSetParameter(param, widget.get_value_as_int())
 
-    def on_search_path_lib(self, widget, entry):
-        dialog = w_dialog.FileChooserDialog(self.config_window, "library")
-        library = dialog.path
-        if library != None:
+    def on_search_path(self, widget, entry, file):
+        dialog = w_dialog.FileChooserDialog(self.config_window, file)
+        path = dialog.path
+        if path != None:
             self.is_changed = True
             self.apply_button.set_sensitive(True)
-            entry.set_text(library)
+            entry.set_text(path)
 
     def on_search_path_dir(self, widget, entry):
         dialog = w_dialog.FileChooserDialog(self.config_window, "directory")
@@ -658,8 +682,12 @@ class ConfigDialog(Gtk.Dialog):
             entry.connect("changed", self.on_entry_changed, section, param)
 
         except KeyError:
-            entry.set_sensitive(False)
-            log.warning(f'{param} parameter NOT found, thus disabling the entry.')
+            if config == "frontend":
+                log.warning(f'{param} parameter NOT found, creating it...')
+                self.parent.frontend_conf.set(section, param, '')
+            else:
+                entry.set_sensitive(False)
+                log.warning(f'{param} parameter NOT found, thus disabling the entry.')
 
         return entry
 

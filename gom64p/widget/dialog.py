@@ -38,6 +38,8 @@ class FileChooserDialog(Gtk.FileChooserDialog):
                 self.snapshot_saver()
         elif category == "library":
             self.library_chooser()
+        elif category == "pif":
+            self.pif_chooser()
 
     def directory_chooser(self):
         self.dialog.set_title("Please select the directory")
@@ -51,6 +53,29 @@ class FileChooserDialog(Gtk.FileChooserDialog):
             else:
                 self.path = self.dialog.get_filename() + "/"
             log.debug(f"Directory selected: {self.path}")
+        self.dialog.destroy()
+
+    def pif_chooser(self):
+        self.dialog.set_title("Please select the PIF ROM image")
+
+        filter_extension = Gtk.FileFilter()
+        filter_extension.set_name("N64 PIF ROM image (.bin, .rom)")
+        #filter_extension.add_mime_type("application/x-n64-rom")
+        filter_extension.add_pattern("*.bin")
+        filter_extension.add_pattern("*.rom")
+        self.dialog.add_filter(filter_extension)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        self.dialog.add_filter(filter_any)
+
+        response = self.dialog.run()
+        if response == Gtk.ResponseType.ACCEPT:
+            self.path = self.dialog.get_filename()
+            log.debug(f"File selected: {self.path}")
+        elif response == Gtk.ResponseType.CANCEL:
+            pass
         self.dialog.destroy()
 
     def rom_chooser(self):

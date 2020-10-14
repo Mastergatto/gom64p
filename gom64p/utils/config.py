@@ -34,6 +34,8 @@ class FrontendConf():
         self.config['Frontend'] = {'FirstTime': 'True',
                             'Version': '0.1',
                             'M64pLib': '',
+                            'PifNtscPath': '',
+                            'PifPalPath': '',
                             'PluginsDir': '',
                             'ConfigDir': '',
                             'DataDir': '',

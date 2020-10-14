@@ -18,6 +18,22 @@ class API():
         #Latest API version supported by this wrapper.
         self.core_version = 0x020509 # 2.5.9 BETA
 
+        #CORE_API_VERSION = 0x20001
+        #CONFIG_API_VERSION = 0x20000
+        #MINIMUM_CORE_VERSION = 0x016300
+
+        #MUPEN_CORE_NAME "Mupen64Plus Core"
+        #MUPEN_CORE_VERSION 0x020509
+        #FRONTEND_API_VERSION 0x020102
+        #CONFIG_API_VERSION   0x020301
+        #DEBUG_API_VERSION    0x020001
+        #VIDEXT_API_VERSION   0x030100
+
+        #RSP_API_VERSION   0x20000
+        #GFX_API_VERSION   0x20200
+        #AUDIO_API_VERSION 0x20000
+        #INPUT_API_VERSION 0x20001
+
         self.frontend = parent
         self.platform = params['platform']
         self.m64p_lib_core_path = params['m64plib']
@@ -71,23 +87,6 @@ class API():
 
         # We must check first if plugins, all that are found, are compatible
         self.plugins_validate()
-
-
-        #CORE_API_VERSION = 0x20001
-        #CONFIG_API_VERSION = 0x20000
-        #MINIMUM_CORE_VERSION = 0x016300
-
-        #MUPEN_CORE_NAME "Mupen64Plus Core"
-        #MUPEN_CORE_VERSION 0x020509
-        #FRONTEND_API_VERSION 0x020102
-        #CONFIG_API_VERSION   0x020301
-        #DEBUG_API_VERSION    0x020001
-        #VIDEXT_API_VERSION   0x030100
-
-        #RSP_API_VERSION   0x20000
-        #GFX_API_VERSION   0x20200
-        #AUDIO_API_VERSION 0x20000
-        #INPUT_API_VERSION 0x20001
 
     ### Basic core functions
     def PluginGetVersion(self, plugin):
@@ -1220,15 +1219,15 @@ class API():
     def rom_open(self, rom_path):
         #M64CMD_ROM_OPEN = 1
 
-        self.load_rom = open(rom_path, "rb")
-        self.read_rom = self.load_rom.read()
-        self.rom_size = c.c_int(len(self.read_rom))
-        #self.romtype = binascii.hexlify(rom[:4])
-        self.rom_buffer = c.create_string_buffer(self.read_rom)
+        with open(rom_path, "rb") as self.load_rom:
+            self.read_rom = self.load_rom.read()
+            self.rom_size = c.c_int(len(self.read_rom))
+            #self.romtype = binascii.hexlify(rom[:4])
+            self.rom_buffer = c.create_string_buffer(self.read_rom)
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_OPEN.value, self.rom_size, c.byref(self.rom_buffer))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            log.error("CoreDoCommand: Open ROM file failed!")
+            log.error("CoreDoCommand: Opening of ROM file has failed!")
 
         return status
 
@@ -1244,7 +1243,7 @@ class API():
         self.rom_buffer = None
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            log.error("CoreDoCommand: Close ROM file failed!")
+            log.error("CoreDoCommand: Closing of ROM file has failed!")
         return status
 
     def check_length(self, crc):
@@ -1635,6 +1634,61 @@ class API():
             log.error("CoreDoCommand: Unable to set the media loader. This means that the Transfer Pak or the 64DD won't work.")
         return status
 
+    def netplay_init(self, port, hostname):
+        #M64CMD_NETPLAY_INIT = 22
+        # TODO: Untested
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_INIT.value, c.c_int(port), c.byref(c.create_string_buffer(hostname)))
+        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            self.CoreErrorMessage(status, b"NETPLAY_INIT")
+            log.error("CoreDoCommand: Unable to initiate the Netplay subsystem.")
+        return status
+
+    def netplay_control_player(self, controller):
+        #M64CMD_NETPLAY_CONTROL_PLAYER = 23
+        # TODO: Untested
+        registration_id = c.c_uint32()
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_CONTROL_PLAYER.value, c.c_int(controller), c.byref(registration_id))
+        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            self.CoreErrorMessage(status, b"CONTROL_PLAYER")
+            log.error("CoreDoCommand: The server has rejected your request for controller {controller}.")
+        return status
+
+    def netplay_get_version(self, frontend_api):
+        #M64CMD_NETPLAY_GET_VERSION = 24
+        # TODO: Untested
+        server_api = c.c_uint32()
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_GET_VERSION.value, c.c_int(frontend_api), c.byref(server_api))
+        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            self.CoreErrorMessage(status, b"NETPLAY_GET_VERSION")
+            log.error(f"CoreDoCommand: Netplay API version mismatch between client and server!")
+        return status
+
+    def netplay_close(self):
+        #M64CMD_NETPLAY_CLOSE = 25
+        # TODO: Untested
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_CLOSE.value, c.c_int(), c.byref())
+        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            self.CoreErrorMessage(status, b"NETPLAY_CLOSE")
+            log.error(f"CoreDoCommand: Unable to close any connections to server or shutdown the Netplay subsystem.")
+        return status
+
+    def pif_open(self, pif_path):
+        #M64CMD_PIF_OPEN = 26
+        with open(pif_path, "rb") as self.load_pif:
+            self.read_pif = self.load_pif.read()
+            self.pif_size = len(self.read_pif)
+            self.pif_buffer = c.create_string_buffer(self.read_pif)
+
+        if self.pif_size == 2048:
+            status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_PIF_OPEN.value, c.c_int(self.pif_size), c.byref(self.pif_buffer))
+
+            if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+                log.error("CoreDoCommand: Opening of PIF ROM file has failed!")
+            return status
+        else:
+            log.error("CoreDoCommand: PIF ROM file is not of the right size!")
+            return wrp_dt.m64p_error.M64ERR_FILES.value
+
     ####################
 
     def preload(self):
@@ -1750,6 +1804,10 @@ class API():
         if retval == 0:
             header = self.rom_get_header() ###
             self.rom_get_settings() ###
+            if header["country"] in ("U", "J", "UJ"):
+                self.pif_open(self.frontend.frontend_conf.get("Frontend", "PifNtscPath"))
+            else:
+                self.pif_open(self.frontend.frontend_conf.get("Frontend", "PifPalPath"))
             self.plugins_attach()
             self.set_media_loader()
             if self.frontend.cheats:
