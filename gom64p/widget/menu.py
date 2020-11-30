@@ -131,7 +131,7 @@ class Menu:
             self.save_slot_menu.append(menu_item)
             menu_item.connect("activate", self.on_slot_select, i)
 
-        self.emulation_menu_current_slot = self.insert_menu_item("Current save state slot", False, None, self.save_slot_menu)
+        self.emulation_menu_current_slot = self.insert_menu_item("Current save state slot", False, None, submenu=self.save_slot_menu)
         self.emulation_menu_transfer_pak = self.insert_menu_item_obj("Media Loader", self.parent.action.return_state_lock(), w_media.MediaDialog, self.parent)
 
 
