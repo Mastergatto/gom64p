@@ -1456,9 +1456,13 @@ class API():
         m64pstatus = self.rom_settings.status
         players = self.rom_settings.players
         rumble = bool(self.rom_settings.rumble)
+        transferpak = bool(self.rom_settings.transferpak)
+        mempak = bool(self.rom_settings.mempak)
+        biopak = bool(self.rom_settings.biopak)
 
         settings = {"goodname": name, "md5": md5, "savetype": savetype,
-                    "status": m64pstatus, "players": players, "rumble": rumble}
+                    "status": m64pstatus, "players": players, "rumble": rumble,
+                    "transferpak": transferpak, "mempak": mempak, "biopak": biopak}
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Couldn't retrieve the ROM's settings.")
@@ -1480,9 +1484,13 @@ class API():
         m64pstatus = self.rom_settings.status
         players = self.rom_settings.players
         rumble = self.rom_settings.rumble
+        transferpak = self.rom_settings.transferpak
+        mempak = self.rom_settings.mempak
+        biopak = self.rom_settings.biopak
 
         settings = {"goodname": name, "md5": md5, "savetype": savetype,
-                    "status": m64pstatus, "players": players, "rumble": rumble}
+                    "status": m64pstatus, "players": players, "rumble": rumble,
+                    "transferpak": transferpak, "mempak": mempak, "biopak": biopak}
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Couldn't retrieve the ROM's settings.")

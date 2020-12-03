@@ -224,7 +224,10 @@ class m64p_rom_settings(c.Structure):
         ("savetype", c.c_ubyte),
         ("status", c.c_ubyte),                    # Rom status on a scale from 0-5.
         ("players", c.c_ubyte),                   # Local players 0-4, 2/3/4 way Netplay indicated by 5/6/7.
-        ("rumble", c.c_ubyte)                     # 0 - No, 1 - Yes boolean for rumble support.
+        ("rumble", c.c_ubyte),                    # 0 - No, 1 - Yes boolean for rumble support.
+        ("transferpak", c.c_ubyte),               # 0 - No, 1 - Yes boolean for transfer pak support.
+        ("mempak", c.c_ubyte),                    # 0 - No, 1 - Yes boolean for memory pak support.
+        ("biopak", c.c_ubyte)                     # 0 - No, 1 - Yes boolean for bio pak support.
     ]
 
 ###########################################

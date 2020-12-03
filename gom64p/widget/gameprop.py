@@ -104,6 +104,9 @@ class PropertiesDialog(Gtk.Dialog):
         status_entry = self.insert_entry("Status:", self.settings["status"])
         players_entry = self.insert_entry("Players:", self.settings["players"])
         rumble_entry = self.insert_entry("Rumble support:", self.settings["rumble"])
+        tpak_entry = self.insert_entry("Transfer pak support:", self.settings["transferpak"])
+        mempak_entry = self.insert_entry("Memory pak support:", self.settings["mempak"])
+        biopak_entry = self.insert_entry("Biopak support:", self.settings["biopak"])
 
         country_entry = self.insert_entry("Country:", self.header["country"])
         crc_box = Gtk.HBox()
@@ -128,19 +131,37 @@ class PropertiesDialog(Gtk.Dialog):
         info_box.pack_start(country_entry, False, False, 0)
         info_box.pack_start(file_entry, False, False, 0)
         info_box.pack_start(status_entry, False, False, 0)
-        info_box.pack_start(path_entry, False, False, 0)
-        info_box.pack_start(internal_entry, False, False, 0)
-        info_box.pack_start(md5_entry, False, False, 0)
+        info_box.pack_start(cartridge_entry, False, False, 0)
+        info_box.pack_start(players_entry, False, False, 0)
+        info_box.pack_start(manufacturer_entry, False, False, 0)
+
+        # Group all the info on the pak accessories
+        pak_frame = Gtk.Frame(label="Accessories support", shadow_type=1)
+        pak_box = Gtk.VBox()
+        pak_box.pack_start(rumble_entry, False, False, 0)
+        pak_box.pack_start(tpak_entry, False, False, 0)
+        pak_box.pack_start(mempak_entry, False, False, 0)
+        pak_box.pack_start(biopak_entry, False, False, 0)
+
+        pak_frame.add(pak_box)
+        info_box.pack_start(pak_frame, False, False, 0)
+
+        # Group all the technical details
+        tech_frame = Gtk.Frame(label="Technical details", shadow_type=1)
+        tech_box = Gtk.VBox()
+
+        tech_box.pack_start(path_entry, False, False, 0)
+        tech_box.pack_start(internal_entry, False, False, 0)
+        tech_box.pack_start(md5_entry, False, False, 0)
 
         crc_box.pack_start(crc1_entry, False, False, 0)
         crc_box.pack_start(crc2_entry, False, False, 0)
-        info_box.pack_start(crc_box, False, False, 0)
+        tech_box.pack_start(crc_box, False, False, 0)
 
-        info_box.pack_start(save_entry, False, False, 0)
-        info_box.pack_start(players_entry, False, False, 0)
-        info_box.pack_start(rumble_entry, False, False, 0)
-        info_box.pack_start(cartridge_entry, False, False, 0)
-        info_box.pack_start(manufacturer_entry, False, False, 0)
+        tech_box.pack_start(save_entry, False, False, 0)
+
+        tech_frame.add(tech_box)
+        info_box.pack_start(tech_frame, False, False, 0)
 
         return info_box
 
