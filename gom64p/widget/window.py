@@ -337,9 +337,10 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 self.running = True
                 self.emulating = True
                 self.action.status_push( "*** Emulation STARTED ***")
-                if (self.window.canvas.width != wrp_vext.m64p_video.width) or (self.window.canvas.height != wrp_vext.m64p_video.height):
-                    self.window.canvas.register_size()
-                    self.window.canvas.resize()
+                if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
+                    if (self.window.canvas.width != wrp_vext.m64p_video.width) or (self.window.canvas.height != wrp_vext.m64p_video.height):
+                        self.window.canvas.register_size()
+                        self.window.canvas.resize()
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_PAUSED':
                 self.main_menu.sensitive_menu_pause()
                 self.running = False
