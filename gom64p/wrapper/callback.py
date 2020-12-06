@@ -103,86 +103,60 @@ CB_PARAMETERS = PARAMETERSPROTO(list_param_callback)
 
 
 #FIXME: This drives me crazy, because it always causes memory corruption after a while or at the closing of the frontend (segfault, double free or corruption(out or !prev), invalid pointer, corrupted size vs. prev_size while consolidating)
-#GLib.strdup(str) ?
-# A workaround would be: export LD_PRELOAD="/usr/lib/libtcmalloc_minimal.so"
-class Media_callback(object):
-    cart_rom_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)
-    cart_ram_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p, c.c_int)
-    dd_rom_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p)
-    dd_disk_cb = c.CFUNCTYPE(c.c_void_p, c.c_void_p)
+ml_filename = None
+ml_string = c.create_string_buffer(1024)
 
-    @cart_rom_cb
-    def get_gb_cart_rom(cb_data, controller_id):
-        frontend.m64p_wrapper.ConfigOpenSection("Transferpak")
-        if controller_id == 0:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-rom-1")
-        elif controller_id == 1:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-rom-2")
-        elif controller_id == 2:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-rom-3")
-        elif controller_id == 3:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-rom-4")
-        else:
-            log.warning("Unknown controller")
-        if filename != '':
-            return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
-        else:
-            return None
+cb_data_cb = c.PYFUNCTYPE(c.c_void_p, c.c_void_p)
+cart_rom_cb = c.PYFUNCTYPE(c.c_char_p, cb_data_cb, c.c_int)
+cart_ram_cb = c.PYFUNCTYPE(c.c_char_p, cb_data_cb, c.c_int)
+dd_rom_cb = c.PYFUNCTYPE(c.c_char_p, cb_data_cb)
+dd_disk_cb = c.PYFUNCTYPE(c.c_char_p, cb_data_cb)
 
-    @cart_ram_cb
-    def get_gb_cart_ram(cb_data, controller_id):
-        frontend.m64p_wrapper.ConfigOpenSection("Transferpak")
-        if controller_id == 0:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-ram-1")
-        elif controller_id == 1:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-ram-2")
-        elif controller_id == 2:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-ram-3")
-        elif controller_id == 3:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("GB-ram-4")
-        else:
-            log.warning("Unknown controller")
-        if filename != '':
-            return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
-        else:
-            return None
-
-    @dd_rom_cb
-    def get_dd_rom(cb_data):
-        frontend.m64p_wrapper.ConfigOpenSection("64DD")
-        try:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("IPL-ROM")
-            if filename != '':
-                return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
-            else:
-                return None
-        except:
-            log.warning("IPL-ROM parameter not found. Creating it.")
-            frontend.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
-            return None
-
-    @dd_disk_cb
-    def get_dd_disk(cb_data):
-        frontend.m64p_wrapper.ConfigOpenSection("64DD")
-        try:
-            filename = frontend.m64p_wrapper.ConfigGetParameter("Disk")
-            if filename != '':
-                return c.cast(c.create_string_buffer(filename.encode('utf-8'), 1023), c.c_void_p).value
-            else:
-                return None
-        except:
-            log.warning("Disk image parameter not found. Creating it.")
-            frontend.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
-            return None
-
-cb = Media_callback()
 class m64p_media_loader(c.Structure):
     _fields_ = [
-        ("cb_data", c.c_void_p),
-        ("get_gb_cart_rom", cb.cart_rom_cb), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
-        ("get_gb_cart_ram", cb.cart_ram_cb), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
-        ("get_dd_rom", cb.dd_rom_cb),      #char* (*get_dd_rom)(void* cb_data)
-        ("get_dd_disk", cb.dd_disk_cb)     #char* (*get_dd_disk)(void* cb_data);
+        ("cb_data", cb_data_cb),
+        ("get_gb_cart_rom", cart_rom_cb), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
+        ("get_gb_cart_ram", cart_ram_cb), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
+        ("get_dd_rom", dd_rom_cb),        #char* (*get_dd_rom)(void* cb_data)
+        ("get_dd_disk", dd_disk_cb)       #char* (*get_dd_disk)(void* cb_data);
     ]
 
-MEDIA_LOADER = m64p_media_loader(None, cb.get_gb_cart_rom, cb.get_gb_cart_ram, cb.get_dd_rom, cb.get_dd_disk)
+@cb_data_cb
+def ml_cb(data):
+    return data
+
+def media_loader_get_filename(cb_data, section, param):
+    ml_filename = ''
+    frontend.m64p_wrapper.ConfigOpenSection(section)
+    ml_filename = frontend.m64p_wrapper.ConfigGetParameter(param)
+
+    if ml_filename != '':
+        ml_string.value = ml_filename.encode("utf-8")
+        return cb_data(c.byref(ml_string))
+
+@cart_rom_cb
+def ml_gb_cart_rom(cb_data, controller_id):
+    return media_loader_get_filename(cb_data, "Transferpak", f'GB-rom-{controller_id + 1}')
+
+@cart_ram_cb
+def ml_gb_cart_ram(cb_data, controller_id):
+    return media_loader_get_filename(cb_data, "Transferpak", f'GB-ram-{controller_id + 1}')
+
+@dd_rom_cb
+def ml_dd_rom(cb_data):
+    try:
+        return media_loader_get_filename(cb_data, "64DD", "IPL-ROM")
+    except:
+        log.warning("IPL-ROM parameter not found. Creating it.")
+        frontend.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
+
+@dd_disk_cb
+def ml_dd_disk(cb_data):
+    try:
+        return media_loader_get_filename(cb_data, "64DD", "Disk")
+    except:
+        log.warning("Disk image parameter not found. Creating it.")
+        frontend.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
+
+MEDIA_LOADER = m64p_media_loader(ml_cb, ml_gb_cart_rom, ml_gb_cart_ram, ml_dd_rom, ml_dd_disk)
+
