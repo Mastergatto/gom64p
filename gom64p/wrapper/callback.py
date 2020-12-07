@@ -106,12 +106,14 @@ CB_PARAMETERS = PARAMETERSPROTO(list_param_callback)
 ml_filename = None
 ml_string = c.create_string_buffer(1024)
 
+# Define the prototype for those callbacks
 cb_data_cb = c.PYFUNCTYPE(c.c_void_p, c.c_void_p)
 cart_rom_cb = c.PYFUNCTYPE(c.c_char_p, cb_data_cb, c.c_int)
 cart_ram_cb = c.PYFUNCTYPE(c.c_char_p, cb_data_cb, c.c_int)
 dd_rom_cb = c.PYFUNCTYPE(c.c_char_p, cb_data_cb)
 dd_disk_cb = c.PYFUNCTYPE(c.c_char_p, cb_data_cb)
 
+# Define the struct in Python for the media loader as required by m64+
 class m64p_media_loader(c.Structure):
     _fields_ = [
         ("cb_data", cb_data_cb),
@@ -123,8 +125,12 @@ class m64p_media_loader(c.Structure):
 
 @cb_data_cb
 def ml_cb(data):
+    #avoid accessing if NULL pointer
+    if data:
+        pass
     return data
 
+# Retrieve the user-defined value from m64+ configuration file
 def media_loader_get_filename(cb_data, section, param):
     ml_filename = ''
     frontend.m64p_wrapper.ConfigOpenSection(section)
@@ -132,16 +138,20 @@ def media_loader_get_filename(cb_data, section, param):
 
     if ml_filename != '':
         ml_string.value = ml_filename.encode("utf-8")
-        return cb_data(c.byref(ml_string))
+        return cb_data(ml_string)
 
+# Wrap those function, so that those will be wired in in the struct
+## Get the GB ROM from the config file
 @cart_rom_cb
 def ml_gb_cart_rom(cb_data, controller_id):
     return media_loader_get_filename(cb_data, "Transferpak", f'GB-rom-{controller_id + 1}')
 
+## Get the GB RAM from the config file
 @cart_ram_cb
 def ml_gb_cart_ram(cb_data, controller_id):
     return media_loader_get_filename(cb_data, "Transferpak", f'GB-ram-{controller_id + 1}')
 
+## Get the IPL ROM from the config file
 @dd_rom_cb
 def ml_dd_rom(cb_data):
     try:
@@ -150,6 +160,7 @@ def ml_dd_rom(cb_data):
         log.warning("IPL-ROM parameter not found. Creating it.")
         frontend.m64p_wrapper.ConfigSetDefaultString("IPL-ROM", "", "64DD Bios filename")
 
+## Get the 64DD Disk from the config file
 @dd_disk_cb
 def ml_dd_disk(cb_data):
     try:
@@ -158,5 +169,5 @@ def ml_dd_disk(cb_data):
         log.warning("Disk image parameter not found. Creating it.")
         frontend.m64p_wrapper.ConfigSetDefaultString("Disk", "", "Disk Image filename")
 
+# Make an istance of the struct, filling every field with callbacks, so that it's ready to receive input from m64+
 MEDIA_LOADER = m64p_media_loader(ml_cb, ml_gb_cart_rom, ml_gb_cart_ram, ml_dd_rom, ml_dd_disk)
-
