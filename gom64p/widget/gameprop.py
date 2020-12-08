@@ -114,7 +114,7 @@ class PropertiesDialog(Gtk.Dialog):
         crc2_entry = self.insert_entry("CRC2:", self.header["crc2"])
 
         internal_entry = self.insert_entry("Internal name:", self.header["internalname"], "internal")
-        manufacturer_entry = self.insert_entry("Manufacturer:", self.header["manufacturer"])
+        manufacturer_entry = self.insert_entry("Media format:", self.header["manufacturer"])
         cartridge_entry = self.insert_entry("Cartridge:", self.header["cartridge"])
         release_entry = self.insert_entry("Release:", self.header["release"])
         clockrate_entry = self.insert_entry("Clock rate:", self.header["clockrate"])

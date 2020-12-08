@@ -123,7 +123,7 @@ class m64p_video_mode(EnumC):
     M64VIDEO_FULLSCREEN = 3
 
 class m64p_video_flags(EnumC):
-    M64VIDEOFLAG_NO_FLAGS = 0 #not official
+    M64VIDEOFLAG_NO_FLAGS = 0 # not official
     M64VIDEOFLAG_SUPPORT_RESIZING = 1
 
 class m64p_core_param(EnumC):
@@ -174,20 +174,20 @@ class m64p_cheat_code(c.Structure):
         ("value", c.c_int)
     ]
 
-cb_data = c.c_void_p
-cart_rom_cb = c.CFUNCTYPE(c.c_char_p, cb_data, c.c_int)
-cart_ram_cb = c.CFUNCTYPE(c.c_char_p, cb_data, c.c_int)
-dd_rom_cb = c.CFUNCTYPE(c.c_char_p, cb_data)
-dd_disk_cb = c.CFUNCTYPE(c.c_char_p, cb_data)
-
-class m64p_media_loader(c.Structure):
-    _fields_ = [
-        ("cb_data", cb_data),
-        ("get_gb_cart_rom", cart_rom_cb), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
-        ("get_gb_cart_ram", cart_ram_cb), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
-        ("get_dd_rom", dd_rom_cb),        #char* (*get_dd_rom)(void* cb_data)
-        ("get_dd_disk", dd_disk_cb)       #char* (*get_dd_disk)(void* cb_data);
-    ]
+#cb_data = c.c_void_p
+#cart_rom_cb = c.CFUNCTYPE(c.c_char_p, cb_data, c.c_int)
+#cart_ram_cb = c.CFUNCTYPE(c.c_char_p, cb_data, c.c_int)
+#dd_rom_cb = c.CFUNCTYPE(c.c_char_p, cb_data)
+#dd_disk_cb = c.CFUNCTYPE(c.c_char_p, cb_data)
+#
+#class m64p_media_loader(c.Structure):
+#    _fields_ = [
+#        ("cb_data", cb_data),
+#        ("get_gb_cart_rom", cart_rom_cb), #char* (*get_gb_cart_rom)(void* cb_data, int controller_num);
+#        ("get_gb_cart_ram", cart_ram_cb), #char* (*get_gb_cart_ram)(void* cb_data, int controller_num);
+#        ("get_dd_rom", dd_rom_cb),        #char* (*get_dd_rom)(void* cb_data)
+#        ("get_dd_disk", dd_disk_cb)       #char* (*get_dd_disk)(void* cb_data);
+#    ]
 
 ##############################################
 ## Structures to hold ROM image information ##
@@ -200,28 +200,32 @@ class m64p_system_type(EnumC):
 
 class m64p_rom_header(c.Structure):
     _fields_ = [
-        ("init_PI_BSB_DOM1_LAT_REG", c.c_ubyte),  # 0x00
-        ("init_PI_BSB_DOM1_PGS_REG", c.c_ubyte),  # 0x01
-        ("init_PI_BSB_DOM1_PWD_REG", c.c_ubyte),  # 0x02
-        ("init_PI_BSB_DOM1_PGS_REG2", c.c_ubyte), # 0x03
-        ("ClockRate", c.c_uint),                  # 0x04
-        ("PC", c.c_uint),                         # 0x08
-        ("Release", c.c_uint),                    # 0x0C
-        ("CRC1", c.c_uint),                       # 0x10
-        ("CRC2", c.c_uint),                       # 0x14
+                                                  # ROM header
+        ("init_PI_BSB_DOM1_LAT_REG", c.c_ubyte),  # 0x00 - Latency
+        ("init_PI_BSB_DOM1_PGS_REG", c.c_ubyte),  # 0x01 - Page size
+        ("init_PI_BSB_DOM1_PWD_REG", c.c_ubyte),  # 0x02 - Pulse width
+        ("init_PI_BSB_DOM1_PGS_REG2", c.c_ubyte), # 0x03 - Page size (release?)
+        ("ClockRate", c.c_uint),                  # 0x04 - Clockrate override
+        ("PC", c.c_uint),                         # 0x08 - Program Code (entrypoint)
+        ("Release", c.c_uint),                    # 0x0C - Return Address
+        ("CRC1", c.c_uint),                       # 0x10 - Checksum, first part
+        ("CRC2", c.c_uint),                       # 0x14 - Checksum, second part
         ("Unknown", c.c_uint * 2),                # 0x18
-        ("Name", c.c_ubyte * 20),                 # 0x20
+        ("Name", c.c_ubyte * 20),                 # 0x20 - Internal Name coded in codepage 932
         ("unknown", c.c_uint),                    # 0x34
-        ("Manufacturer_ID", c.c_uint),            # 0x38
-        ("Cartridge_ID", c.c_ushort),             # 0x3C - Game serial number
-        ("Country_code", c.c_ushort)              # 0x3E
+        ("Manufacturer_ID", c.c_uint),            # 0x38 - First byte of Product Code: Media Format
+                                                  # (C=cartridge part, E=Disk part, N=N64 only, Z = Aleck64)
+        ("Cartridge_ID", c.c_ushort),             # 0x3C - 2nd and 3rd byte: Game serial number
+        ("Country_code", c.c_ushort)              # 0x3E - 4th byte: Country
+                                                  # 0x3F - Game version (1.0, 1.1 and 1.2)
+                                                  # 0x40 - Bootstrap
     ]
 
 class m64p_rom_settings(c.Structure):
     _fields_ = [
         ("goodname", c.c_char * 256),
         ("MD5", c.c_char * 33),
-        ("savetype", c.c_ubyte),
+        ("savetype", c.c_ubyte),                  # EEPROM 4K/16k, SRAM 256k/768k, FlashRAM 1M
         ("status", c.c_ubyte),                    # Rom status on a scale from 0-5.
         ("players", c.c_ubyte),                   # Local players 0-4, 2/3/4 way Netplay indicated by 5/6/7.
         ("rumble", c.c_ubyte),                    # 0 - No, 1 - Yes boolean for rumble support.
@@ -319,24 +323,24 @@ class m64p_dbg_bkp_flags(EnumC):
     M64P_BKP_FLAG_EXEC = 0x08
     M64P_BKP_FLAG_LOG = 0x10 # Log to the console when this breakpoint hits.
 
-#define BPT_CHECK_FLAG(a, b)  ((a.flags & b) == b)
+# define BPT_CHECK_FLAG(a, b)  ((a.flags & b) == b)
 def BPT_CHECK_FLAG(breakpoint, flag):
     # AND bitwise operator
     return ((breakpoint.flags & flag) == flag)
 
-#define BPT_SET_FLAG(a, b)    a.flags = (a.flags | b);
+# define BPT_SET_FLAG(a, b)    a.flags = (a.flags | b);
 def BPT_SET_FLAG(breakpoint, flag):
     # OR bitwise operator
     breakpoint.flags = (breakpoint.flags | flag)
     return breakpoint.flags
 
-#define BPT_CLEAR_FLAG(a, b)  a.flags = (a.flags & (~b));
+# define BPT_CLEAR_FLAG(a, b)  a.flags = (a.flags & (~b));
 def BPT_CLEAR_FLAG(breakpoint, flag):
     # NOT bitwise operator
     breakpoint.flags = (breakpoint.flags & (~flag))
     return breakpoint.flags
 
-#define BPT_TOGGLE_FLAG(a, b) a.flags = (a.flags ^ b);
+# define BPT_TOGGLE_FLAG(a, b) a.flags = (a.flags ^ b);
 def BPT_TOGGLE_FLAG(breakpoint, flag):
     # XOR bitwise operator
     breakpoint.flags = (breakpoint.flags ^ flag)
@@ -359,11 +363,6 @@ class m64p_2d_size(c.Structure):
         ("uiHeight", c.c_uint)
     ]
 
-class m64p_GLContextType(EnumC):
-    M64P_GL_CONTEXT_PROFILE_CORE = 1
-    M64P_GL_CONTEXT_PROFILE_COMPATIBILITY = 2
-    M64P_GL_CONTEXT_PROFILE_ES = 3
-
 class m64p_GLattr(EnumC):
     M64P_GL_DOUBLEBUFFER = 1
     M64P_GL_BUFFER_SIZE = 2
@@ -379,6 +378,10 @@ class m64p_GLattr(EnumC):
     M64P_GL_CONTEXT_MINOR_VERSION = 12
     M64P_GL_CONTEXT_PROFILE_MASK = 13
 
+class m64p_GLContextType(EnumC):
+    M64P_GL_CONTEXT_PROFILE_CORE = 1
+    M64P_GL_CONTEXT_PROFILE_COMPATIBILITY = 2
+    M64P_GL_CONTEXT_PROFILE_ES = 3
 
 vext_init = c.CFUNCTYPE(c.c_int)
 vext_quit = c.CFUNCTYPE(c.c_int)
@@ -394,6 +397,7 @@ vext_set_caption = c.CFUNCTYPE(c.c_int, c.c_char_p)
 vext_toggle_fs = c.CFUNCTYPE(c.c_int)
 vext_resize_window = c.CFUNCTYPE(c.c_int, c.c_int, c.c_int)
 vext_get_default_fb = c.CFUNCTYPE(c.c_uint)
+
 class m64p_video_extension_functions(c.Structure):
     _fields_ = [
         ("Functions", c.c_uint),
@@ -412,15 +416,3 @@ class m64p_video_extension_functions(c.Structure):
         ("VidExtFuncResizeWindow", vext_resize_window),
         ("VidExtFuncGLGetDefaultFramebuffer", vext_get_default_fb)
     ]
-
-
-###void (*DebugCallback)(void *Context, int level, const char *message)
-#DEBUGPROTO = CFUNCTYPE(None, c_void_p, c_int, c_char_p)
-
-###void (*StateCallback)(void *Context2, m64p_core_param ParamChanged, int NewValue)
-#STATEPROTO = CFUNCTYPE(None, POINTER(c_void_p), c_int, c_int)
-
-#configs
-#SECTIONSPROTO = CFUNCTYPE(None, POINTER(c_void_p), c_char_p)
-
-#PARAMETERSPROTO = CFUNCTYPE(None, POINTER(c_void_p), c_char_p, c_int)

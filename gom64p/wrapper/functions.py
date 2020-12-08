@@ -15,25 +15,44 @@ import wrapper.vidext as wrp_vext
 class API():
     """Wrapper for calling libmupen64plus.so's functions into python code"""
     def __init__(self, parent, params):
-        #Latest API version supported by this wrapper.
+        # https://github.com/mupen64plus/mupen64plus-core/blob/master/doc/emuwiki-api-doc/Mupen64Plus-v2.0-API-Versioning.mediawiki
+        # MUPEN_CORE_NAME "Mupen64Plus Core"
+        self.core_name = "Mupen64Plus Core"
+
+        # Latest API version (MUPEN_CORE_VERSION) supported by this wrapper.
         self.core_version = 0x020509 # 2.5.9 BETA
 
-        #CORE_API_VERSION = 0x20001
-        #CONFIG_API_VERSION = 0x20000
-        #MINIMUM_CORE_VERSION = 0x016300
+        # MINIMUM_CORE_VERSION = 0x016300
 
-        #MUPEN_CORE_NAME "Mupen64Plus Core"
-        #MUPEN_CORE_VERSION 0x020509
-        #FRONTEND_API_VERSION 0x020102
-        #CONFIG_API_VERSION   0x020301
-        #DEBUG_API_VERSION    0x020001
-        #VIDEXT_API_VERSION   0x030100
+        # FRONTEND_API_VERSION
+        self.frontend_api = 0x020103
 
-        #RSP_API_VERSION   0x20000
-        #GFX_API_VERSION   0x20200
-        #AUDIO_API_VERSION 0x20000
-        #INPUT_API_VERSION 0x20001
+        # CONFIG_API_VERSION
+        self.config_api = 0x20301
 
+        # DEBUG_API_VERSION
+        self.debug_api = 0x020001
+
+        # VIDEXT_API_VERSION
+        self.vidext_api = 0x030200
+
+        # NETPLAY_API_VERSION
+        self.netplay_api = 0x010000
+
+        # Plugins API version
+        ## RSP_API_VERSION
+        self.rsp_api = 0x20000
+
+        ## GFX_API_VERSION
+        self.gfx_api = 0x20200
+
+        ## AUDIO_API_VERSION
+        self.audio_api = 0x20000
+
+        ## INPUT_API_VERSION
+        self.input_api = 0x20100
+
+        # Setting up some variables....
         self.frontend = parent
         self.platform = params['platform']
         self.m64p_lib_core_path = params['m64plib']
@@ -43,31 +62,38 @@ class API():
         self.lock = False
         self.vext_override = False
         self.current_slot = 0
+
+        # Wire in the callbacks
         wrp_cb.frontend = self.frontend
         self.media_loader = wrp_cb.MEDIA_LOADER
 
+        # If there is a path where the .cfg is found, tell the core to use it
         configpath = params['configdir'].encode('utf-8')
         if configpath != b'':
             self.config_dir = configpath
         else:
             self.config_dir = None
 
+        # If there is a path where mupen64plus.ini is found, tell the core to use it
         datapath = params['datadir'].encode('utf-8')
         if datapath != b'':
             self.data_dir = datapath
         else:
             self.data_dir = None
 
+        # Retrieve last used plugins from frontend's config
         self.gfx_filename = params['gfx']
         self.audio_filename = params['audio']
         self.input_filename = params['input']
         self.rsp_filename = params['rsp']
 
+        # Initialise those lists to store plugins
         self.gfx_plugins = {}
         self.audio_plugins = {}
         self.input_plugins = {}
         self.rsp_plugins = {}
 
+        # Determine which library extension is used.
         if self.platform == "Linux":
             self.extension_filename = ".so"
         elif self.platform == "Windows":
@@ -82,15 +108,26 @@ class API():
         self.rom_header = wrp_dt.m64p_rom_header()
         self.rom_settings = wrp_dt.m64p_rom_settings()
 
+        # Setting up those handles....
         self.config_handle = None
         self.config_ext_handle = None
 
-        # We must check first if plugins, all that are found, are compatible
+        # Lastly, we must check if each plugins found are compatible
         self.plugins_validate()
 
     ### Basic core functions
     def PluginGetVersion(self, plugin):
-        #m64p_error PluginGetVersion(m64p_plugin_type *PluginType, int *PluginVersion, int *APIVersion, const char **PluginNamePtr, int *Capabilities)
+        ''' This function retrieves version information from the core library.
+        This function is the same for the core library and the plugins, so that
+        a front-end may examine all shared libraries in a directory and
+        determine their types. Any of the input parameters may be set to NULL
+        and this function will succeed but won't return the corresponding
+        information.
+        REQUIREMENTS:
+        - None
+        PROTOTYPE:
+         m64p_error PluginGetVersion(m64p_plugin_type *PluginType, int *PluginVersion,
+                      int *APIVersion, const char **PluginNamePtr, int *Capabilities)'''
         info = {}
 
         plugintype = c.c_int()
@@ -110,15 +147,22 @@ class API():
         status = function()
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            info = {"type": plugintype.value, "version": pluginversion.value,
+            return {"type": plugintype.value, "version": pluginversion.value,
                     "apiversion": apiversion.value, "name": pluginpointer.value.decode(),
                     "capabilities": capabilities.value}
-            return info
         else:
             self.CoreErrorMessage(status, b"PluginGetVersion")
 
     def CoreGetAPIVersions(self):
-        #m64p_error CoreGetAPIVersions(int *ConfigVersion, int *DebugVersion, int *VidextVersion, int *ExtraVersion)
+        '''This function retrieves API version information from the core library.
+        This function may be used by either the front-end application or any
+        plugin modules. Any of the input parameters may be set to NULL and this
+        function will succeed but won't return the corresponding information.
+        REQUIREMENTS:
+        - None
+        PROTOTYPE:
+         m64p_error CoreGetAPIVersions(int *ConfigVersion, int *DebugVersion,
+                                       int *VidextVersion, int *ExtraVersion)'''
         info = {}
 
         configversion = c.c_int()
@@ -135,28 +179,47 @@ class API():
         status = function()
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            info = {"config": configversion.value, "debug": debugversion.value,
+            return {"config": configversion.value, "debug": debugversion.value,
                     "vidext": vidextversion.value, "extra": extraversion.value}
-            return info
         else:
             self.CoreErrorMessage(status, b"CoreGetAPIVersions")
 
     def CoreErrorMessage(self, ReturnCode, context=None):
-        #const char * CoreErrorMessage(m64p_error ReturnCode)
+        ''' This function returns a pointer to a NULL-terminated string giving
+        a human-readable description of the error.
+        REQUIREMENTS:
+        - None
+        PROTOTYPE:
+        const char * CoreErrorMessage(m64p_error ReturnCode)'''
+        # FIXME: context variable behaviour is inconsistent.
 
         function = wrp_dt.cfunc("CoreErrorMessage", self.m64p_lib_core, c.c_char_p,
                         ("ReturnCode", c.c_int, 1, c.c_int(ReturnCode)))
         status = function()
 
         if context != None:
-            log.error(f"{c.cast(context, c.c_char_p).value.decode('utf-8')}: {status.decode('utf-8')}")
+            try:
+                log.error(f"{c.cast(context, c.c_char_p).value.decode('utf-8')}: {status.decode('utf-8')}")
+            except UnicodeDecodeError:
+                log.error(f"{context}: {status.decode('utf-8')}")
         else:
             log.error(f"{status}")
 
     ### Frontend functions
     ## Startup/Shutdown
     def CoreStartup(self, version):
-        #m64p_error CoreStartup(int APIVersion, const char *ConfigPath, const char *DataPath, void *Context, void (*DebugCallback)(void *Context, int level, const char *message), void *Context2, void (*StateCallback)(void *Context2, m64p_core_param ParamChanged, int NewValue))
+        ''' This function initializes libmupen64plus for use by allocating memory,
+        creating data structures, and loading the configuration file.
+        If ConfigPath is NULL, libmupen64plus will search for the configuration
+        file in its usual place (On Linux, in ~/.config/mupen64plus/).
+        This function may return M64ERR_INCOMPATIBLE if older front-end is used
+        with newer core.
+        REQUIREMENTS:
+        - This function must be called before any other libmupen64plus functions.
+        PROTOTYPE:
+         m64p_error CoreStartup(int APIVersion, const char *ConfigPath, const char *DataPath,
+            void *Context, void (*DebugCallback)(void *Context, int level, const char *message),
+            void *Context2, void (*StateCallback)(void *Context2, m64p_core_param ParamChanged, int NewValue))'''
 
         function = wrp_dt.cfunc("CoreStartup", self.m64p_lib_core, wrp_dt.m64p_error,
                    ("APIVersion", c.c_int, 1, version),
@@ -176,7 +239,12 @@ class API():
             self.CoreErrorMessage(status, b"CoreStartup")
 
     def CoreShutdown(self):
-        #m64p_error CoreShutdown(void)
+        '''This function saves the configuration file, then destroys data
+        structures and releases memory allocated by the core library.
+        REQUIREMENTS:
+        - None
+        PROTOTYPE:
+         m64p_error CoreShutdown(void)'''
         function = wrp_dt.cfunc("CoreShutdown", self.m64p_lib_core, wrp_dt.m64p_error)
 
         function.errcheck = wrp_dt.m64p_errcheck
@@ -188,8 +256,15 @@ class API():
             self.CoreErrorMessage(status, b"CoreShutdown")
 
     def CoreAttachPlugin(self, plugin, handle):
-        #m64p_error CoreAttachPlugin(m64p_plugin_type PluginType, m64p_dynlib_handle PluginLibHandle)
-        #Plugins must be attached in this order (Video, audio, input, rsp)
+        '''This function attaches the given plugin to the emulator core.
+        There can only be one plugin of each type attached to the core at any given time.
+        REQUIREMENTS:
+        - Both the core library and the plugin library must already be initialized
+          with the CoreStartup()/PluginStartup() functions.
+        - ROM must be open.
+        - Plugins must be attached in this order: video, audio, input, RSP.
+        PROTOTYPE:
+          m64p_error CoreAttachPlugin(m64p_plugin_type PluginType, m64p_dynlib_handle PluginLibHandle)'''
         function = wrp_dt.cfunc("CoreAttachPlugin", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("PluginType", c.c_int, 1, plugin),
                         ("PluginLibHandle", c.c_void_p, 1, wrp_dt.m64p_dynlib_handle(handle)))
@@ -203,7 +278,14 @@ class API():
             self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name.encode("utf-8"))
 
     def CoreDetachPlugin(self, plugin):
-        #m64p_error CoreDetachPlugin(m64p_plugin_type PluginType)
+        '''This function detaches the given plugin from the emulator core,
+        and re-attaches the 'dummy' plugin functions.
+        REQUIREMENTS:
+        - Both the core library and the plugin library must already be initialized
+          with the CoreStartup()/PluginStartup() functions.
+        - This function cannot be called while the emulator is running.
+        PROTOTYPE:
+          m64p_error CoreDetachPlugin(m64p_plugin_type PluginType)'''
         function = wrp_dt.cfunc("CoreDetachPlugin", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("PluginType", c.c_int, 1, plugin))
 
@@ -217,7 +299,20 @@ class API():
 
     ## Command
     def CoreDoCommand(self, command, arg1=None, arg2=None):
-        #m64p_error CoreDoCommand(m64p_command Command, int ParamInt, void *ParamPtr)
+        '''This function sends a command to the emulator core.
+        Commands available:
+          M64CMD_ROM_OPEN, M64CMD_ROM_CLOSE, M64CMD_ROM_GET_HEADER, M64CMD_ROM_GET_SETTINGS,
+          M64CMD_EXECUTE, M64CMD_STOP, M64CMD_PAUSE, M64CMD_RESUME, M64CMD_CORE_STATE_QUERY,
+          M64CMD_STATE_LOAD, M64CMD_STATE_SAVE, M64CMD_STATE_SET_SLOT, M64CMD_SEND_SDL_KEYDOWN,
+          M64CMD_SEND_SDL_KEYUP, M64CMD_SET_FRAME_CALLBACK, M64CMD_TAKE_NEXT_SCREENSHOT,
+          M64CMD_CORE_STATE_SET, M64CMD_READ_SCREEN, M64CMD_RESET, M64CMD_ADVANCE_FRAME,
+          M64CMD_SET_MEDIA_LOADER, M64CMD_NETPLAY_INIT, M64CMD_NETPLAY_CONTROL_PLAYER,
+          M64CMD_NETPLAY_GET_VERSION, M64CMD_NETPLAY_CLOSE, M64CMD_PIF_OPEN
+        REQUIREMENTS:
+        - The core library must already be initialized with the CoreStartup() function.
+        - Each command may have its own requirements as well.
+        PROTOTYPE:
+         m64p_error CoreDoCommand(m64p_command Command, int ParamInt, void *ParamPtr)'''
         function = wrp_dt.cfunc("CoreDoCommand", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("Command", c.c_int, 1, command),
                         ("ParamInt", c.c_int, 1, arg1),
@@ -234,9 +329,19 @@ class API():
 
     ## ROM Handling
     def CoreGetRomSettings(self, crc1, crc2):
-        #m64p_error CoreGetRomSettings(m64p_rom_settings *RomSettings, int RomSettingsLength, int Crc1, int Crc2)
-        #XXX: For the CRCs base 16 must be specified, with int(x, 16)
-        #XXX: a pointer has been added to RomSettingsLength even though the prototype
+        ''' This function searches through the data in the Mupen64Plus.ini file
+        to find an entry which matches the given Crc1 and Crc2 hashes, and if
+        found, fills in the RomSettings structure with the data from the Mupen64Plus.ini file.
+        REQUIREMENTS:
+        - The core library must already be initialized with the CoreStartup() function.
+        - The RomSettings pointer must not be NULL.
+        - The RomSettingsLength value must be greater than or equal to the size
+          of the m64p_rom_settings structure.
+        - This function does not require any ROM image to be currently open.
+        PROTOTYPE:
+         m64p_error CoreGetRomSettings(m64p_rom_settings *RomSettings, int RomSettingsLength, int Crc1, int Crc2)'''
+        # XXX: For the CRCs base 16 must be specified, with int(x, 16)
+        # XXX: a pointer has been added to RomSettingsLength even though the prototype
         #     doesn't theoretically require it, because otherwise it will complain with INVALID_INPUT.
         rom_settings = wrp_dt.m64p_rom_settings()
 
@@ -258,9 +363,25 @@ class API():
 
     ## Video Extension
     def CoreOverrideVidExt(self):
-        #m64p_error CoreOverrideVidExt(m64p_video_extension_functions *VideoFunctionStruct);
+        '''This function overrides the core's internal SDL-based OpenGL functions
+        which are called from the video plugin to perform various basic tasks like
+        opening the video window, toggling between windowed and fullscreen modes,
+        and swapping frame buffers after a frame has been rendered.
+        This override functionality allows a front-end to define its own video
+        extension functions to be used instead of the SDL functions, such as for
+        the purpose of embedding the emulator display window inside of a Qt GUI
+        window. If any of the function pointers in the structure are NULL, the
+        override function will be disabled and the core's internal SDL functions
+        will be used. The core library with a Video Extension API v3.0 expects
+        the Functions struct member to be equal to 11 or more.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - This function cannot be called while the emulator is running.
+        PROTOTYPE:
+         m64p_error CoreOverrideVidExt(m64p_video_extension_functions *VideoFunctionStruct)'''
         function = wrp_dt.cfunc("CoreOverrideVidExt", self.m64p_lib_core, wrp_dt.m64p_error,
-                       ("VideoFunctionStruct", c.POINTER(wrp_dt.m64p_video_extension_functions), 2, c.byref(wrp_vext.vidext_struct)))
+                       ("VideoFunctionStruct", c.POINTER(wrp_dt.m64p_video_extension_functions),
+                        2, c.byref(wrp_vext.vidext_struct)))
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
 
@@ -269,9 +390,22 @@ class API():
         else:
             self.CoreErrorMessage(status, b"CoreOverrideVidExt")
 
-    ## Cheat
+    ## Cheat Functions
     def CoreAddCheat(self, cheatname, codelist):
-        #m64p_error CoreAddCheat(const char *CheatName, m64p_cheat_code *CodeList, int NumCodes)
+        ''' This function will add a Cheat Function to a list of currently active
+        cheats which are applied to the open ROM, and set its state to Enabled.
+        This function may be called before a ROM begins execution or while a ROM
+        is currently running. Some cheat codes must be applied before the ROM
+        begins executing, and may not work correctly if added after the ROM
+        begins execution.
+        A Cheat Function consists of a list of one or more m64p_cheat_code
+        elements. If a Cheat Function with the given CheatName already exists,
+        it will be removed and the new Cheat Function will be added in its place.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - A ROM image must be currently opened.
+        PROTOTYPE:
+         m64p_error CoreAddCheat(const char *CheatName, m64p_cheat_code *CodeList, int NumCodes)'''
         function = wrp_dt.cfunc("CoreAddCheat", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("CheatName", c.c_char_p, 1, cheatname.encode("utf-8")),
                         ("CodeList", c.POINTER(wrp_dt.m64p_cheat_code * len(codelist)), 1, c.byref(codelist)),
@@ -287,7 +421,12 @@ class API():
             self.CoreErrorMessage(status, b"CoreAddCheat")
 
     def CoreCheatEnabled(self, cheatname, enabled):
-        #m64p_error CoreCheatEnabled(const char *CheatName, int Enabled)
+        '''This function enables or disables a specified Cheat Function.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - A ROM image must be currently opened.
+        PROTOTYPE:
+         m64p_error CoreCheatEnabled(const char *CheatName, int Enabled)'''
         function = wrp_dt.cfunc("CoreCheatEnabled", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("CheatName", c.c_char_p, 1, cheatname.encode("utf-8")),
                         ("Enabled", c.c_int, 1, c.c_int(enabled)))
@@ -305,12 +444,13 @@ class API():
             self.CoreErrorMessage(status, b"CoreCheatEnabled")
 
     ### Video Extension
-    ### XXX: Those functions aren't intended to be used by frontend, but rather to help with vidext implementation
+    ### XXX: Those functions aren't intended to be used by frontend, but rather
+    ### to help with vidext implementation
 
     ## Startup/Shutdown
-    def VidExt_Init(self):
-        #m64p_error VidExt_Init(void)
-        #WARNING: Not for use
+    def __VidExt_Init(self):
+        # WARNING: Not for use
+        # m64p_error VidExt_Init(void)
         function = wrp_dt.cfunc("VidExt_Init", self.m64p_lib_core, wrp_dt.m64p_error)
 
         function.errcheck = wrp_dt.m64p_errcheck
@@ -321,9 +461,9 @@ class API():
         else:
             self.CoreErrorMessage(status, b"VidExt_Init")
 
-    def VidExt_Quit(self):
-        #m64p_error VidExt_Quit(void)
-        #WARNING: Not for use
+    def __VidExt_Quit(self):
+        # WARNING: Not for use
+        # m64p_error VidExt_Quit(void)
         function = wrp_dt.cfunc("VidExt_Quit", self.m64p_lib_core, wrp_dt.m64p_error)
 
         function.errcheck = wrp_dt.m64p_errcheck
@@ -335,9 +475,9 @@ class API():
             self.CoreErrorMessage(status, b"VidExt_Quit")
 
     ## Screen Handling
-    def VidExt_ListFullscreenModes(self):
-        #m64p_error VidExt_ListFullscreenModes(m64p_2d_size *SizeArray, int *NumSizes)
-        #WARNING: Not for use
+    def __VidExt_ListFullscreenModes(self):
+        # WARNING: Not for use
+        # m64p_error VidExt_ListFullscreenModes(m64p_2d_size *SizeArray, int *NumSizes)
         function = wrp_dt.cfunc("VidExt_ListFullscreenModes", self.m64p_lib_core, wrp_dt.m64p_error,
                        ("SizeArray", c.POINTER(wrp_dt.m64p_2d_size), 2, c.byref(wrp_dt.m64p_2d_size())),
                        ("NumSizes", c.POINTER(c.c_int), 2, c.c_int()))
@@ -350,9 +490,10 @@ class API():
         else:
             self.CoreErrorMessage(status, b"VidExt_ListFullscreenModes")
 
-    def VidExt_SetVideoMode(self, width, height, bits, screenmode, flags):
-        #m64p_error VidExt_SetVideoMode(int Width, int Height, int BitsPerPixel, m64p_video_mode ScreenMode, m64p_video_flags Flags)
-        #WARNING: Not for use
+    def __VidExt_SetVideoMode(self, width, height, bits, screenmode, flags):
+        # WARNING: Not for use
+        # m64p_error VidExt_SetVideoMode(int Width, int Height, int BitsPerPixel,
+        #                   m64p_video_mode ScreenMode, m64p_video_flags Flags)
         function = wrp_dt.cfunc("VidExt_SetVideoMode", self.m64p_lib_core, wrp_dt.m64p_error,
                        ("Width", c.c_int, 1, c.c_int(width)),
                        ("Height", c.c_int, 1, c.c_int(height)),
@@ -369,9 +510,9 @@ class API():
         else:
             self.CoreErrorMessage(status, b"VidExt_SetVideoMode")
 
-    def VidExt_SetCaption(self, title):
-        #m64p_error VidExt_SetCaption(const char *Title)
-        #WARNING: Not for use
+    def __VidExt_SetCaption(self, title):
+        # WARNING: Not for use
+        # m64p_error VidExt_SetCaption(const char *Title)
         function = wrp_dt.cfunc("VidExt_SetCaption", self.m64p_lib_core, wrp_dt.m64p_error,
                        ("Title", c.c_char_p, 1, title.encode("utf-8")))
 
@@ -384,9 +525,9 @@ class API():
         else:
             self.CoreErrorMessage(status, b"VidExt_SetCaption")
 
-    def VidExt_ToggleFullScreen(self):
-        #m64p_error VidExt_ToggleFullScreen(void)
-        #WARNING: Not for use
+    def __VidExt_ToggleFullScreen(self):
+        # WARNING: Not for use
+        # m64p_error VidExt_ToggleFullScreen(void)
         function = wrp_dt.cfunc("VidExt_ToggleFullScreen", self.m64p_lib_core, wrp_dt.m64p_error)
 
 
@@ -398,9 +539,9 @@ class API():
         else:
             self.CoreErrorMessage(status, b"VidExt_ToggleFullScreen")
 
-    def VidExt_ResizeWindow(self, width, height):
-        #m64p_error VidExt_ResizeWindow(int Width, int Height)
-        #WARNING: Not for use
+    def __VidExt_ResizeWindow(self, width, height):
+        # WARNING: Not for use
+        # m64p_error VidExt_ResizeWindow(int Width, int Height)
         function = wrp_dt.cfunc("VidExt_ResizeWindow", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("Width", c.c_int, 1, c.c_int(width)),
                         ("Height", c.c_int, 1, c.c_int(height)))
@@ -414,8 +555,9 @@ class API():
             self.CoreErrorMessage(status, b"VidExt_ResizeWindow")
 
     ## OpenGL
-    def VidExt_GL_GetProcAddress(self, proc):
-        #void * VidExt_GL_GetProcAddress(const char* Proc)
+    def __VidExt_GL_GetProcAddress(self, proc):
+        # WARNING: Not for use
+        # void * VidExt_GL_GetProcAddress(const char* Proc)
         function = wrp_dt.cfunc("VidExt_GL_GetProcAddress", self.m64p_lib_core, wrp_dt.m64p_function,
                         ("Proc", c.c_char_p, 1, proc.encode("utf-8")))
 
@@ -427,8 +569,9 @@ class API():
         #else:
         #    print(self.CoreErrorMessage(status, b"VidExt_GL_GetProcAddress"))
 
-    def VidExt_GL_SetAttribute(self, attr, value):
-        #m64p_error VidExt_GL_SetAttribute(m64p_GLattr Attr, int Value)
+    def __VidExt_GL_SetAttribute(self, attr, value):
+        # WARNING: Not for use
+        # m64p_error VidExt_GL_SetAttribute(m64p_GLattr Attr, int Value)
         function = wrp_dt.cfunc("VidExt_GL_SetAttribute", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("Attr", c.c_int, c.c_int(wrp_dt.m64p_GLattr(attr))),
                         ("Value", c.c_int, 1, c.c_int(value)))
@@ -441,8 +584,9 @@ class API():
         else:
             self.CoreErrorMessage(status, b"VidExt_GL_SetAttribute")
 
-    def VidExt_GL_GetAttribute(self, attr, pvalue):
-        #m64p_error VidExt_GL_GetAttribute(m64p_GLattr Attr, int *pValue)
+    def __VidExt_GL_GetAttribute(self, attr, pvalue):
+        # WARNING: Not for use
+        # m64p_error VidExt_GL_GetAttribute(m64p_GLattr Attr, int *pValue)
         function = wrp_dt.cfunc("VidExt_GL_GetAttribute", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("Attr", c.c_int, c.c_int(wrp_dt.m64p_GLattr(attr))),
                         ("pValue", c.POINTER(c.c_int), 1, c.byref(c.c_int(pvalue))))
@@ -455,8 +599,9 @@ class API():
         else:
             self.CoreErrorMessage(status, b"VidExt_GL_GetAttribute")
 
-    def VidExt_GL_SwapBuffers(self):
-        #m64p_error VidExt_GL_SwapBuffers(void)
+    def __VidExt_GL_SwapBuffers(self):
+        # WARNING: Not for use
+        # m64p_error VidExt_GL_SwapBuffers(void)
         function = wrp_dt.cfunc("VidExt_GL_SwapBuffers", self.m64p_lib_core, wrp_dt.m64p_error)
 
 
@@ -468,11 +613,20 @@ class API():
         else:
             self.CoreErrorMessage(status, b"VidExt_GL_SwapBuffers")
 
-    ### Debugger
-    ## General
+    ### Debugger https://github.com/mupen64plus/mupen64plus-core/blob/master/doc/emuwiki-api-doc/Mupen64Plus-v2.0-Core-Debugger.mediawiki
+    ## General functions
     def DebugSetCallbacks(self):
-        #m64p_error DebugSetCallbacks(void (*dbg_frontend_init)(void), void (*dbg_frontend_update)(unsigned int pc), void (*dbg_frontend_vi)(void))
-        #TODO: Untested
+        ''' This function is called by the front-end to supply debugger callback
+        function pointers. If debugger is enabled and then later disabled within
+        the GUI, this function may be called with NULL pointers in order to
+        disable the callbacks.
+        REQUIREMENTS:
+        - The Mupen64Plus library must be built with debugger support and must
+          be initialized before calling this function.
+        PROTOTYPE:
+         m64p_error DebugSetCallbacks(void (*dbg_frontend_init)(void),
+             void (*dbg_frontend_update)(unsigned int pc), void (*dbg_frontend_vi)(void))'''
+        # TODO: Stub
 
         frontend_init = wrp_dt.cfunc("dbg_frontend_init", self.m64p_lib_core, c.c_void_p)
 
@@ -495,8 +649,29 @@ class API():
             self.CoreErrorMessage(status, b"DebugSetCallbacks")
 
     def DebugSetCoreCompare(self):
-        #m64p_error DebugSetCoreCompare(void (*dbg_core_compare)(unsigned int), void (*dbg_core_data_sync)(int, void *))
-        #TODO: Untested
+        '''This function is called by the front-end to supply callback function pointers
+        for the Core Comparison feature. This feature is designed to work as follows.
+        The front-end application will set up some channel for communicating data
+        between two separately running instances of mupen64plus. For example, the
+        unix console front-end will use named FIFOs. The front-end will register
+        callback functions for comparing the 2 cores' states via this
+        DebugSetCoreCompare API call. When the dbg_core_compare callback fires,
+        the front-end will use the DebugGetCPUDataPtr function (and DebugMemGetPointer
+        function if desired) to transmit emulator core state data from the 'sending'
+        instance to the 'receiving' instance. The receiving instance may then check
+        the core state data against it's own internal state and report any discrepancies.
+        When the dbg_core_data_sync callback fires, the front-end should transmit a block
+        of data from the sending instance to the receiving instance. This is for the
+        purposes of synchronizing events such as controller inputs or state loading
+        commands, so that the 2 cores may stay synchronized. This feature does not
+        require the M64CAPS_DEBUGGER capability to built into the core,
+        but it does require the M64CAPS_CORE_COMPARE capability.
+        REQUIREMENTS:
+        - The Mupen64Plus library must be initialized before calling this function.
+        PROTOTYPE:
+         m64p_error DebugSetCoreCompare(void (*dbg_core_compare)(unsigned int),
+            void (*dbg_core_data_sync)(int, void *))'''
+        # TODO: Stub
         core_compare = c.CFUNCTYPE(c.c_void_p, c.c_uint)
 
         core_data_sync = c.CFUNCTYPE(c.c_void_p, c.c_int, c.c_void_p)
@@ -515,8 +690,13 @@ class API():
             self.CoreErrorMessage(status, b"DebugSetCoreCompare")
 
     def DebugSetRunState(self):
-        #m64p_error DebugSetRunState(int runstate)
-        #TODO: Untested
+        '''This function sets the run state of the R4300 CPU emulator.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         m64p_error DebugSetRunState(int runstate)'''
+        # TODO: Stub
         function = wrp_dt.cfunc("DebugSetRunState", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("runstate", c.c_int, 1))
 
@@ -529,8 +709,15 @@ class API():
             self.CoreErrorMessage(status, b"DebugSetRunState")
 
     def DebugGetState(self):
-        #int DebugGetState(m64p_dbg_state statenum)
-        #TODO: Untested
+        '''This function reads and returns a debugger state variable, which
+        are enumerated in m64p_types.h.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         int DebugGetState(m64p_dbg_state statenum)
+        '''
+        # TODO: Stub
         function = wrp_dt.cfunc("DebugGetState", self.m64p_lib_core, c.c_int,
                         ("statenum", wrp_dt.m64p_dbg_state, 1))
 
@@ -538,8 +725,16 @@ class API():
         status = function()
 
     def DebugStep(self):
-        #m64p_error DebugStep(void)
-        #TODO: Untested
+        '''This function signals the debugger to advance one instruction when
+        in the stepping mode.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        - The emulator core must be executing a ROM.
+        - The debugger must be active.
+        PROTOTYPE:
+         m64p_error DebugStep(void)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugStep", self.m64p_lib_core, wrp_dt.m64p_error)
 
         function.errcheck = wrp_dt.m64p_errcheck
@@ -551,8 +746,15 @@ class API():
             self.CoreErrorMessage(status, b"DebugStep")
 
     def DebugDecodeOp(self):
-        #void DebugDecodeOp(unsigned int instruction, char *op, char *args, int pc)
-        #TODO: Untested
+        ''' This is a helper function for the debugger front-end.
+        This instruction takes a PC value and an R4300 instruction opcode and
+        writes the disassembled instruction mnemonic and arguments into character buffers.
+        This is intended to be used to display disassembled code.
+        REQUIREMENTS:
+        - The Mupen64Plus library must be built with debugger support.
+        PROTOTYPE:
+         void DebugDecodeOp(unsigned int instruction, char *op, char *args, int pc)'''
+        # TODO: Stub
         function = wrp_dt.cfunc("DebugDecodeOp", self.m64p_lib_core, None,
                         ("instruction", c.c_uint, 1),
                         ("op", c.POINTER(c.c_char), 1),
@@ -562,10 +764,24 @@ class API():
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
 
-    ## Memory
+    ## Memory debug functions
     def DebugMemGetRecompInfo(self):
-        #void * DebugMemGetRecompInfo(m64p_dbg_mem_info recomp_type, unsigned int address, int index)
-        #TODO: Untested
+        '''This function is used by the front-end to retrieve disassembly information
+        about recompiled code. For example, the dynamic recompiler may take a single
+        R4300 instruction and compile it into 10 x86 instructions.
+        This function may then be used to retrieve the disassembled code of the 10
+        x86 instructions. For recomp_type of M64P_DBG_RECOMP_OPCODE or M64P_DBG_RECOMP_ARGS,
+        a character pointer will be returned which gives the disassembled instruction code.
+        For recomp_type of M64P_DBG_RECOMP_ADDR, a pointer to the recompiled x86
+        instruction will be given.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        WARNING:
+         This function may not be available on all platforms.
+        PROTOTYPE:
+         void * DebugMemGetRecompInfo(m64p_dbg_mem_info recomp_type, unsigned int address, int index)'''
+        # TODO: Stub
         function = wrp_dt.cfunc("DebugMemGetRecompInfo", self.m64p_lib_core, c.c_void_p,
                         ("recomp_type", wrp_dt.m64p_dbg_mem_info, 1),
                         ("address", c.c_uint, 1),
@@ -575,8 +791,18 @@ class API():
         status = function()
 
     def DebugMemGetMemInfo(self):
-        #int DebugMemGetMemInfo(m64p_dbg_mem_info mem_info_type, unsigned int address)
-        #TODO: Untested
+        '''This function returns an integer value regarding the memory location
+        address, corresponding to the information requested by mem_info_type,
+        which is a type enumerated in m64p_types.h. For example, if address
+        contains R4300 program code, the front-end may request the number of
+        x86 instructions emitted by the dynamic recompiler by requesting
+        M64P_DBG_MEM_NUM_RECOMPILED.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         int DebugMemGetMemInfo(m64p_dbg_mem_info mem_info_type, unsigned int address)'''
+        # TODO: Stub
         function = wrp_dt.cfunc("DebugMemGetMemInfo", self.m64p_lib_core, c.c_int,
                         ("mem_info_type", wrp_dt.m64p_dbg_mem_info, 1),
                         ("address", c.c_uint, 1))
@@ -585,8 +811,15 @@ class API():
         status = function()
 
     def DebugMemGetPointer(self):
-        #void * DebugMemGetPointer(m64p_dbg_memptr_type mem_ptr_type)
-        #TODO: Untested
+        '''This function returns a memory pointer (in x86 memory space) to a block
+        of emulated N64 memory. This may be used to retrieve a pointer to a special
+        N64 block (such as the serial, video, or audio registers) or the RDRAM.
+        The m64p_dbg_memptr_type type is enumerated in m64p_types.h.
+        REQUIREMENTS:
+        - The Mupen64Plus library must be initialized before calling this function.
+        PROTOTYPE:
+         void * DebugMemGetPointer(m64p_dbg_memptr_type mem_ptr_type)'''
+        # TODO: Stub
         function = wrp_dt.cfunc("DebugMemGetPointer", self.m64p_lib_core, c.c_void_p,
                         ("mem_ptr_type", wrp_dt.m64p_dbg_memptr_type, 1))
 
@@ -594,8 +827,14 @@ class API():
         status = function()
 
     def DebugMemRead64(self, address):
-        #unsigned long long DebugMemRead64(unsigned int address)
-        #TODO: Untested
+        '''This function retrieve a value from the emulated N64 memory.
+        The returned value will be correctly byte-swapped for the host architecture.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         unsigned long long DebugMemRead64(unsigned int address)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugMemRead64", self.m64p_lib_core, c.c_ulonglong,
                         ("address", c.c_uint, 1, address))
 
@@ -603,8 +842,14 @@ class API():
         status = function()
 
     def DebugMemRead32(self, address):
-        #unsigned int DebugMemRead32(unsigned int address)
-        #TODO: Untested
+        '''This function retrieve a value from the emulated N64 memory.
+        The returned value will be correctly byte-swapped for the host architecture.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         unsigned int DebugMemRead32(unsigned int address)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugMemRead32", self.m64p_lib_core, c.c_uint,
                         ("address", c.c_uint, 1, address))
 
@@ -612,8 +857,14 @@ class API():
         status = function()
 
     def DebugMemRead16(self, address):
-        #unsigned short DebugMemRead16(unsigned int address)
-        #TODO: Untested
+        '''This function retrieve a value from the emulated N64 memory.
+        The returned value will be correctly byte-swapped for the host architecture.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         unsigned short DebugMemRead16(unsigned int address)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugMemRead16", self.m64p_lib_core, c.c_ushort,
                         ("address", c.c_uint, 1, address))
 
@@ -621,8 +872,14 @@ class API():
         status = function(self)
 
     def DebugMemRead8(self, address):
-        #unsigned char DebugMemRead8(unsigned int address)
-        #TODO: Untested
+        '''This function retrieve a value from the emulated N64 memory.
+        The returned value will be correctly byte-swapped for the host architecture.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         unsigned char DebugMemRead8(unsigned int address)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugMemRead8", self.m64p_lib_core, c.c_ubyte,
                         ("address", c.c_uint, 1, address))
 
@@ -630,8 +887,14 @@ class API():
         status = function()
 
     def DebugMemWrite64(self, address, value):
-        #void DebugMemWrite64(unsigned int address, unsigned long long value)
-        #TODO: Untested
+        '''These functions write a value into the emulated N64 memory.
+        The given value will be correctly byte-swapped before storage.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         void DebugMemWrite64(unsigned int address, unsigned long long value)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugMemWrite64", self.m64p_lib_core, None,
                         ("address", c.c_uint, 1, address),
                         ("value", c.c_ulonglong, 1, value))
@@ -640,8 +903,14 @@ class API():
         status = function()
 
     def DebugMemWrite32(self, address, value):
-        #void DebugMemWrite32(unsigned int address, unsigned int value)
-        #TODO: Untested
+        '''These functions write a value into the emulated N64 memory.
+        The given value will be correctly byte-swapped before storage.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         void DebugMemWrite32(unsigned int address, unsigned int value)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugMemWrite32", self.m64p_lib_core, None,
                         ("address", c.c_uint, 1, address),
                         ("value", c.c_uint, 1, value))
@@ -650,8 +919,14 @@ class API():
         status = function()
 
     def DebugMemWrite16(self, address, value):
-        #void DebugMemWrite16(unsigned int address, unsigned short value)
-        #TODO: Untested
+        '''These functions write a value into the emulated N64 memory.
+        The given value will be correctly byte-swapped before storage.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         void DebugMemWrite16(unsigned int address, unsigned short value)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugMemWrite16", self.m64p_lib_core, None,
                         ("address", c.c_uint, 1, address),
                         ("value", c.c_ushort, 1, value))
@@ -660,8 +935,14 @@ class API():
         status = function()
 
     def DebugMemWrite8(self, address, value):
-        #void DebugMemWrite8(unsigned int address, unsigned char value)
-        #TODO: Untested
+        '''These functions write a value into the emulated N64 memory.
+        The given value will be correctly byte-swapped before storage.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         void DebugMemWrite8(unsigned int address, unsigned char value)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugMemWrite8", self.m64p_lib_core, None,
                         ("address", c.c_uint, 1, address),
                         ("value", c.c_ubyte, 1, value))
@@ -669,20 +950,39 @@ class API():
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
 
-    ## R4300 CPU
+    ## R4300 CPU functions
     def DebugGetCPUDataPtr(self):
-        #void *DebugGetCPUDataPtr(m64p_dbg_cpu_data cpu_data_type)
-        #TODO: Untested
+        '''This function returns a memory pointer (in x86 memory space) to a
+        specific register in the emulated R4300 CPU. The m64p_dbg_cpu_data type
+        is enumerated in m64p_types.h.
+        It is important to note that when the R4300 CPU core is in the Cached
+        Interpreter or Dynamic Recompiler modes, the address of the PC register
+        is not constant; it will change after each instruction is executed.
+        The pointers to all other registers will never change, as the other
+        registers are global variables.
+        REQUIREMENTS:
+        - The Mupen64Plus library must be initialized before calling this function.
+        PROTOTYPE:
+         void *DebugGetCPUDataPtr(m64p_dbg_cpu_data cpu_data_type)'''
+        # TODO: stub
         function = wrp_dt.cfunc("DebugGetCPUDataPtr", self.m64p_lib_core, c.c_void_p,
                         ("cpu_data_type", wrp_dt.m64p_dbg_cpu_data, 1))
 
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
 
-    ## Breakpoint
+    ## Breakpoint functions
     def DebugBreakpointLookup(self):
-        #int DebugBreakpointLookup(unsigned int address, unsigned int size, unsigned int flags)
-        #TODO: Untested
+        '''This function searches through all current breakpoints in the debugger
+        to find one that matches the given input parameters.
+        If a matching breakpoint is found, the index number is returned.
+        If no breakpoints are found, -1 is returned.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         int DebugBreakpointLookup(unsigned int address, unsigned int size, unsigned int flags)'''
+        # TODO: Stub
         function = wrp_dt.cfunc("DebugBreakpointLookup", self.m64p_lib_core, c.c_int,
                         ("address", c.c_uint, 1),
                         ("size", c.c_uint, 1),
@@ -692,16 +992,20 @@ class API():
         status = function()
 
     def DebugBreakpointCommand(self):
-        #int DebugBreakpointCommand(m64p_dbg_bkp_command command, unsigned int index, m64p_breakpoint *bkp)
-        # M64P_BKP_CMD_ADD_ADDR
-        # M64P_BKP_CMD_ADD_STRUCT
-        # M64P_BKP_CMD_REPLACE
-        # M64P_BKP_CMD_REMOVE_ADDR
-        # M64P_BKP_CMD_REMOVE_IDX
-        # M64P_BKP_CMD_ENABLE
-        # M64P_BKP_CMD_DISABLE
-        # M64P_BKP_CMD_CHECK
-        #TODO: Untested
+        '''This function is used to process common breakpoint commands, such as
+        adding, removing, or searching the breakpoints. The meanings of the index
+        and bkp input parameters vary by command, and are given in the table below.
+        The m64p_dbg_bkp_command type is enumerated in m64p_types.h.
+        Commands available:
+         M64P_BKP_CMD_ADD_ADDR, M64P_BKP_CMD_ADD_STRUCT, M64P_BKP_CMD_REPLACE,
+         M64P_BKP_CMD_REMOVE_ADDR, M64P_BKP_CMD_REMOVE_IDX, M64P_BKP_CMD_ENABLE,
+         M64P_BKP_CMD_DISABLE, M64P_BKP_CMD_CHECK
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        PROTOTYPE:
+         int DebugBreakpointCommand(m64p_dbg_bkp_command command, unsigned int index, m64p_breakpoint *bkp)'''
+        #TODO: Stub
         function = wrp_dt.cfunc("DebugBreakpointCommand", self.m64p_lib_core, c.c_int,
                         ("command", wrp_dt.m64p_dbg_bkp_command, 1),
                         ("index", c.c_uint, 1),
@@ -711,26 +1015,56 @@ class API():
         status = function()
 
     def DebugBreakpointTriggeredBy(self):
-        #void DebugBreakpointTriggeredBy(uint32_t *flags, uint32_t *accessed)
-        #TODO: Untested, https://github.com/mupen64plus/mupen64plus-core/blob/b4f43dbeb028d71f8af14547e26e5f862d295552/doc/emuwiki-api-doc/Mupen64Plus-v2.0-Core-Debugger.mediawiki
+        '''This function is used to programmatically access the trigger reason
+        and address for the most recently triggered breakpoint.
+        The meaning of the flags value are the same as the m64p_dbg_bkp_flags
+        enumerated in m64p_types.h. For memory read/write breakpoints, the value
+        of accessed will be set to the physical address accessed; exec breakpoints
+        will not populate this value as the necessary information is already
+        encoded in the program counter.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        - The emulator core must be executing a ROM.
+        - The debugger must be active.
+        PROTOTYPE:
+         void DebugBreakpointTriggeredBy(uint32_t *flags, uint32_t *accessed)'''
+        #TODO: Stub
         function = wrp_dt.cfunc("DebugBreakpointTriggeredBy", self.m64p_lib_core, c.c_void_p,
                                 ("flags", c.POINTER(c.c_uint), 1),
                                 ("accessed", c.POINTER(c.c_uint), 1))
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
 
-    def DebugVirtualToPhysical(self):
-        #uint32_t DebugVirtualToPhysical(uint32_t address)
-        #TODO: Untested, https://github.com/mupen64plus/mupen64plus-core/blob/b4f43dbeb028d71f8af14547e26e5f862d295552/doc/emuwiki-api-doc/Mupen64Plus-v2.0-Core-Debugger.mediawiki
+    def DebugVirtualToPhysical(self, address):
+        '''This function resolves the physical address in R4300 memory corresponding
+        to the provided virtual address. Memory read and write breakpoints only
+        operate in terms of physical addresses, thus this function is provided to
+        assist in the necessary virtual to physical translations.
+        REQUIREMENTS (before calling this function):
+        - The Mupen64Plus library must be built with debugger support.
+        - The Mupen64Plus library must be initialized.
+        - The emulator core must be executing a ROM.
+        - The debugger must be active.
+        PROTOTYPE:
+         uint32_t DebugVirtualToPhysical(uint32_t address)'''
+        # TODO: Untested
         function = wrp_dt.cfunc("DebugVirtualToPhysical", self.m64p_lib_core, c.c_uint,
-                                ("address", c.c_uint, 1))
+                                ("address", c.c_uint, 1, address))
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
 
     ### Configuration
     ## Selector functions
     def ConfigListSections(self):
-        #m64p_error ConfigListSections(void *context, void (*SectionListCallback)(void * context, const char * SectionName))
+        '''This function sets the value of one of the emulator's configuration
+        parameters in the section which is represented by ConfigSectionHandle.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The SectionListCallback pointer cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigListSections(void *context, void (*SectionListCallback)
+                                       (void * context, const char * SectionName))'''
 
         function = wrp_dt.cfunc("ConfigListSections", self.m64p_lib_core, wrp_dt.m64p_error,
                    ("context", c.c_void_p, 1, c.cast(b"Sections", c.c_void_p)),
@@ -745,10 +1079,19 @@ class API():
             self.CoreErrorMessage(status, b"ConfigListSections")
 
     def ConfigOpenSection(self, section):
-        #m64p_error ConfigOpenSection(const char *SectionName, m64p_handle *ConfigSectionHandle)
+        ''' This function is used to give a configuration section handle to the
+        front-end which may be used to read or write configuration parameter
+        values in a given section of the configuration file.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The SectionName and ConfigSectionHandle pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigOpenSection(const char *SectionName, m64p_handle *ConfigSectionHandle)'''
 
+        # Wire in the section callback
         wrp_cb.section_cb = section
 
+        # Reset the parameter list
         wrp_cb.parameters[wrp_cb.section_cb] = {}
 
         handle = c.c_void_p()
@@ -767,7 +1110,14 @@ class API():
             self.CoreErrorMessage(status, b"ConfigListSections")
 
     def ConfigListParameters(self):
-        #m64p_error ConfigListParameters(m64p_handle ConfigSectionHandle, void *context, void (*ParameterListCallback)(void * context, const char *ParamName, m64p_type ParamType))
+        '''This function is called to enumerate the list of Parameters in a
+        given Section of the Mupen64Plus Core configuration file.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParameterListCallback pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigListParameters(m64p_handle ConfigSectionHandle, void *context,
+             void (*ParameterListCallback)(void * context, const char *ParamName, m64p_type ParamType))'''
 
         function = wrp_dt.cfunc("ConfigListParameters", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
@@ -783,23 +1133,35 @@ class API():
             self.CoreErrorMessage(status, b"ConfigListParameters")
 
     def ConfigHasUnsavedChanges(self, section):
-        #int ConfigHasUnsavedChanges(const char *SectionName)
+        '''This function is called to determine if a given Section (or all sections)
+        of the Mupen64Plus Core configuration file has been modified since it was
+        last saved. A return value of 0 means there are no unsaved changes,
+        while a 1 will be returned if there are unsaved changes.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - Config API >= 2.2.0
+        PROTOTYPE:
+         int ConfigHasUnsavedChanges(const char *SectionName)'''
         function = wrp_dt.cfunc("ConfigHasUnsavedChanges", self.m64p_lib_core, c.c_int,
                    ("SectionName", c.c_char_p, 1, section.encode("utf-8")))
 
-        #function.errcheck = wrp_dt.m64p_errcheck
+        # function.errcheck is not required here as there's no m64p_error
         status = function()
 
-        if status == 1:
+        if status == True:
             log.debug(section + ": Changes detected!")
-            return True
+            return status
         else:
             log.debug(section + ": No unsaved changes. Move along, nothing to see here.")
-            return False
+            return status
 
     ## Modifier functions
     def ConfigDeleteSection(self, section):
-        #m64p_error ConfigDeleteSection(const char *SectionName)
+        '''This function deletes a section from the Mupen64Plus configuration data.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        PROTOTYPE:
+         m64p_error ConfigDeleteSection(const char *SectionName)'''
 
         function = wrp_dt.cfunc("ConfigDeleteSection", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("SectionName", c.c_char_p, 1, section.encode("utf-8")))
@@ -813,7 +1175,11 @@ class API():
             self.CoreErrorMessage(status, b"ConfigDeleteSection")
 
     def ConfigSaveFile(self):
-        #m64p_error ConfigSaveFile(void)
+        '''This function saves the Mupen64Plus configuration file to disk.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        PROTOTYPE:
+         m64p_error ConfigSaveFile(void)'''
 
         function = wrp_dt.cfunc("ConfigSaveFile", self.m64p_lib_core, wrp_dt.m64p_error)
 
@@ -826,7 +1192,14 @@ class API():
             self.CoreErrorMessage(status, b"ConfigSaveFile")
 
     def ConfigSaveSection(self, section):
-        #m64p_error ConfigSaveSection(const char *SectionName)
+        '''This function saves one section of the current Mupen64Plus
+        configuration to disk, while leaving the other sections unmodified.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The named section must exist in the current configuration.
+        - Config API >= 2.1.0
+        PROTOTYPE:
+         m64p_error ConfigSaveSection(const char *SectionName)'''
 
         function = wrp_dt.cfunc("ConfigSaveSection", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("SectionName", c.c_char_p, 1, section.encode("utf-8")))
@@ -840,7 +1213,15 @@ class API():
             self.CoreErrorMessage(status, b"ConfigSaveSection")
 
     def ConfigRevertChanges(self, section):
-        #m64p_error ConfigRevertChanges(const char *SectionName)
+        ''' This function reverts changes previously made to one section of the
+        current Mupen64Plus configuration file, so that it will match with the
+        configuration at the last time that it was loaded from or saved to disk.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The named section must exist in the current configuration.
+        - Config API >= 2.2.0
+        PROTOTYPE:
+         m64p_error ConfigRevertChanges(const char *SectionName)'''
 
         function = wrp_dt.cfunc("ConfigRevertChanges", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("SectionName", c.c_char_p, 1, section.encode("utf-8")))
@@ -855,22 +1236,30 @@ class API():
 
     ## Generic Get/Set Functions
     def ConfigSetParameter(self, name, paramvalue):
-        #m64p_error ConfigSetParameter(m64p_handle ConfigSectionHandle, const char *ParamName, m64p_type ParamType, const void *ParamValue)
-
-        param_type = self.ConfigGetParameterType(name)
-        #param_type = wrp_dt.m64p_type(param_result)
-
+        '''This function sets the value of one of the emulator's configuration
+        parameters in the section which is represented by ConfigSectionHandle.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle, ParamName and ParamValue pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigSetParameter(m64p_handle ConfigSectionHandle,
+                  const char *ParamName, m64p_type ParamType, const void *ParamValue)'''
         paramvalue_type = None
-        if param_type == 'M64TYPE_INT':
+
+        # First check type of the parameter
+        param_type = self.ConfigGetParameterType(name)
+
+        # Then, according to parameter's type, set up pointer and its datatype
+        if param_type == wrp_dt.m64p_type.M64TYPE_INT.name:
             paramvalue = c.byref(c.c_int(paramvalue))
             paramvalue_type = c.POINTER(c.c_int)
-        elif param_type == 'M64TYPE_FLOAT':
+        elif param_type == wrp_dt.m64p_type.M64TYPE_FLOAT.name:
             paramvalue = c.byref(c.c_float(paramvalue))
             paramvalue_type = c.POINTER(c.c_float)
-        elif param_type == 'M64TYPE_BOOL':
+        elif param_type == wrp_dt.m64p_type.M64TYPE_BOOL.name:
             paramvalue = c.byref(c.c_bool(paramvalue))
             paramvalue_type = c.POINTER(c.c_bool)
-        elif param_type == 'M64TYPE_STRING':
+        elif param_type == wrp_dt.m64p_type.M64TYPE_STRING.name:
             # c_char_p
             paramvalue = paramvalue.encode("utf-8")
             paramvalue_type = c.c_char_p
@@ -890,7 +1279,15 @@ class API():
             self.CoreErrorMessage(status, b"ConfigSetParameter")
 
     def ConfigSetParameterHelp(self, name, help):
-        #m64p_error ConfigSetParameterHelp(m64p_handle ConfigSectionHandle, const char *ParamName, const char *ParamHelp)
+        '''This function sets the help string of one of the emulator's
+        configuration parameters in the section which is represented by
+        ConfigSectionHandle.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigSetParameterHelp(m64p_handle ConfigSectionHandle,
+                    const char *ParamName, const char *ParamHelp)'''
 
         function = wrp_dt.cfunc("ConfigSetParameterHelp", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("ConfigSectionHandle", c.c_void_p, 2, self.config_handle),
@@ -906,24 +1303,34 @@ class API():
             self.CoreErrorMessage(status, b"ConfigSetParameterHelp")
 
     def ConfigGetParameter(self, name):
-        #m64p_error ConfigGetParameter(m64p_handle ConfigSectionHandle, const char *ParamName, m64p_type ParamType, void *ParamValue, int MaxSize)
-        #TODO: Check if there are memory corruptions.
+        '''This function retrieves the value of one of the emulator's parameters
+        in the section which is represented by ConfigSectionHandle.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle, ParamName and ParamValue pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigGetParameter(m64p_handle ConfigSectionHandle,
+             const char *ParamName, m64p_type ParamType, void *ParamValue, int MaxSize)'''
+        # TODO: Something is not right. Check if there are memory corruptions.
+        paramvalue = None
 
+        # First check type of the parameter
         param_type = self.ConfigGetParameterType(name)
         param_result = wrp_dt.m64p_type[param_type].value
+        #print(wrp_dt.m64p_type(param_result), param_result)
 
-        paramvalue = None
-        if param_type == 'M64TYPE_INT':
+        if param_type == wrp_dt.m64p_type.M64TYPE_INT.name:
             maxsize = c.sizeof(c.c_int(param_result))
             paramvalue = c.pointer(c.c_int())
-        elif param_type == 'M64TYPE_FLOAT':
+        elif param_type == wrp_dt.m64p_type.M64TYPE_FLOAT.name:
             maxsize = c.sizeof(c.c_float(param_result))
             paramvalue = c.pointer(c.c_float())
-        elif param_type == 'M64TYPE_BOOL':
-            maxsize = c.sizeof(c.c_int(param_result)) #c_int to avoid INPUT_INVALID
+        elif param_type == wrp_dt.m64p_type.M64TYPE_BOOL.name:
+            # c_int to avoid INPUT_INVALID
+            maxsize = c.sizeof(c.c_int(param_result))
             paramvalue = c.pointer(c.c_bool())
-        elif param_type == 'M64TYPE_STRING':
-            maxsize = 256
+        elif param_type == wrp_dt.m64p_type.M64TYPE_STRING.name:
+            maxsize = 512
             paramvalue = c.create_string_buffer(maxsize)
         else:
             log.warning("ConfigGetParameter: Unknown parameter type")
@@ -939,17 +1346,21 @@ class API():
         status = function()
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            if param_type == 'M64TYPE_STRING':
-                #print(paramvalue.value)
+            if param_type == wrp_dt.m64p_type.M64TYPE_STRING.name:
                 return paramvalue.value.decode()
             else:
-                #print(paramvalue.contents.value)
                 return paramvalue.contents.value
         else:
             self.CoreErrorMessage(status, b"ConfigGetParameter")
 
     def ConfigExternalOpen(self, path):
-        # m64p_error ConfigExternalOpen(const char *FileName, m64p_handle *Handle)
+        '''This function opens an external config file and reads the contents
+        into memory.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - FileName cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigExternalOpen(const char *FileName, m64p_handle *Handle)'''
 
         handle = c.c_void_p()
         function = wrp_dt.cfunc("ConfigExternalOpen", self.m64p_lib_core, wrp_dt.m64p_error,
@@ -960,13 +1371,19 @@ class API():
         status = function()
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            # If everything is right, make wrapper remember this handle.
             self.config_ext_handle = handle.value
             return status
         else:
             self.CoreErrorMessage(status, b"ConfigExternalOpen")
 
     def ConfigExternalClose(self):
-        # m64p_error ConfigExternalClose(m64p_handle Handle)
+        '''This function closes an external config file.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - Handle should have already been passed to ConfigExternalOpen().
+        PROTOTYPE:
+         m64p_error ConfigExternalClose(m64p_handle Handle)'''
 
         function = wrp_dt.cfunc("ConfigExternalClose", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("Handle", c.c_void_p, 1, self.config_ext_handle))
@@ -980,9 +1397,19 @@ class API():
             self.CoreErrorMessage(status, b"ConfigExternalClose")
 
     def ConfigExternalGetParameter(self, sectionname, paramname):
-        # m64p_error ConfigExternalGetParameter(m64p_handle Handle, const char *SectionName, const char *ParamName, char* ParamPtr, int ParamMaxLength)
+        '''This functions allows a plugin to leverage the built-in ini parser
+        to read any cfg/ini file.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - Handle should have already been passed to ConfigExternalOpen.
+        - The SectionName and ParamName pointers cannot be NULL.
+        - ParamPtr must be a pre-allocated char array that is at least as large as ParamMaxLength.
+        PROTOTYPE:
+         m64p_error ConfigExternalGetParameter(m64p_handle Handle, const char *SectionName,
+              const char *ParamName, char* ParamPtr, int ParamMaxLength)'''
 
-        maxlenght = 256
+        # Sets up a pre-allocated char array.
+        maxlenght = 512
         paramptr = c.create_string_buffer(maxlenght)
 
         function = wrp_dt.cfunc("ConfigExternalGetParameter", self.m64p_lib_core, wrp_dt.m64p_error,
@@ -995,12 +1422,26 @@ class API():
         status = function()
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            return paramptr.value
+            string = paramptr.value.decode("utf-8")
+            if string.startswith('"') and string.endswith('"'):
+                # Removes quotes, if they are here
+                return string[1:][:-1]
+            else:
+                return string
         else:
             self.CoreErrorMessage(status, b"ConfigExternalGetParameter")
 
     def ConfigGetParameterType(self, paramname):
-        #m64p_error ConfigGetParameterType(m64p_handle ConfigSectionHandle, const char *ParamName, m64p_type *ParamType)
+        '''This function retrieves the type of one of the emulator's parameters
+        in the section which is represented by ConfigSectionHandle.
+        If there is no parameter with the given ParamName, the error
+        M64ERR_INPUT_NOT_FOUND will be returned.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle, ParamName, and ParamType pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigGetParameterType(m64p_handle ConfigSectionHandle,
+               const char *ParamName, m64p_type *ParamType)'''
 
         param_type = c.c_int()
         function = wrp_dt.cfunc("ConfigGetParameterType", self.m64p_lib_core, wrp_dt.m64p_error,
@@ -1017,7 +1458,15 @@ class API():
             self.CoreErrorMessage(status, b"ConfigGetParameterType")
 
     def ConfigGetParameterHelp(self, name):
-        #const char * ConfigGetParameterHelp(m64p_handle ConfigSectionHandle, const char *ParamName)
+        ''' This function retrieves the help information about one of the
+        emulator's parameters in the section which is represented by
+        ConfigSectionHandle.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle, and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         const char * ConfigGetParameterHelp(m64p_handle ConfigSectionHandle,
+                const char *ParamName)'''
         function = wrp_dt.cfunc("ConfigGetParameterHelp", self.m64p_lib_core, c.c_char_p,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
                         ("ParamName", c.c_char_p, 1, name.encode("utf-8")))
@@ -1027,11 +1476,24 @@ class API():
         if status != None:
             return status.decode("utf-8")
         else:
-            log.warning(f"No description is available for this parameter: {name}")
+            log.warning(f"No description is available for parameter {name}.")
 
     ##Special Get/Set Functions
     def ConfigSetDefaultInt(self, name, value, help):
-        #m64p_error ConfigSetDefaultInt(m64p_handle ConfigSectionHandle, const char *ParamName, int ParamValue, const char *ParamHelp)
+        '''This function is used to set the value of a configuration parameter
+        if it is not already present in the configuration file. This may happen
+        if a new user runs the emulator, or an upgraded module uses a new
+        parameter, or the user deletes his or her configuration file. If a
+        parameter named ParamName is already present in the given section of the
+        configuration file, then no action will be taken and this function will
+        return successfully. Otherwise, a new parameter will be created its
+        value will be assigned to ParamValue.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigSetDefaultInt(m64p_handle ConfigSectionHandle, const char *ParamName,
+                int ParamValue, const char *ParamHelp)'''
 
         function = wrp_dt.cfunc("ConfigSetDefaultInt", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
@@ -1048,7 +1510,20 @@ class API():
             self.CoreErrorMessage(status, b"ConfigSetDefaultInt")
 
     def ConfigSetDefaultFloat(self, name, value, help):
-        #m64p_error ConfigSetDefaultFloat(m64p_handle ConfigSectionHandle, const char *ParamName, float ParamValue, const char *ParamHelp)
+        '''This function is used to set the value of a configuration parameter
+        if it is not already present in the configuration file. This may happen
+        if a new user runs the emulator, or an upgraded module uses a new
+        parameter, or the user deletes his or her configuration file. If a
+        parameter named ParamName is already present in the given section of the
+        configuration file, then no action will be taken and this function will
+        return successfully. Otherwise, a new parameter will be created its
+        value will be assigned to ParamValue.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigSetDefaultFloat(m64p_handle ConfigSectionHandle,
+               const char *ParamName, float ParamValue, const char *ParamHelp)'''
 
         function = wrp_dt.cfunc("ConfigSetDefaultFloat", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
@@ -1065,7 +1540,20 @@ class API():
             self.CoreErrorMessage(status, b"ConfigSetDefaultFloat")
 
     def ConfigSetDefaultBool(self, name, value, help):
-        #m64p_error ConfigSetDefaultBool(m64p_handle ConfigSectionHandle, const char *ParamName, int ParamValue, const char *ParamHelp)
+        '''This function is used to set the value of a configuration parameter
+        if it is not already present in the configuration file. This may happen
+        if a new user runs the emulator, or an upgraded module uses a new
+        parameter, or the user deletes his or her configuration file. If a
+        parameter named ParamName is already present in the given section of the
+        configuration file, then no action will be taken and this function will
+        return successfully. Otherwise, a new parameter will be created its
+        value will be assigned to ParamValue.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigSetDefaultBool(m64p_handle ConfigSectionHandle, const char *ParamName,
+               int ParamValue, const char *ParamHelp)'''
 
         function = wrp_dt.cfunc("ConfigSetDefaultBool", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
@@ -1082,7 +1570,20 @@ class API():
             self.CoreErrorMessage(status, b"ConfigSetDefaultBool")
 
     def ConfigSetDefaultString(self, name, value, help):
-        #m64p_error ConfigSetDefaultString(m64p_handle ConfigSectionHandle, const char *ParamName, const char * ParamValue, const char *ParamHelp)
+        '''This function is used to set the value of a configuration parameter
+        if it is not already present in the configuration file. This may happen
+        if a new user runs the emulator, or an upgraded module uses a new
+        parameter, or the user deletes his or her configuration file. If a
+        parameter named ParamName is already present in the given section of the
+        configuration file, then no action will be taken and this function will
+        return successfully. Otherwise, a new parameter will be created its
+        value will be assigned to ParamValue.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         m64p_error ConfigSetDefaultString(m64p_handle ConfigSectionHandle, const char *ParamName,
+               const char * ParamValue, const char *ParamHelp)'''
 
         function = wrp_dt.cfunc("ConfigSetDefaultString", self.m64p_lib_core, wrp_dt.m64p_error,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
@@ -1099,7 +1600,18 @@ class API():
             self.CoreErrorMessage(status, b"ConfigSetDefaultString")
 
     def ConfigGetParamInt(self, name):
-        #int ConfigGetParamInt(m64p_handle ConfigSectionHandle, const char *ParamName)
+        '''This function retrieves the value of one of the emulator's parameters
+        in the section which is represented by ConfigSectionHandle, and returns
+        the value directly to the calling function. If an errors occurs (such as
+        if ConfigSectionHandle is invalid, or there is no configuration
+        parameter named ParamName), then an error will be sent to the front-end
+        via the DebugCallback() function, and either a 0 (zero) or an empty string
+        will be returned.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         int ConfigGetParamInt(m64p_handle ConfigSectionHandle, const char *ParamName)'''
         function = wrp_dt.cfunc("ConfigGetParamInt", self.m64p_lib_core, c.c_int,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
                         ("ParamName", c.c_char_p, 1, name.encode("utf-8")))
@@ -1112,7 +1624,18 @@ class API():
             log.error(f"ConfigGetParamInt error: {name}")
 
     def ConfigGetParamFloat(self, name):
-        #float ConfigGetParamFloat(m64p_handle ConfigSectionHandle, const char *ParamName)
+        '''This function retrieves the value of one of the emulator's parameters
+        in the section which is represented by ConfigSectionHandle, and returns
+        the value directly to the calling function. If an errors occurs (such as
+        if ConfigSectionHandle is invalid, or there is no configuration
+        parameter named ParamName), then an error will be sent to the front-end
+        via the DebugCallback() function, and either a 0 (zero) or an empty string
+        will be returned.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         float ConfigGetParamFloat(m64p_handle ConfigSectionHandle, const char *ParamName)'''
         function = wrp_dt.cfunc("ConfigGetParamFloat", self.m64p_lib_core, c.c_float,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
                         ("ParamName", c.c_char_p, 1, name.encode("utf-8")))
@@ -1125,7 +1648,19 @@ class API():
             log.error(f"ConfigGetParamFloat error:  {name}")
 
     def ConfigGetParamBool(self, name):
-        #int ConfigGetParamBool(m64p_handle ConfigSectionHandle, const char *ParamName)
+        '''This function retrieves the value of one of the emulator's parameters
+        in the section which is represented by ConfigSectionHandle, and returns
+        the value directly to the calling function. If an errors occurs (such as
+        if ConfigSectionHandle is invalid, or there is no configuration
+        parameter named ParamName), then an error will be sent to the front-end
+        via the DebugCallback() function, and either a 0 (zero) or an empty string
+        will be returned.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         int ConfigGetParamBool(m64p_handle ConfigSectionHandle, const char *ParamName)'''
+
         function = wrp_dt.cfunc("ConfigGetParamBool", self.m64p_lib_core, c.c_int,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
                         ("ParamName", c.c_char_p, 1, name.encode("utf-8")))
@@ -1138,7 +1673,18 @@ class API():
             log.error(f"ConfigGetParamBool error: {name}")
 
     def ConfigGetParamString(self, name):
-        #const char *ConfigGetParamString(m64p_handle ConfigSectionHandle, const char *ParamName)
+        '''This function retrieves the value of one of the emulator's parameters
+        in the section which is represented by ConfigSectionHandle, and returns
+        the value directly to the calling function. If an errors occurs (such as
+        if ConfigSectionHandle is invalid, or there is no configuration
+        parameter named ParamName), then an error will be sent to the front-end
+        via the DebugCallback() function, and either a 0 (zero) or an empty string
+        will be returned.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        - The ConfigSectionHandle and ParamName pointers cannot be NULL.
+        PROTOTYPE:
+         const char *ConfigGetParamString(m64p_handle ConfigSectionHandle, const char *ParamName)'''
 
         function = wrp_dt.cfunc("ConfigGetParamString", self.m64p_lib_core, c.c_char_p,
                         ("ConfigSectionHandle", c.c_void_p, 1, self.config_handle),
@@ -1153,7 +1699,24 @@ class API():
 
     ## OS-Abstraction Functions
     def ConfigGetSharedDataFilepath(self, string):
-        #const char * ConfigGetSharedDataFilepath(const char *filename)
+        ''' It is common for shared data files on Unix systems to be installed
+        in different places on different systems. Therefore, this core function
+        is provided to allow a plugin to retrieve a full pathname to a given
+        shared data file. This type of file is intended to be shared among
+        multiple users on a system, so it is likely to be read-only.
+        Examples of these types of files include: the .ini files for Rice Video
+        and Glide64, the font and Mupen64Plus.ini files for the core, and the
+        cheat code files for the front-end. This function will first search in a
+        directory given via the DataPath parameter to the CoreStartup function,
+        then in a directory given by the SharedDataPath core configuration
+        parameter, then in a directory which may be supplied at compile time
+        through a Makefile or configure script option, and finally in some
+        common system locations (such as /usr/share/mupen64plus and
+        /usr/local/share/mupen64plus on Unix systems).
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        PROTOTYPE:
+         const char * ConfigGetSharedDataFilepath(const char *filename)'''
 
         function = wrp_dt.cfunc("ConfigGetSharedDataFilepath", self.m64p_lib_core, c.c_char_p,
                          ("filename", c.c_char_p, 1, string.encode("utf-8")))
@@ -1165,14 +1728,27 @@ class API():
             return filename
 
     def ConfigGetUserConfigPath(self):
-        #const char * ConfigGetUserConfigPath(void)
+        '''This function may be used by the plugins or front-end to get a path
+        to the directory for storing user-specific configuration files.
+        This will be the directory where the configuration file
+        "mupen64plus.cfg" is located.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        PROTOTYPE:
+         const char * ConfigGetUserConfigPath(void)'''
         function = wrp_dt.cfunc("ConfigGetUserConfigPath", self.m64p_lib_core, c.c_char_p)
         filename = function()
 
         return filename.decode("utf-8")
 
     def ConfigGetUserDataPath(self):
-        #const char * ConfigGetUserDataPath(void)
+        '''This function may be used by the plugins or front-end to get a path
+        to the directory for storing user-specific data files. This may be used
+        to store files such as screenshots, saved game states, or hi-res textures.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        PROTOTYPE:
+         const char * ConfigGetUserDataPath(void)'''
 
         function = wrp_dt.cfunc("ConfigGetUserDataPath", self.m64p_lib_core, c.c_char_p)
         filename = function()
@@ -1180,7 +1756,15 @@ class API():
         return filename.decode("utf-8")
 
     def ConfigGetUserCachePath(self):
-        #const char * ConfigGetUserCachePath(void)
+        ''' This function may be used by the plugins or front-end to get a path
+        to the directory for storing user-specific caching data files. Files in
+        this directory may be deleted by the user to save space, so critical
+        information should not be stored here. This directory may be used to
+        store files such as the ROM browser cache.
+        REQUIREMENTS:
+        - The Mupen64Plus library must already be initialized before calling this function.
+        PROTOTYPE:
+         const char * ConfigGetUserCachePath(void)'''
 
         function = wrp_dt.cfunc("ConfigGetUserCachePath", self.m64p_lib_core, c.c_char_p)
         filename = function()
@@ -1188,7 +1772,8 @@ class API():
         return filename.decode("utf-8")
 
     def PluginStartup(self, plugin, context):
-        #m64p_error PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Context, void (*DebugCallback)(void *Context, int level, const char *Message))
+        # m64p_error PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Context,
+        #       void (*DebugCallback)(void *Context, int level, const char *Message))
 
         function = wrp_dt.cfunc("PluginStartup", plugin, wrp_dt.m64p_error,
                         ("CoreLibHandle", c.c_void_p, 1, c.c_void_p(self.m64p_lib_core._handle)),
@@ -1201,10 +1786,10 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, ("PluginStartup: " + wrp_dt.m64p_plugin_type(self.PluginGetVersion(plugin)["type"]).name).encode("utf-8"))
+            self.CoreErrorMessage(status, f"PluginStartup: {wrp_dt.m64p_plugin_type(self.PluginGetVersion(plugin)['type']).name}")
 
     def PluginShutdown(self, plugin):
-        #m64p_error PluginShutdown(void)
+        # m64p_error PluginShutdown(void)
         function = wrp_dt.cfunc("PluginShutdown", plugin, wrp_dt.m64p_error)
 
         function.errcheck = wrp_dt.m64p_errcheck
@@ -1213,11 +1798,10 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, ("PluginStartup: " + wrp_dt.m64p_plugin_type(self.PluginGetVersion(plugin)["type"]).name).encode("utf-8"))
-
+            self.CoreErrorMessage(status, f"PluginShutdown: {wrp_dt.m64p_plugin_type(self.PluginGetVersion(plugin)['type']).name}")
     #######CoreDoCommand commands #####
     def rom_open(self, rom_path):
-        #M64CMD_ROM_OPEN = 1
+        # M64CMD_ROM_OPEN = 1
 
         with open(rom_path, "rb") as self.load_rom:
             self.read_rom = self.load_rom.read()
@@ -1225,14 +1809,15 @@ class API():
             #self.romtype = binascii.hexlify(rom[:4])
             self.rom_buffer = c.create_string_buffer(self.read_rom)
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_OPEN.value, self.rom_size, c.byref(self.rom_buffer))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_OPEN.value, self.rom_size,
+                                    c.byref(self.rom_buffer))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Opening of ROM file has failed!")
 
         return status
 
     def rom_close(self):
-        #M64CMD_ROM_CLOSE = 2
+        # M64CMD_ROM_CLOSE = 2
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_CLOSE.value, c.c_int(), c.c_void_p())
 
@@ -1246,7 +1831,7 @@ class API():
             log.error("CoreDoCommand: Closing of ROM file has failed!")
         return status
 
-    def check_length(self, crc):
+    def __check_length(self, crc):
         if len(crc) < 8:
             string = f"{(8 - len(crc)) * '0'}{crc}"
             return string
@@ -1254,10 +1839,11 @@ class API():
             return crc
 
     def rom_get_header(self):
-        #M64CMD_ROM_GET_HEADER = 3
-        #TODO: Almost all outputs are raw (in integer). How to convert them to string?
+        # M64CMD_ROM_GET_HEADER = 3
+        # TODO: Almost all outputs are raw (in integer). How to convert them to string?
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_HEADER.value, c.c_int(c.sizeof(self.rom_header)), c.pointer(self.rom_header))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_HEADER.value, \
+                        c.c_int(c.sizeof(self.rom_header)), c.pointer(self.rom_header))
 
         header = None
         country = None
@@ -1269,11 +1855,15 @@ class API():
         clockrate = self.rom_header.ClockRate
         pc = self.rom_header.PC
         release = self.rom_header.Release
-        # Since mupen64plus reads the rom in little endian order, and the ROM could be in big endian order, so let's byteswap the CRCs in that order.
-        crc1 = self.check_length(hex(int.from_bytes(self.rom_header.CRC1.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L")).upper()
-        crc2 = self.check_length(hex(int.from_bytes(self.rom_header.CRC2.to_bytes(4, byteorder='little'), byteorder='big', signed=False)).lstrip("0x").rstrip("L")).upper()
+        # Since mupen64plus reads the rom in little endian order, and the ROM could be in big endian order,
+        # so let's byteswap the CRCs in that order.
+        crc1 = self.__check_length(hex(int.from_bytes(self.rom_header.CRC1.to_bytes(4, byteorder='little'),
+                        byteorder='big', signed=False)).lstrip("0x").rstrip("L")).upper()
+        crc2 = self.__check_length(hex(int.from_bytes(self.rom_header.CRC2.to_bytes(4, byteorder='little'),
+                        byteorder='big', signed=False)).lstrip("0x").rstrip("L")).upper()
 
-        # The internal name is NUL-terminated. For the sake of completeness, we currently remove this NUL bit. Or should we not?
+        # The internal name is NUL-terminated.
+        # XXX: We currently remove this NUL bit. Or should we not?
         raw_name = self.rom_header.Name[:]
         i = 0
         for value in raw_name:
@@ -1289,11 +1879,13 @@ class API():
         cartridge_region = ""
         cartridge_letter = ""
         if country_raw == 69 or country_raw == 325 or country_raw == 581:
+            # USA
             # 69 = 1.0, 325 = 1.1, 581 = 1.2
             country = 'U'
             cartridge_region = "USA"
-            cartridge_letter = "E"
+            cartridge_letter = "E" # As in 'English language of the NTSC version', for North America.
         elif country_raw == 74 or country_raw == 842 or country_raw == 330 or country_raw == 586:
+            # Japan
             # 74 = 1.0, 330 = 1.1, 586 = 1.2, 842 = 1.3
             country = 'J'
             cartridge_region = "JPN"
@@ -1301,36 +1893,44 @@ class API():
         elif country_raw == 65:
             country = 'JU'
         elif country_raw == 80 or country_raw == 336 or country_raw == 592 or country_raw == 88  or country_raw == 89:
-            # 80 = 1.0, 336 = 1.1, 592 = 1.2, 88 = region 1 with some lang, 89 = region 2 with some other lang
+            # Europe
+            # 80 = 1.0, 336 = 1.1, 592 = 1.2, 88 = region X, 89 = region Y
             country = 'E'
             cartridge_region = "EUR"
-            cartridge_letter = "P"
+            cartridge_letter = "P" # As in "PAL region"
         elif country_raw == 85:
+            # Australia
             country = 'A'
             cartridge_region = "AUS"
-            cartridge_letter = "P"
+            cartridge_letter = "P" # As in "PAL region"
         elif country_raw == 70:
+            # France
             country = 'F'
             cartridge_region = "FRA"
             cartridge_letter = "F"
         elif country_raw == 68 or country_raw == 324 or country_raw == 580:
+            # Germany
             #68 = 1.0, 324 = 1.1, 580 = 1.2
             country = 'G'
-            cartridge_region = "NOE"
-            cartridge_letter = "D"
+            cartridge_region = "NOE" # Nintendo of Europe, located in Germany
+            cartridge_letter = "D" # Deutsch
         elif country_raw == 73:
+            # Italy
             country = 'I'
             cartridge_region = "ITA"
             cartridge_letter = "I"
         elif country_raw == 83 or country_raw == 339:
+            # Spain
             country = 'S'
-            cartridge_region = "ESP"
+            cartridge_region = "ESP" # España
             cartridge_letter = "S"
         elif country_raw == 66:
+            # Brazil
             country = 'B'
             cartridge_region = "BRA"
             cartridge_letter = "B"
         else:
+            # Do iQue/chinese games have the header?
             log.debug(f"Code country: {country_raw}")
             country = 'Unk'
             log.warning(f'Unknown region for {name}.')
@@ -1338,7 +1938,6 @@ class API():
         cartridge_bit = bytes(c.cast(self.rom_header.Cartridge_ID, c.c_char_p)).decode("cp932", "replace").rstrip("\x00")
 
         # There are exceptions, though...
-
         if crc1 == "E48E01F5" and crc2 == "E6E51F9B":
             # Carmageddon 64 (E) (M4) (Eng-Spa-Fre-Ita) [!]
             cartridge_letter = "Y"
@@ -1370,7 +1969,7 @@ class API():
         elif crc1 == "02B46F55" and crc2 == "61778D0B":
             # Shadowgate 64 - Trials Of The Four Towers (E) (M2) (Ita-Spa) [!]
             cartridge_letter = "Y"
-            cartridge_region = "ITA"
+            cartridge_region = "ITA" # And the spanish version?
         elif crc1 == "2BC1FCF2" and crc2 == "7B9A0DF4":
             # Shadowgate 64 - Trials Of The Four Towers (E) (M3) (Fre-Ger-Dut) [!]
             cartridge_letter = "X"
@@ -1378,13 +1977,24 @@ class API():
             # Turok - Rage Wars (E) (M3) (Eng-Fre-Ita) [!]
             pass
 
-        if country_raw == 65:
-            cartridge = f'NUS-N{cartridge_bit}E-USA/NUS-N{cartridge_bit}J-JPN'
+        manufacturer_raw = bytes(c.cast(self.rom_header.Manufacturer_ID,
+                                 c.c_char_p)).decode("cp932", "replace").lstrip("\x00").rstrip("\x00")
+        if manufacturer_raw == "N":
+            manufacturer = "N64 cartridge"
+        elif manufacturer_raw == "C":
+            manufacturer = "Cartridge part of N64DD combo"
+        elif manufacturer_raw == "E":
+            # "E" as in "Expansion"?
+            manufacturer = "Disk part of N64DD combo"
+        elif manufacturer_raw == "Z":
+            manufacturer = "Arcade (Aleck64)"
         else:
-            cartridge = f'NUS-N{cartridge_bit}{cartridge_letter}-{cartridge_region}'
+            manufacturer = "Unknown"
 
-        manufacturer = bytes(c.cast(self.rom_header.Manufacturer_ID, c.c_char_p)).decode("cp932", "replace").lstrip("\x00").rstrip("\x00")
-
+        if country_raw == 65:
+            cartridge = f'NUS-{manufacturer_raw}{cartridge_bit}E-USA/NUS-{manufacturer_raw}{cartridge_bit}J-JPN'
+        else:
+            cartridge = f'NUS-{manufacturer_raw}{cartridge_bit}{cartridge_letter}-{cartridge_region}'
 
         header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2, "clockrate": clockrate,
                   "pc": pc, "release": release, "crc1": crc1, "crc2": crc2, "internalname": name,
@@ -1397,9 +2007,10 @@ class API():
             return header
 
     def rom_get_header_raw(self):
-        #M64CMD_ROM_GET_HEADER = 3
+        # M64CMD_ROM_GET_HEADER = 3
         # XXX: In case anyone needs or prefer the raw values of the header...
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_HEADER.value, c.c_int(c.sizeof(self.rom_header)), c.pointer(self.rom_header))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_HEADER.value,
+                        c.c_int(c.sizeof(self.rom_header)), c.pointer(self.rom_header))
 
         header = None
 
@@ -1428,9 +2039,10 @@ class API():
             return header
 
     def rom_get_settings(self):
-        #M64CMD_ROM_GET_SETTINGS = 4
+        # M64CMD_ROM_GET_SETTINGS = 4
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_SETTINGS.value, c.c_int(c.sizeof(self.rom_settings)), c.pointer(self.rom_settings))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_SETTINGS.value,
+                        c.c_int(c.sizeof(self.rom_settings)), c.pointer(self.rom_settings))
 
         name = self.rom_settings.goodname.decode("utf-8")
 
@@ -1475,7 +2087,8 @@ class API():
         #M64CMD_ROM_GET_SETTINGS = 4
         # XXX: In case anyone needs or prefer the raw values of the settings...
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_SETTINGS.value, c.c_int(c.sizeof(self.rom_settings)), c.pointer(self.rom_settings))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_SETTINGS.value,
+                        c.c_int(c.sizeof(self.rom_settings)), c.pointer(self.rom_settings))
 
         name = self.rom_settings.goodname
 
@@ -1496,74 +2109,79 @@ class API():
             log.error("CoreDoCommand: Couldn't retrieve the ROM's settings.")
             return status
         else:
-            #print(settings)
             return settings
 
     def execute(self):
-        #M64CMD_EXECUTE = 5
+        # M64CMD_EXECUTE = 5
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_EXECUTE.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to execute")
         return status
 
     def stop(self):
-        #M64CMD_STOP = 6
+        # M64CMD_STOP = 6
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STOP.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to stop emulation")
         return status
 
     def pause(self):
-        #M64CMD_PAUSE = 7
+        # M64CMD_PAUSE = 7
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_PAUSE.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to pause emulation")
         return status
 
     def resume(self):
-        #M64CMD_RESUME = 8
+        # M64CMD_RESUME = 8
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_RESUME.value, c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to resume emulation")
         return status
 
     def core_state_query(self, state):
-        #M64CMD_CORE_STATE_QUERY = 9
-        # M64CORE_EMU_STATE, M64CORE_VIDEO_MODE, M64CORE_SAVESTATE_SLOT, M64CORE_SPEED_FACTOR, M64CORE_SPEED_LIMITER, M64CORE_VIDEO_SIZE, M64CORE_AUDIO_VOLUME, M64CORE_AUDIO_MUTE, M64CORE_INPUT_GAMESHARK, M64CORE_STATE_LOADCOMPLETE, M64CORE_STATE_SAVECOMPLETE
+        # M64CMD_CORE_STATE_QUERY = 9
+        ## M64CORE_EMU_STATE, M64CORE_VIDEO_MODE, M64CORE_SAVESTATE_SLOT, M64CORE_SPEED_FACTOR,
+        ## M64CORE_SPEED_LIMITER, M64CORE_VIDEO_SIZE, M64CORE_AUDIO_VOLUME, M64CORE_AUDIO_MUTE,
+        ## M64CORE_INPUT_GAMESHARK, M64CORE_STATE_LOADCOMPLETE, M64CORE_STATE_SAVECOMPLETE
 
         state_query = c.pointer(c.c_int())
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_QUERY.value, c.c_int(state), c.byref(state_query))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_QUERY.value,
+                                c.c_int(state), c.byref(state_query))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to query the core")
         return state_query.contents.value
 
     def state_load(self, path=None):
-        #M64CMD_STATE_LOAD = 10
+        # M64CMD_STATE_LOAD = 10
         if path != None:
             path_param = path.encode('utf-8')
         else:
             path_param = c.c_char_p()
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_LOAD.value, c.c_int(), path_param)
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_LOAD.value,
+                                     c.c_int(), path_param)
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to load the state save")
         return status
 
     def state_save(self, path=None, save_type=1):
-        #M64CMD_STATE_SAVE = 11
-        #1 = m64p state save, 2= pj64 compressed, 3= pj64 uncompressed
+        # M64CMD_STATE_SAVE = 11
+        # 1 = m64p state save, 2= pj64 compressed, 3= pj64 uncompressed
         if path != None:
             path_param = path.encode('utf-8')
         else:
             path_param = c.c_char_p()
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_SAVE.value, c.c_int(save_type), path_param)
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_SAVE.value,
+                                     c.c_int(save_type), path_param)
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to make a state save")
         return status
 
     def state_set_slot(self, slot):
-        #M64CMD_STATE_SET_SLOT = 12
+        # M64CMD_STATE_SET_SLOT = 12
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_SET_SLOT.value, c.c_int(slot), c.c_void_p())
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STATE_SET_SLOT.value,
+                                     c.c_int(slot), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to change the state save slot")
         else:
@@ -1571,124 +2189,139 @@ class API():
         return status
 
     def send_sdl_keydown(self, key):
-        #M64CMD_SEND_SDL_KEYDOWN = 13
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYDOWN.value, c.c_int(key), c.c_void_p())
+        # M64CMD_SEND_SDL_KEYDOWN = 13
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYDOWN.value,
+                                     c.c_int(key), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to send SDL key down signal")
         return status
 
     def send_sdl_keyup(self, key):
-        #M64CMD_SEND_SDL_KEYUP = 14
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYUP.value, c.c_int(key), c.c_void_p())
+        # M64CMD_SEND_SDL_KEYUP = 14
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SEND_SDL_KEYUP.value,
+                                     c.c_int(key), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to send SDL key up signal")
         return status
 
     def set_frame_callback(self, frame_cb):
-        #M64CMD_SET_FRAME_CALLBACK = 15
-        #TODO: UNTESTED, int is ignored, pointer to m64p_frame_callback object
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SET_FRAME_CALLBACK.value, c.c_int(), c.byref(frame_cb))
+        # M64CMD_SET_FRAME_CALLBACK = 15
+        # TODO: UNTESTED, int is ignored, pointer to m64p_frame_callback object
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SET_FRAME_CALLBACK.value,
+                                     c.c_int(), c.byref(frame_cb))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to set up the frame callback")
         return status
 
     def take_next_screenshot(self):
-        #M64CMD_TAKE_NEXT_SCREENSHOT = 16
+        # M64CMD_TAKE_NEXT_SCREENSHOT = 16
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_TAKE_NEXT_SCREENSHOT.value, c.c_int(), c.c_void_p())
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_TAKE_NEXT_SCREENSHOT.value,
+                                     c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to take screenshot")
         return status
 
     def core_state_set(self, state, value):
-        #M64CMD_CORE_STATE_SET = 17
-        # M64CORE_EMU_STATE, M64CORE_VIDEO_MODE, M64CORE_SAVESTATE_SLOT, M64CORE_SPEED_FACTOR, M64CORE_SPEED_LIMITER, M64CORE_VIDEO_SIZE, M64CORE_AUDIO_VOLUME, M64CORE_AUDIO_MUTE, M64CORE_INPUT_GAMESHARK, M64CORE_STATE_LOADCOMPLETE, M64CORE_STATE_SAVECOMPLETE
+        # M64CMD_CORE_STATE_SET = 17
+        ## M64CORE_EMU_STATE, M64CORE_VIDEO_MODE, M64CORE_SAVESTATE_SLOT, M64CORE_SPEED_FACTOR,
+        ## M64CORE_SPEED_LIMITER, M64CORE_VIDEO_SIZE, M64CORE_AUDIO_VOLUME, M64CORE_AUDIO_MUTE,
+        ## M64CORE_INPUT_GAMESHARK, M64CORE_STATE_LOADCOMPLETE, M64CORE_STATE_SAVECOMPLETE
 
         valueptr = c.pointer(c.c_int(value))
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_SET.value, c.c_int(state), valueptr)
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_CORE_STATE_SET.value,
+                                     c.c_int(state), valueptr)
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error(f"CoreDoCommand: Unable to set the core state, error is {wrp_dt.m64p_error(status).name}")
         return valueptr.contents.value
 
     def read_screen(self, buffer_type, buffer_ptr):
-        #M64CMD_READ_SCREEN = 18
-        #TODO: UNTESTED
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_READ_SCREEN.value, c.c_int(buffer_type), c.byref(c.c_void_p(buffer_ptr)))
+        # M64CMD_READ_SCREEN = 18
+        # TODO: UNTESTED
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_READ_SCREEN.value,
+                            c.c_int(buffer_type), c.byref(c.c_void_p(buffer_ptr)))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to read the screen")
         return status
 
     def reset(self, reset):
-        #M64CMD_RESET = 19
-        #reset: soft = 0, hard = 1
+        # M64CMD_RESET = 19
+        ## reset: soft = 0, hard = 1
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_RESET.value, c.c_int(reset))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to reset emulation")
         return status
 
     def advance_frame(self):
-        #M64CMD_ADVANCE_FRAME = 20
+        # M64CMD_ADVANCE_FRAME = 20
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ADVANCE_FRAME.value, c.c_int(), c.c_void_p())
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ADVANCE_FRAME.value,
+                                    c.c_int(), c.c_void_p())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to advance by one frame")
         return status
 
     def set_media_loader(self):
-        #M64CMD_SET_MEDIA_LOADER = 21
+        # M64CMD_SET_MEDIA_LOADER = 21
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SET_MEDIA_LOADER.value, c.c_int(c.sizeof(self.media_loader)), c.byref(self.media_loader))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_SET_MEDIA_LOADER.value,
+                                 c.c_int(c.sizeof(self.media_loader)), c.byref(self.media_loader))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Unable to set the media loader. This means that the Transfer Pak or the 64DD won't work.")
         return status
 
     def netplay_init(self, port, hostname):
-        #M64CMD_NETPLAY_INIT = 22
+        # M64CMD_NETPLAY_INIT = 22
         # TODO: Untested
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_INIT.value, c.c_int(port), c.byref(c.create_string_buffer(hostname)))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_INIT.value,
+                                 c.c_int(port), c.byref(c.create_string_buffer(hostname)))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             self.CoreErrorMessage(status, b"NETPLAY_INIT")
             log.error("CoreDoCommand: Unable to initiate the Netplay subsystem.")
         return status
 
     def netplay_control_player(self, controller):
-        #M64CMD_NETPLAY_CONTROL_PLAYER = 23
+        # M64CMD_NETPLAY_CONTROL_PLAYER = 23
         # TODO: Untested
         registration_id = c.c_uint32()
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_CONTROL_PLAYER.value, c.c_int(controller), c.byref(registration_id))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_CONTROL_PLAYER.value,
+                                 c.c_int(controller), c.byref(registration_id))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             self.CoreErrorMessage(status, b"CONTROL_PLAYER")
             log.error("CoreDoCommand: The server has rejected your request for controller {controller}.")
         return status
 
     def netplay_get_version(self, frontend_api):
-        #M64CMD_NETPLAY_GET_VERSION = 24
+        # M64CMD_NETPLAY_GET_VERSION = 24
         # TODO: Untested
         server_api = c.c_uint32()
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_GET_VERSION.value, c.c_int(frontend_api), c.byref(server_api))
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_GET_VERSION.value,
+                                     c.c_int(frontend_api), c.byref(server_api))
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             self.CoreErrorMessage(status, b"NETPLAY_GET_VERSION")
             log.error(f"CoreDoCommand: Netplay API version mismatch between client and server!")
         return status
 
     def netplay_close(self):
-        #M64CMD_NETPLAY_CLOSE = 25
+        # M64CMD_NETPLAY_CLOSE = 25
         # TODO: Untested
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_CLOSE.value, c.c_int(), c.byref())
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_NETPLAY_CLOSE.value,
+                                     c.c_int(), c.byref())
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             self.CoreErrorMessage(status, b"NETPLAY_CLOSE")
             log.error(f"CoreDoCommand: Unable to close any connections to server or shutdown the Netplay subsystem.")
         return status
 
     def pif_open(self, pif_path):
-        #M64CMD_PIF_OPEN = 26
+        # M64CMD_PIF_OPEN = 26
         with open(pif_path, "rb") as self.load_pif:
             self.read_pif = self.load_pif.read()
             self.pif_size = len(self.read_pif)
             self.pif_buffer = c.create_string_buffer(self.read_pif)
 
         if self.pif_size == 2048:
-            status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_PIF_OPEN.value, c.c_int(self.pif_size), c.byref(self.pif_buffer))
+            status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_PIF_OPEN.value,
+                                     c.c_int(self.pif_size), c.byref(self.pif_buffer))
 
             if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
                 log.error("CoreDoCommand: Opening of PIF ROM file has failed!")
@@ -1802,20 +2435,18 @@ class API():
     def run(self, rom):
         if self.vext_override == True:
             wrp_vext.enable_vidext()
-            log.debug("Core: Vidext is now enabled!")
+            log.debug("Core: Vidext is enabled!")
         else:
             wrp_vext.disable_vidext()
-            log.debug("Core: Vidext should be now disabled.")
+            log.debug("Core: Vidext is not enabled.")
         self.CoreOverrideVidExt()
 
         retval = self.rom_open(rom)
         if retval == 0:
             header = self.rom_get_header() ###
             self.rom_get_settings() ###
-            if header["country"] in ("U", "J", "UJ"):
-                self.pif_open(self.frontend.frontend_conf.get("Frontend", "PifNtscPath"))
-            else:
-                self.pif_open(self.frontend.frontend_conf.get("Frontend", "PifPalPath"))
+            pif_region = "PifNtscPath" if header["country"] in ("U", "J", "UJ") else "PifPalPath"
+            self.pif_open(self.frontend.frontend_conf.get("Frontend", pif_region))
             self.plugins_attach()
             self.set_media_loader()
             if self.frontend.cheats:
@@ -1827,7 +2458,7 @@ class API():
             self.plugins_detach()
             self.rom_close()
 
-    def restart(self, m64p_lib_core):
+    def __restart(self, m64p_lib_core):
         # XXX: Unreliable
         self.plugins_shutdown()
         self.CoreShutdown()
@@ -1874,7 +2505,7 @@ class API():
             dylib = c.cdll.LoadLibrary(path)
             os.chdir(self.frontend.m64p_dir)
             try:
-                # PyInstaller creates a temp folder and stores path in _MEIPASS
+                # gom64p creates a temp folder and stores path in _MEIPASS
                 c.windll.kernel32.SetDllDirectoryW(sys._MEIPASS)
             except AttributeError:
                 c.windll.kernel32.SetDllDirectoryW(os.path.abspath("."))
