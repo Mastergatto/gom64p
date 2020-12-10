@@ -58,9 +58,12 @@ class Vidext():
         self.multisample_buffer = egl.EGL_DONT_CARE
         self.multisample_samples = egl.EGL_DONT_CARE
 
-        self.context_major = 3
+        # XXX: OGL 2.0 and compatibility profile as common denominator please every known gfx plugin.
+        self.context_major = 2
         self.context_minor = 0
-        self.profile_mask = egl.EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT
+        self.context_profile = 0 # TODO:Not currently used in EGL
+        self.api_bit = egl.EGL_OPENGL_BIT
+        self.profile_bit = egl.EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT
 
     def set_window(self, window):
         self.window = window
@@ -112,7 +115,8 @@ class Vidext():
             return wrp_dt.m64p_error.M64ERR_INVALID_STATE.value
         
         retval = egl.eglInitialize(self.egl_display, c.c_int(0), c.c_int(0))
-        # What about ES?
+
+        # XXX: Required by glide64mk
         egl.eglBindAPI(egl.EGL_OPENGL_API)
         
         if retval == egl.EGL_TRUE:
@@ -209,7 +213,7 @@ class Vidext():
             egl.EGL_ALPHA_SIZE, self.alpha_size,
             egl.EGL_SAMPLE_BUFFERS, self.multisample_buffer,
             egl.EGL_SAMPLES, self.multisample_samples,
-            egl.EGL_RENDERABLE_TYPE, self.profile_mask,
+            egl.EGL_RENDERABLE_TYPE, self.api_bit,
             egl.EGL_NONE        
             ])
         
@@ -221,7 +225,7 @@ class Vidext():
         self.opengl_version = gl.arrays.GLintArray.asArray([
             egl.EGL_CONTEXT_MAJOR_VERSION, self.context_major,
             egl.EGL_CONTEXT_MINOR_VERSION, self.context_minor,
-            egl.EGL_CONTEXT_OPENGL_PROFILE_MASK, self.profile_mask,
+            egl.EGL_CONTEXT_OPENGL_PROFILE_MASK, self.profile_bit,
             egl.EGL_NONE
         ])
         
@@ -237,11 +241,11 @@ class Vidext():
             self.egl_surface = egl.eglCreateWindowSurface(self.egl_display, self.egl_config[0], self.window_handle, self.window_attributes)
             
             self.egl_context = egl.eglCreateContext(self.egl_display, self.egl_config[0], egl.EGL_NO_CONTEXT, self.opengl_version)
-        
             if self.egl_context == egl.EGL_NO_CONTEXT:
                 raise RuntimeError( 'Unable to create context' )
             try:
                 egl.eglMakeCurrent(self.egl_display, self.egl_surface, self.egl_surface, self.egl_context)
+                egl.eglSwapInterval(self.egl_display, self.swap_control)
                 egl.eglSwapBuffers(self.egl_display, self.egl_surface)
 
             except:
@@ -268,7 +272,7 @@ class Vidext():
                     refresh rate: {str(refreshrate)}, bits: {str(bits)}, screenmode: \
                     {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
 
-        #TODO:currently hardcoded to current display mode
+        # TODO: at the moment, it is hardcoded to current display mode
         if (self.window.environment.current_mode.width != width) or (self.window.environment.current_mode.height != height) \
             or (self.window.environment.current_mode.refresh != refreshrate):
             return wrp_dt.m64p_error.M64ERR_UNSUPPORTED.value
@@ -284,94 +288,113 @@ class Vidext():
             log.error(f"Vidext: gl_get_proc({proc.decode()}) returns None")
 
     def gl_get_attr(self, attr, pvalue):
-        attr = wrp_dt.m64p_GLattr(attr).name
         log.debug(f"Vidext: gl_get_attr(attr:{attr}, pvalue:{str(pvalue.contents.value)})")
-        retval = 0
 
-        if attr == 'M64P_GL_DOUBLEBUFFER':
-            #self.double_buffer = pvalue.contents.value
-            pass
-        elif attr == 'M64P_GL_BUFFER_SIZE':
-            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_BUFFER_SIZE, pvalue)
-        elif attr == 'M64P_GL_DEPTH_SIZE':
-            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_DEPTH_SIZE, pvalue)
-        elif attr == 'M64P_GL_RED_SIZE':
-            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_RED_SIZE, pvalue)
-        elif attr == 'M64P_GL_GREEN_SIZE':
-            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_GREEN_SIZE, pvalue)
-        elif attr == 'M64P_GL_BLUE_SIZE':
-            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_BLUE_SIZE, pvalue)
-        elif attr == 'M64P_GL_ALPHA_SIZE':
-            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_ALPHA_SIZE, pvalue)
-        elif attr == 'M64P_GL_SWAP_CONTROL':
-            #self.swap_control = pvalue.contents.value
-            pass
-        elif attr == 'M64P_GL_MULTISAMPLEBUFFERS':
-            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_SAMPLE_BUFFERS, pvalue)
-        elif attr == 'M64P_GL_MULTISAMPLESAMPLES':
-            egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_SAMPLES, pvalue)
-        elif attr == 'M64P_GL_CONTEXT_MAJOR_VERSION':
-            #self.context_major = pvalue.contents.value
-            ogl.glGetIntegerv(ogl.GL_MAJOR_VERSION, pvalue)
-        elif attr == 'M64P_GL_CONTEXT_MINOR_VERSION':
-            #self.context_minor = pvalue.contents.value
-            ogl.glGetIntegerv(ogl.GL_MINOR_VERSION, pvalue)
-        elif attr == 'M64P_GL_CONTEXT_PROFILE_MASK':
-            #self.profile_mask = pvalue.contents.value
-            ogl.glGetIntegerv(ogl.GL_CONTEXT_PROFILE_MASK, pvalue)
+        pointer = c.pointer(c.c_int())
+        if attr == wrp_dt.m64p_GLattr.M64P_GL_DOUBLEBUFFER.value:
+            #value = ogl.glGetIntegerv(ogl.GL_DOUBLEBUFFER, pointer)
+            value = egl.eglQueryContext(self.egl_display, self.egl_context, egl.EGL_RENDER_BUFFER, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_BUFFER_SIZE.value:
+            value = egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_BUFFER_SIZE, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_DEPTH_SIZE.value:
+            value = egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_DEPTH_SIZE, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_RED_SIZE.value:
+            value = egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_RED_SIZE, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_GREEN_SIZE.value:
+            value = egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_GREEN_SIZE, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_BLUE_SIZE.value:
+            value = egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_BLUE_SIZE, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_ALPHA_SIZE.value:
+            value = egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_ALPHA_SIZE, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_SWAP_CONTROL.value:
+            # TODO: Is this attribute the right one?
+            value = egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_MIN_SWAP_INTERVAL, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_MULTISAMPLEBUFFERS.value:
+            value = egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_SAMPLE_BUFFERS, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_MULTISAMPLESAMPLES.value:
+            value = egl.eglGetConfigAttrib(self.egl_display, self.egl_config[0], egl.EGL_SAMPLES, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_CONTEXT_MAJOR_VERSION.value:
+            try:
+                value = ogl.glGetIntegerv(ogl.GL_MAJOR_VERSION, pointer)
+            except:
+                # OGL 2.1 or less is not compatible with glGetIntegerv
+                value = c.pointer(c.c_int(2))
+            #egl.eglQueryContext(self.egl_display, self.egl_context, egl.EGL_CONTEXT_MAJOR_VERSION, pointer)
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_CONTEXT_MINOR_VERSION.value:
+            try:
+                value = ogl.glGetIntegerv(ogl.GL_MINOR_VERSION, pointer)
+            except:
+                # OGL 2.1 or less is not compatible with glGetIntegerv
+                value = c.pointer(c.c_int(0))
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_CONTEXT_PROFILE_MASK.value:
+            # OpenGL context profile is introduced in 3.2
+            if self.context_major >= 3 and self.context_minor >= 2:
+                # TODO: How to get the exact version of the context profile?
+                value = ogl.glGetIntegerv(ogl.GL_CONTEXT_PROFILE_MASK, pointer)
+                #egl.eglQueryContext(self.egl_display, self.egl_context, egl.EGL_CONTEXT_MAJOR_VERSION, pointer)
+            else:
+                # TODO: What's the value in case the gfx plugin doesn't support OGL 3.2+? Zero?
+                value = pvalue.contents.value
         else:
             log.warning("gom64p doesn't know how to handle {attr}")
 
-        if retval == 0:
+        query = pointer.contents.value
+        if  query == pvalue.contents.value:
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            log.error(f"Vidext: gl_get_attr() has reported M64ERR_SYSTEM_FAIL, tried to set {pvalue.contents.value} for {attr}, but it returned error")
-            return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
+            log.error(f"Vidext: gl_get_attr() has reported M64ERR_SYSTEM_FAIL, for {wrp_dt.m64p_GLattr(attr).name} was expected {pvalue.contents.value} but it returned {query}")
+            return wrp_dt.m64p_error.M64ERR_INVALID_STATE.value
 
     def gl_set_attr(self, attr, value):
-        attr = wrp_dt.m64p_GLattr(attr).name
+        #attr = wrp_dt.m64p_GLattr(attr).name
         log.debug(f"Vidext.gl_set_attr(): attr '{str(attr)}'; value '{str(value)}'")
         retval = 0
 
-        if attr == 'M64P_GL_DOUBLEBUFFER':
+        if attr == wrp_dt.m64p_GLattr.M64P_GL_DOUBLEBUFFER.value:
             if value == 0:
                 self.double_buffer = egl.EGL_SINGLE_BUFFER
             elif value == 1:
                 self.double_buffer = egl.EGL_BACK_BUFFER
-        elif attr == 'M64P_GL_BUFFER_SIZE':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_BUFFER_SIZE.value:
             self.buffer_size = value
-        elif attr == 'M64P_GL_DEPTH_SIZE':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_DEPTH_SIZE.value:
             self.depth_size = value
-        elif attr == 'M64P_GL_RED_SIZE':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_RED_SIZE.value:
             self.red_size = value
-        elif attr == 'M64P_GL_GREEN_SIZE':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_GREEN_SIZE.value:
             self.green_size = value
-        elif attr == 'M64P_GL_BLUE_SIZE':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_BLUE_SIZE.value:
             self.blue_size = value
-        elif attr == 'M64P_GL_ALPHA_SIZE':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_ALPHA_SIZE.value:
             self.alpha_size = value
-        elif attr == 'M64P_GL_SWAP_CONTROL':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_SWAP_CONTROL.value:
             self.swap_control = value
-        elif attr == 'M64P_GL_MULTISAMPLEBUFFERS':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_MULTISAMPLEBUFFERS.value:
             self.multisample_buffer = value
-        elif attr == 'M64P_GL_MULTISAMPLESAMPLES':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_MULTISAMPLESAMPLES.value:
             self.multisample_samples = value
-        elif attr == 'M64P_GL_CONTEXT_MAJOR_VERSION':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_CONTEXT_MAJOR_VERSION.value:
             self.context_major = value
-        elif attr == 'M64P_GL_CONTEXT_MINOR_VERSION':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_CONTEXT_MINOR_VERSION.value:
             self.context_minor = value
-        elif attr == 'M64P_GL_CONTEXT_PROFILE_MASK':
+        elif attr == wrp_dt.m64p_GLattr.M64P_GL_CONTEXT_PROFILE_MASK.value:
             if value == wrp_dt.m64p_GLContextType.M64P_GL_CONTEXT_PROFILE_CORE.value:
                 egl.eglBindAPI(egl.EGL_OPENGL_API)
-                #self.profile_mask = egl.EGL_OPENGL_BIT
-                self.profile_mask = egl.EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT
+                self.api_bit = egl.EGL_OPENGL_BIT
+                self.profile_bit = egl.EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT
+                pointer = c.pointer(c.c_int())
+                ogl.glGetIntegerv(ogl.GL_CONTEXT_PROFILE_MASK, pointer)
+                self.context_profile = pointer.contents.value
             elif value == wrp_dt.m64p_GLContextType.M64P_GL_CONTEXT_PROFILE_COMPATIBILITY.value:
                 egl.eglBindAPI(egl.EGL_OPENGL_API)
-                #self.profile_mask = egl.EGL_OPENGL_BIT
-                self.profile_mask = egl.EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT
+                self.api_bit = egl.EGL_OPENGL_BIT
+                self.profile_bit = egl.EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT
+                self.context_profile = pointer.contents.value
             elif value == wrp_dt.m64p_GLContextType.M64P_GL_CONTEXT_PROFILE_ES.value:
                 egl.eglBindAPI(egl.EGL_OPENGL_ES_API)
-                self.profile_mask = egl.EGL_OPENGL_ES2_BIT   
+                self.api_bit = egl.EGL_OPENGL_ES2_BIT
+                # TODO: Is this correct?
+                self.profile_bit = egl.EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT
         else:
             log.warning(f"Vidext: gom64p doesn't know how to handle {attr}")
 
@@ -390,7 +413,7 @@ class Vidext():
             
             try:
                 egl.eglMakeCurrent(self.egl_display, self.egl_surface, self.egl_surface, self.egl_context)
-                #egl.eglSwapBuffers(self.egl_display, self.egl_surface)
+                egl.eglSwapBuffers(self.egl_display, self.egl_surface)
             except:
                 log.error(f"eglMakeCurrent() returned error: {egl.eglGetError()}")
             
