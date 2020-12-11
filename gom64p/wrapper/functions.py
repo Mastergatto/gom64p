@@ -16,7 +16,7 @@ class API():
     """Wrapper for calling libmupen64plus.so's functions into python code"""
     def __init__(self, parent, params):
         # https://github.com/mupen64plus/mupen64plus-core/blob/master/doc/emuwiki-api-doc/Mupen64Plus-v2.0-API-Versioning.mediawiki
-        # MUPEN_CORE_NAME "Mupen64Plus Core"
+        # MUPEN_CORE_NAME
         self.core_name = "Mupen64Plus Core"
 
         # Latest API version (MUPEN_CORE_VERSION) supported by this wrapper.
@@ -117,7 +117,8 @@ class API():
 
     ### Basic core functions
     def PluginGetVersion(self, plugin):
-        ''' This function retrieves version information from the core library.
+        ''' This function retrieves version information from the core library
+        or plugin.
         This function is the same for the core library and the plugins, so that
         a front-end may examine all shared libraries in a directory and
         determine their types. Any of the input parameters may be set to NULL
@@ -1772,8 +1773,17 @@ class API():
         return filename.decode("utf-8")
 
     def PluginStartup(self, plugin, context):
-        # m64p_error PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Context,
-        #       void (*DebugCallback)(void *Context, int level, const char *Message))
+        '''This function initializes plugin for use by allocating memory,
+        creating data structures, and loading the configuration data.
+        This function may return M64ERR_INCOMPATIBLE if an older core library
+        is used with a newer plugin.
+        REQUIREMENTS:
+        - This function must be called before any other plugin functions.
+        - The Core library must already be started before calling this function.
+        - This function must be called before attaching the plugin to the core.
+        PROTOTYPE:
+         m64p_error PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Context,
+               void (*DebugCallback)(void *Context, int level, const char *Message))'''
 
         function = wrp_dt.cfunc("PluginStartup", plugin, wrp_dt.m64p_error,
                         ("CoreLibHandle", c.c_void_p, 1, c.c_void_p(self.m64p_lib_core._handle)),
@@ -1789,7 +1799,12 @@ class API():
             self.CoreErrorMessage(status, f"PluginStartup: {wrp_dt.m64p_plugin_type(self.PluginGetVersion(plugin)['type']).name}")
 
     def PluginShutdown(self, plugin):
-        # m64p_error PluginShutdown(void)
+        '''This function destroys data structures and releases memory allocated
+        by the plugin library.
+        REQUIREMENTS:
+        - This plugin should be detached from the core before calling this function.
+        PROTOTYPE:
+         m64p_error PluginShutdown(void)'''
         function = wrp_dt.cfunc("PluginShutdown", plugin, wrp_dt.m64p_error)
 
         function.errcheck = wrp_dt.m64p_errcheck
@@ -1801,7 +1816,13 @@ class API():
             self.CoreErrorMessage(status, f"PluginShutdown: {wrp_dt.m64p_plugin_type(self.PluginGetVersion(plugin)['type']).name}")
     #######CoreDoCommand commands #####
     def rom_open(self, rom_path):
-        # M64CMD_ROM_OPEN = 1
+        ''' This will cause the core to read in a binary ROM image provided by
+        the front-end.
+        REQUIREMENTS:
+        - The emulator cannot be currently running.
+        - A ROM image must not be currently opened.
+        COMMAND:
+         M64CMD_ROM_OPEN = 1'''
 
         with open(rom_path, "rb") as self.load_rom:
             self.read_rom = self.load_rom.read()
@@ -1817,7 +1838,14 @@ class API():
         return status
 
     def rom_close(self):
-        # M64CMD_ROM_CLOSE = 2
+        ''' This will close any currently open ROM.
+        The current cheat code list will also be deleted.
+        REQUIREMENTS:
+        - The emulator cannot be currently running.
+        - A ROM image must have been previously opened.
+        - There should be no plugins currently attached.
+        COMMAND:
+         M64CMD_ROM_CLOSE = 2'''
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_CLOSE.value, c.c_int(), c.c_void_p())
 
@@ -1832,38 +1860,49 @@ class API():
         return status
 
     def __check_length(self, crc):
+        # Make sure a CRC hash has exactly 8 digits, because some hash may have
+        # initial zeroes that are automatically stripped by the core library.
         if len(crc) < 8:
-            string = f"{(8 - len(crc)) * '0'}{crc}"
-            return string
+            fixed_crc = f"{(8 - len(crc)) * '0'}{crc}"
+            return fixed_crc
         else:
             return crc
 
     def rom_get_header(self):
-        # M64CMD_ROM_GET_HEADER = 3
+        '''This will retrieve the header data of the currently open ROM.
+        REQUIREMENTS:
+        -  A ROM image must be open.
+        COMMAND:
+         M64CMD_ROM_GET_HEADER = 3'''
         # TODO: Almost all outputs are raw (in integer). How to convert them to string?
-
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_HEADER.value, \
-                        c.c_int(c.sizeof(self.rom_header)), c.pointer(self.rom_header))
 
         header = None
         country = None
 
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_HEADER.value, \
+                        c.c_int(c.sizeof(self.rom_header)), c.pointer(self.rom_header))
+
+        # Those values are just super-technical numbers and cannot be decoded.
         lat = self.rom_header.init_PI_BSB_DOM1_LAT_REG
         pgs1 = self.rom_header.init_PI_BSB_DOM1_PGS_REG
         pwd = self.rom_header.init_PI_BSB_DOM1_PWD_REG
         pgs2 =self.rom_header.init_PI_BSB_DOM1_PGS_REG2
         clockrate = self.rom_header.ClockRate
         pc = self.rom_header.PC
-        release = self.rom_header.Release
-        # Since mupen64plus reads the rom in little endian order, and the ROM could be in big endian order,
-        # so let's byteswap the CRCs in that order.
+
+        # This refers to the version of libultra, used for compiling the ROM
+        release_raw = self.rom_header.Release
+        release = bytes(c.cast(release_raw, c.c_char_p)).decode("cp932", "replace")
+
+        # Since mupen64plus reads the rom in little endian order, and the ROM
+        # could be in big endian order, so let's byteswap the CRCs in that order.
         crc1 = self.__check_length(hex(int.from_bytes(self.rom_header.CRC1.to_bytes(4, byteorder='little'),
                         byteorder='big', signed=False)).lstrip("0x").rstrip("L")).upper()
         crc2 = self.__check_length(hex(int.from_bytes(self.rom_header.CRC2.to_bytes(4, byteorder='little'),
                         byteorder='big', signed=False)).lstrip("0x").rstrip("L")).upper()
 
         # The internal name is NUL-terminated.
-        # XXX: We currently remove this NUL bit. Or should we not?
+        # XXX: We currently remove this NUL bit. For the sake of completeness, we currently remove this NUL bit. Or should we not?
         raw_name = self.rom_header.Name[:]
         i = 0
         for value in raw_name:
@@ -1874,63 +1913,88 @@ class API():
         # The internal name is also codified in ms-kanji, so let's decode this way.
         name = bytes(raw_name).decode('cp932', 'replace')
         country_raw = self.rom_header.Country_code
+        # Game revision, format in hex without 0x
+        revision = f"1.{format(country_raw >> 8, 'x')}"
+
+        # Have to convert hexadecimal to int, because Python treats hex as str...
+        country_code = int(hex(country_raw & 0xFF), base=16)
 
         # Map the codes with known regions
         cartridge_region = ""
         cartridge_letter = ""
-        if country_raw == 69 or country_raw == 325 or country_raw == 581:
-            # USA
-            # 69 = 1.0, 325 = 1.1, 581 = 1.2
-            country = 'U'
-            cartridge_region = "USA"
-            cartridge_letter = "E" # As in 'English language of the NTSC version', for North America.
-        elif country_raw == 74 or country_raw == 842 or country_raw == 330 or country_raw == 586:
-            # Japan
-            # 74 = 1.0, 330 = 1.1, 586 = 1.2, 842 = 1.3
-            country = 'J'
-            cartridge_region = "JPN"
-            cartridge_letter = "J"
-        elif country_raw == 65:
+        if country_code == 0x37:
+            # 7, BETA
+            pass
+        elif country_code == 0x41:
+            # A, asian NTSC
             country = 'JU'
-        elif country_raw == 80 or country_raw == 336 or country_raw == 592 or country_raw == 88  or country_raw == 89:
-            # Europe
-            # 80 = 1.0, 336 = 1.1, 592 = 1.2, 88 = region X, 89 = region Y
-            country = 'E'
-            cartridge_region = "EUR"
-            cartridge_letter = "P" # As in "PAL region"
-        elif country_raw == 85:
-            # Australia
-            country = 'A'
-            cartridge_region = "AUS"
-            cartridge_letter = "P" # As in "PAL region"
-        elif country_raw == 70:
-            # France
-            country = 'F'
-            cartridge_region = "FRA"
-            cartridge_letter = "F"
-        elif country_raw == 68 or country_raw == 324 or country_raw == 580:
-            # Germany
-            #68 = 1.0, 324 = 1.1, 580 = 1.2
-            country = 'G'
-            cartridge_region = "NOE" # Nintendo of Europe, located in Germany
-            cartridge_letter = "D" # Deutsch
-        elif country_raw == 73:
-            # Italy
-            country = 'I'
-            cartridge_region = "ITA"
-            cartridge_letter = "I"
-        elif country_raw == 83 or country_raw == 339:
-            # Spain
-            country = 'S'
-            cartridge_region = "ESP" # España
-            cartridge_letter = "S"
-        elif country_raw == 66:
+        elif country_code == 0x42:
             # Brazil
             country = 'B'
             cartridge_region = "BRA"
             cartridge_letter = "B"
+        elif country_code == 0x43:
+            # China
+            country = 'Ch'
+            cartridge_region = "CHN" # Unofficial?
+            cartridge_letter = "C"
+        elif country_code == 0x44:
+            # Germany
+            country = 'G'
+            cartridge_region = "NOE" # Nintendo of Europe, located in Germany
+            cartridge_letter = "D" # Deutsch
+        elif country_code == 0x45:
+            # USA
+            country = 'U'
+            cartridge_region = "USA"
+            cartridge_letter = "E" # As in 'English language of the NTSC version', for North America.
+        elif country_code == 0x46:
+            # France
+            country = 'F'
+            cartridge_region = "FRA"
+            cartridge_letter = "F"
+        elif country_code == 0x47:
+            # 'G': Gateway 64 (NTSC)
+            pass
+        elif country_code == 0x48:
+            # 'H' "Netherlands/Holland"
+            pass
+        elif country_raw == 0x49:
+            # Italy
+            country = 'I'
+            cartridge_region = "ITA"
+            cartridge_letter = "I"
+        elif country_code == 0x4A:
+            # Japan
+            country = 'J'
+            cartridge_region = "JPN"
+            cartridge_letter = "J"
+        elif country_code == 0x4B:
+            # K, Korea
+            pass
+        elif country_code == 0x4C:
+            # 'L': Gateway 64 (PAL)
+            pass
+        elif country_code == 0x4E:
+            # 'N' "Canada"
+            pass
+        elif country_code == 0x50 or country_code == 0x58 or country_code == 0x59:
+            # Europe
+            # 0x50 = standard, 0x58 = region X, 0x59 = region Y
+            country = 'E'
+            cartridge_region = "EUR"
+            cartridge_letter = "P" # As in "PAL region"
+        elif country_code == 0x53:
+            # Spain
+            country = 'S'
+            cartridge_region = "ESP" # España
+            cartridge_letter = "S"
+        elif country_code == 0x55:
+            # 'U', Australia
+            country = 'A'
+            cartridge_region = "AUS"
+            cartridge_letter = "P" # As in "PAL region"
         else:
-            # Do iQue/chinese games have the header?
             log.debug(f"Code country: {country_raw}")
             country = 'Unk'
             log.warning(f'Unknown region for {name}.')
@@ -1991,14 +2055,16 @@ class API():
         else:
             manufacturer = "Unknown"
 
-        if country_raw == 65:
+        if country_code == 0x41:
             cartridge = f'NUS-{manufacturer_raw}{cartridge_bit}E-USA/NUS-{manufacturer_raw}{cartridge_bit}J-JPN'
         else:
             cartridge = f'NUS-{manufacturer_raw}{cartridge_bit}{cartridge_letter}-{cartridge_region}'
 
-        header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2, "clockrate": clockrate,
-                  "pc": pc, "release": release, "crc1": crc1, "crc2": crc2, "internalname": name,
-                  "manufacturer": manufacturer, "cartridge": cartridge, "country": country}
+        header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2,
+                  "clockrate": clockrate, "pc": pc, "release": release,
+                  "crc1": crc1, "crc2": crc2, "internalname": name,
+                  "manufacturer": manufacturer, "cartridge": cartridge,
+                  "country": country, "revision": revision}
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Couldn't retrieve the ROM's header.")
@@ -2026,11 +2092,18 @@ class API():
         name = self.rom_header.Name
         manufacturer = self.rom_header.Manufacturer_ID
         cartridge = self.rom_header.Cartridge_ID
-        country = self.rom_header.Country_code
+        country_raw = self.rom_header.Country_code
+        # Game revision, format in hex without 0x
+        revision = format(country_raw >> 8, 'x')
 
-        header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2, "clockrate": clockrate,
-                  "pc": pc, "release": release, "crc1": crc1, "crc2": crc2, "internalname": name,
-                  "manufacturer": manufacturer, "cartridge": cartridge, "country": country}
+        # Have to convert hexadecimal to int, because Python treats hex as str...
+        country = int(hex(country_raw & 0xFF), base=16)
+
+        header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2,
+                  "clockrate": clockrate, "pc": pc, "release": release,
+                  "crc1": crc1, "crc2": crc2, "internalname": name,
+                  "manufacturer": manufacturer, "cartridge": cartridge,
+                  "country": country, "revision": revision}
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Couldn't retrieve the ROM's header.")
