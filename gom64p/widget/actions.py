@@ -184,6 +184,8 @@ class Actions:
         self.frontend.m64p_wrapper.rom_open(rom)
         header = self.frontend.m64p_wrapper.rom_get_header()
         settings = self.frontend.m64p_wrapper.rom_get_settings()
+        cic_value = self.frontend.m64p_wrapper.get_cic(header["country"])
+        header['cic'] = cic_value
         self.frontend.m64p_wrapper.rom_close()
         
         if option == 'browser':

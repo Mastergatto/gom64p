@@ -118,6 +118,7 @@ class PropertiesDialog(Gtk.Dialog):
         cartridge_entry = self.insert_entry("Cartridge:", self.header["cartridge"])
         release_entry = self.insert_entry("Release:", self.header["release"])
         clockrate_entry = self.insert_entry("Clock rate:", self.header["clockrate"])
+        cic_entry = self.insert_entry("CIC Chip:", self.header["cic"])
 
         # TODO: Yet to be decoded
         lat_entry = self.insert_entry("lat:", self.header["lat"])
@@ -158,6 +159,7 @@ class PropertiesDialog(Gtk.Dialog):
         crc_box.pack_start(crc2_entry, False, False, 0)
         tech_box.pack_start(crc_box, False, False, 0)
 
+        tech_box.pack_start(cic_entry, False, False, 0)
         tech_box.pack_start(save_entry, False, False, 0)
 
         tech_frame.add(tech_box)

@@ -8,7 +8,6 @@
 ## MODULES ##
 #############
 import ctypes as c
-from gi.repository import Gtk
 import sys, time
 import logging as log
 import OpenGL as gl
@@ -59,7 +58,7 @@ class Vidext():
         self.multisample_buffer = egl.EGL_DONT_CARE
         self.multisample_samples = egl.EGL_DONT_CARE
 
-        # XXX: OGL 2.0 and compatibility profile as common denominator please every known gfx plugin.
+        # XXX: OGL 2.0 and compatibility profile as common denominator to please every known gfx plugin.
         self.context_major = 2
         self.context_minor = 0
         self.context_profile = 0 # TODO:Not currently used in EGL
@@ -71,12 +70,12 @@ class Vidext():
 
     # Startup/Shutdown Functions
     def video_init(self):
-        '''This function should be called from within the RomOpen() video plugin
+        """This function should be called from within the RomOpen() video plugin
         function call. The default SDL implementation of this function simply
         calls SDL_InitSubSystem(SDL_INIT_VIDEO). It does not open a rendering
         window or switch video modes.
         PROTOTYPE:
-         m64p_error VidExt_Init(void)'''
+         m64p_error VidExt_Init(void)"""
         log.debug("Vidext: video_init()")
         
         if self.window.platform == 'Linux':
@@ -137,12 +136,12 @@ class Vidext():
             return wrp_dt.m64p_error.M64ERR_INVALID_STATE.value
 
     def video_quit(self):
-        '''This function closes any open rendering window and shuts down the
+        """This function closes any open rendering window and shuts down the
         video system. The default SDL implementation of this function calls
         SDL_QuitSubSystem(SDL_INIT_VIDEO). This function should be called from
         within the RomClosed() video plugin function.
         PROTOTYPE:
-         m64p_error VidExt_Quit(void)'''
+         m64p_error VidExt_Quit(void)"""
         log.debug("Vidext: video_quit()")
 
         # Nullify those EGL variables
@@ -178,14 +177,14 @@ class Vidext():
 
     # Screen Handling Functions
     def video_list_modes(self, sizearray, numsizes):
-        '''This function is used to enumerate the available resolutions for
+        """This function is used to enumerate the available resolutions for
         fullscreen video modes. An array SizeArray is passed into the function,
         which is then filled (up to *'NumSizes' objects) with resolution sizes.
         The number of sizes actually written is stored in the integer which is
         pointed to by NumSizes.
         PROTOTYPE:
          m64p_error VidExt_ListFullscreenModes(m64p_2d_size *SizeArray,
-                        int *NumSizes)'''
+                        int *NumSizes)"""
         log.debug(f"Vidext: video_list_modes(sizearray: {sizearray}, {numsizes}, {numsizes}")
 
         # Retrieve current desktop resolution and refresh rate
@@ -199,7 +198,7 @@ class Vidext():
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_list_rates(self, sizearray, numrates, rates):
-        '''This function is used to enumerate the available refresh rates for a
+        """This function is used to enumerate the available refresh rates for a
         given resolution. An m64p_2d_size object is passed into the function,
         which will contain the resolution of the refresh rates you want to
         retrieve, an array Rates is passed into the function, which is then
@@ -208,7 +207,7 @@ class Vidext():
         is pointed to by NumSizes.
         PROTOTYPE:
          m64p_error VidExt_ListFullscreenRates(m64p_2d_size Size, int *NumRates,
-                        int *Rates)'''
+                        int *Rates)"""
         log.debug(f"Vidext: video_list_rates(sizearray: {sizearray}, {numrates}, {rates}")
         #TODO: Unfinished
 
@@ -227,12 +226,12 @@ class Vidext():
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_set_mode(self, width, height, bits, screenmode, flags, refreshrate=None):
-        '''This function creates a rendering window or switches into a
+        """This function creates a rendering window or switches into a
         fullscreen video mode. Any desired OpenGL attributes should be set
         before calling this function.
         PROTOTYPE:
          m64p_error VidExt_SetVideoMode(int Width, int Height, int BitsPerPixel,
-                          m64p_video_mode ScreenMode, m64p_video_flags Flags)'''
+                          m64p_video_mode ScreenMode, m64p_video_flags Flags)"""
         log.debug(f"Vidext: video_set_mode(width: {str(width)}, height: {str(height)}, bits: {str(bits)}, screenmode: {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
 
         self.width = width
@@ -329,12 +328,12 @@ class Vidext():
 
 
     def video_set_mode_rate(self, width, height, refreshrate, bits, screenmode, flags):
-        '''This function creates a rendering window or switches into a
+        """This function creates a rendering window or switches into a
         fullscreen video mode. Any desired OpenGL attributes should be set
         before calling this function.
         PROTOTYPE:
          m64p_error VidExt_SetVideoMode(int Width, int Height, int RefreshRate,
-            int BitsPerPixel, m64p_video_mode ScreenMode, m64p_video_flags Flags)'''
+            int BitsPerPixel, m64p_video_mode ScreenMode, m64p_video_flags Flags)"""
         log.debug(f"Vidext: video_set_mode_rate(width: {str(width)}, height: {str(height)}, \
                     refresh rate: {str(refreshrate)}, bits: {str(bits)}, screenmode: \
                     {wrp_dt.m64p_video_mode(screenmode).name}, flags:{wrp_dt.m64p_video_flags(flags).name}")
@@ -348,18 +347,18 @@ class Vidext():
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_set_caption(self, title):
-        '''This function sets the caption text of the emulator rendering window.
+        """This function sets the caption text of the emulator rendering window.
         PROTOTYPE:
-         m64p_error VidExt_SetCaption(const char *Title)'''
+         m64p_error VidExt_SetCaption(const char *Title)"""
         log.debug(f"Vidext: video_set_caption({title.decode('utf-8')})")
         self.title = self.window.get_title()
         self.window.set_title(title.decode("utf-8"))
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_toggle_fs(self):
-        '''This function toggles between fullscreen and windowed rendering modes.
+        """This function toggles between fullscreen and windowed rendering modes.
         PROTOTYPE:
-          m64p_error VidExt_ToggleFullScreen(void)'''
+          m64p_error VidExt_ToggleFullScreen(void)"""
         retval = 0
         if self.window.isfullscreen == True:
             log.debug("Vidext: video_toggle_fs() set to fullscreen")
@@ -374,25 +373,25 @@ class Vidext():
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def video_resize_window(self, width, height):
-        '''This function is called when the video plugin has resized its OpenGL
+        """This function is called when the video plugin has resized its OpenGL
         output viewport in response to a ResizeVideoOutput() call, and requests
         that the window manager update the OpenGL rendering window size to match.
         If a front-end application does not support resizable windows and never
         sets the M64CORE_VIDEO_SIZE core variable with the M64CMD_CORE_STATE_SET
         command, then this function should not be called.
         PROTOTYPE:
-         m64p_error VidExt_ResizeWindow(int Width, int Height)'''
+         m64p_error VidExt_ResizeWindow(int Width, int Height)"""
         # https://github.com/mupen64plus/mupen64plus-core/blob/master/doc/emuwiki-api-doc/Mupen64Plus-v2.0-Core-Video-Extension.mediawiki#window-resizing
         log.debug(f"Vidext: video_resize_window(width: {str(width)}, height: {str(height)})")
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def gl_get_proc(self, proc):
-        '''This function is used to get a pointer to an OpenGL extension
+        """This function is used to get a pointer to an OpenGL extension
         function. This is only necessary on the Windows platform, because the
         OpenGL implementation shipped with Windows only supports OpenGL
         version 1.1.
         PROTOTYPE:
-         void * VidExt_GL_GetProcAddress(const char* Proc)'''
+         void * VidExt_GL_GetProcAddress(const char* Proc)"""
         address = egl.eglGetProcAddress(proc)
         if address is not None:
             return address
@@ -400,11 +399,11 @@ class Vidext():
             log.error(f"Vidext: gl_get_proc({proc.decode()}) returns None")
 
     def gl_get_attr(self, attr, pvalue):
-        '''This function may be used to check that OpenGL attributes where
+        """This function may be used to check that OpenGL attributes where
         successfully set to the rendering window after the VidExt_SetVideoMode
         function call.
         PROTOTYPE:
-         m64p_error VidExt_GL_GetAttribute(m64p_GLattr Attr, int *pValue)'''
+         m64p_error VidExt_GL_GetAttribute(m64p_GLattr Attr, int *pValue)"""
         log.debug(f"Vidext: gl_get_attr(attr:{wrp_dt.m64p_GLattr(attr).name}, pvalue:{str(pvalue.contents.value)})")
 
         pointer = c.pointer(c.c_int())
@@ -463,10 +462,10 @@ class Vidext():
             return wrp_dt.m64p_error.M64ERR_INVALID_STATE.value
 
     def gl_set_attr(self, attr, value):
-        '''This function is used to set certain OpenGL attributes which must be
+        """This function is used to set certain OpenGL attributes which must be
         specified before creating the rendering window with VidExt_SetVideoMode.
         PROTOTYPE:
-         m64p_error VidExt_GL_SetAttribute(m64p_GLattr Attr, int Value)'''
+         m64p_error VidExt_GL_SetAttribute(m64p_GLattr Attr, int Value)"""
         log.debug(f"Vidext.gl_set_attr(): attr '{str(attr)}'; value '{str(value)}'")
         retval = 0
 
@@ -525,10 +524,10 @@ class Vidext():
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_swap_buffer(self):
-        ''' This function is used to swap the front/back buffers after rendering
+        """ This function is used to swap the front/back buffers after rendering
         an output video frame.
         PROTOTYPE:
-          m64p_error VidExt_GL_SwapBuffers(void)'''
+          m64p_error VidExt_GL_SwapBuffers(void)"""
         # Note: It can spam the message in the logs, it's best to never turn it on.
         #log.debug("Vidext: gl_swap_buffer()")
         if self.new_surface:
@@ -549,13 +548,13 @@ class Vidext():
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
 
     def video_get_fb_name(self):
-        '''On some platforms (for instance, iOS) the default framebuffer object
+        """On some platforms (for instance, iOS) the default framebuffer object
         depends on the surface being rendered to, and might be different from 0.
         This function should be called to retrieve the name of the default FBO.
         Calling this function may have performance implications and it should
         not be called every time the default FBO is bound.
         PROTOTYPE:
-          uint32_t VidExt_GL_GetDefaultFramebuffer(void)'''
+          uint32_t VidExt_GL_GetDefaultFramebuffer(void)"""
         log.debug("Vidext: video_get_fb_name() returns 0 as name")
         return 0
     

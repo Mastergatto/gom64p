@@ -7,10 +7,29 @@
 import sys, pathlib, binascii, platform, os
 import ctypes as c
 import logging as log
+import zlib
 
 import wrapper.callback as wrp_cb
 import wrapper.datatypes as wrp_dt
 import wrapper.vidext as wrp_vext
+
+###############
+## VARIABLES ##
+###############
+
+# Credits to n64splat
+crc_to_cic = {
+    0x6170A4A1: {"ntsc-name": "6101", "pal-name": "7102", "offset": 0x000000},
+    0x90BB6CB5: {"ntsc-name": "6102", "pal-name": "7101", "offset": 0x000000},
+    0x0B050EE0: {"ntsc-name": "6103", "pal-name": "7103", "offset": 0x100000},
+    0x98BC2C86: {"ntsc-name": "6105", "pal-name": "7105", "offset": 0x000000},
+    0xACC8580A: {"ntsc-name": "6106", "pal-name": "7106", "offset": 0x200000},
+    0x00000000: {"ntsc-name": "unknown", "pal-name": "unknown", "offset": 0x0000000}
+}
+
+#############
+## CLASSES ##
+#############
 
 class API():
     """Wrapper for calling libmupen64plus.so's functions into python code"""
@@ -2404,6 +2423,14 @@ class API():
             return wrp_dt.m64p_error.M64ERR_FILES.value
 
     ####################
+
+    def get_cic(self, country):
+        crc = zlib.crc32(self.read_rom[0x40:0x1000])
+        if crc in crc_to_cic:
+           return crc_to_cic[crc]["ntsc-name"] if country in ["U", "J", "JU"] \
+                    else crc_to_cic[crc]["pal-name"]
+        else:
+           return crc_to_cic[0]
 
     def preload(self):
         try:
