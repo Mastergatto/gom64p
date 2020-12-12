@@ -54,8 +54,6 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.rom = None
 
         self.isfullscreen = False
-        self.changedfocus = True
-        self.changedsize = False
         self.width = None
         self.height = None
         self.pos_x = None
@@ -103,15 +101,9 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.window.connect("focus-in-event", self.focus_cb)
         self.window.connect("focus-out-event", self.focus_cb)
 
-        # It detectes changes to resizes of window.
-        self.window.connect("configure-event", self.resize_cb)
-
-        # It tracks fullscreen/windowed state.
-        self.window.connect("window-state-event", self.resize_cb)
-
         # NOTE: This callback code has to be declared before launching the wrapper
         STATEPROTO = c.CFUNCTYPE(None, c.POINTER(c.c_void_p), c.c_int, c.c_int)
-        self.CB_STATE = STATEPROTO(self.state_callback)
+        self.CB_STATE = STATEPROTO(self.m64p_state_callback)
 
         try:
             self.m64p_wrapper.preload()
@@ -264,11 +256,11 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             self.notebook.append_page(self.video_box, vidext_tab)
             self.notebook.show_all()
         self.notebook.set_current_page(1)
+        self.canvas.grab_focus()
 
     def remove_video_tab(self):
         self.notebook.remove_page(1)
         self.notebook.set_current_page(0)
-        #self.frontend_conf.open_section("Frontend")
         if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
             self.video_box.remove(self.canvas)
         else:
@@ -285,32 +277,22 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             self.application.quit()
 
     def focus_cb(self, widget, event):
-        #Let's insert here like a milion of those checks, to make REALLY sure it doesn't trigger accidentally the call to the core
-        if self.window.changedfocus == True:
-            self.window.changedfocus = False
-            if self.window.changedsize == True:
+        # Let's insert here like a milion of those checks, to make REALLY sure it doesn't trigger accidentally the pause action
+        if self.emulating == True:
+            if self.running == True:
+                if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
+                    self.action.on_pause()
+                    log.debug("The window has lost the focus! Stopping the emulation.")
+            else:
                 height = self.get_allocated_height()
                 width = self.get_allocated_width()
                 if (self.window.width != width) or (self.window.height != height):
                     log.debug(f"The window has changed! Now it's height:{height} and width:{width}")
                     self.window.width = width
                     self.window.height = height
-                    self.window.changedsize = False
-                    if self.emulating == True:
-                        self.window.canvas.register_size()
-                        self.window.canvas.resize()
-        else:
-            self.window.changedfocus = True
-        if self.emulating == True and self.running == True:
-            if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
-                self.action.on_pause()
-                log.debug("The window has lost the focus! Stopping the emulation.")
-
-    def resize_cb(self, widget, event):
-        #It detects window's size, position and stacking order changes
-        if event.get_event_type() == Gdk.EventType.CONFIGURE:
-            if self.window.changedfocus == True:
-                self.window.changedsize = True
+                    self.window.canvas.register_size()
+                    self.window.canvas.resize()
+                self.action.on_resume()
 
     def on_text_change(self, entry):
         self.browser_list.game_search_current = entry.get_text()
@@ -321,7 +303,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.browser_list.cache.generate()
         self.action.status_push("Refreshing the list...DONE")
 
-    def state_callback(self, context, param, value):
+    def m64p_state_callback(self, context, param, value):
         context_dec = c.cast(context, c.c_char_p).value.decode("utf-8")
         if param == wrp_dt.m64p_core_param.M64CORE_EMU_STATE.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_emu_state(value).name}")
@@ -333,6 +315,10 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 self.main_menu.sensitive_menu_stop()
                 self.action.status_push( "*** Emulation STOPPED ***")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_RUNNING':
+                if self.emulating == False:
+                    # Update window size when the canvas is being shown
+                    self.height = self.get_allocated_height()
+                    self.width = self.get_allocated_width()
                 self.main_menu.sensitive_menu_run()
                 self.running = True
                 self.emulating = True

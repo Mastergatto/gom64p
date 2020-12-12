@@ -29,7 +29,6 @@ class Canvas(Gtk.DrawingArea):
     def call(self):
         Gtk.DrawingArea.__init__(self)
         self.set_can_focus(True)
-        #self.canvas.grab_add()
         #self.canvas.add_device_events()
         #self.canvas.add_events(1024) #KEY_PRESS_MASK, seems already enabled by default
         self.connect("key-press-event", self.on_key_events)
