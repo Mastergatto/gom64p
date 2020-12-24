@@ -78,6 +78,8 @@ class API():
         self.plugins_dir = params['pluginsdir']
         self.frontend_api_version = params['api_version']
         self.compatible = False
+        self.emulating = False # This tells whether it's emulating a game or not
+        self.running = False   # And this tell whether the game is running or it is paused
         self.lock = False
         self.vext_override = False
         self.current_slot = 0
@@ -1843,14 +1845,20 @@ class API():
         COMMAND:
          M64CMD_ROM_OPEN = 1'''
 
-        with open(rom_path, "rb") as self.load_rom:
-            self.read_rom = self.load_rom.read()
-            self.rom_size = c.c_int(len(self.read_rom))
-            #self.romtype = binascii.hexlify(rom[:4])
-            self.rom_buffer = c.create_string_buffer(self.read_rom)
+        try:
+            with open(rom_path, "rb") as self.load_rom:
+                self.read_rom = self.load_rom.read()
+                self.rom_size = c.c_int(len(self.read_rom))
+                #self.romtype = binascii.hexlify(rom[:4])
+                self.rom_buffer = c.create_string_buffer(self.read_rom)
 
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_OPEN.value, self.rom_size,
-                                    c.byref(self.rom_buffer))
+            status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_OPEN.value,
+                                     self.rom_size, c.byref(self.rom_buffer))
+        except FileNotFoundError as e:
+            log.error(e)
+            status = wrp_dt.m64p_error.M64ERR_FILES.value
+            self.frontend.trigger_popup("error", str(e))
+
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Opening of ROM file has failed!")
 
@@ -2197,37 +2205,50 @@ class API():
                     "status": m64pstatus, "players": players, "rumble": rumble,
                     "transferpak": transferpak, "mempak": mempak, "biopak": biopak}
 
-        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+        if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            return settings
+        else:
             log.error("CoreDoCommand: Couldn't retrieve the ROM's settings.")
             return status
-        else:
-            return settings
 
     def execute(self):
         # M64CMD_EXECUTE = 5
+        self.emulating = True
+        self.running = True
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_EXECUTE.value, c.c_int(), c.c_void_p())
-        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+        if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            pass
+        else:
+            self.emulating = False
+            self.running = False
             log.error("CoreDoCommand: Unable to execute")
         return status
 
     def stop(self):
         # M64CMD_STOP = 6
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_STOP.value, c.c_int(), c.c_void_p())
-        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+        if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            self.emulating = False
+            self.running = False
+        else:
             log.error("CoreDoCommand: Unable to stop emulation")
         return status
 
     def pause(self):
         # M64CMD_PAUSE = 7
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_PAUSE.value, c.c_int(), c.c_void_p())
-        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+        if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            self.running = False
+        else:
             log.error("CoreDoCommand: Unable to pause emulation")
         return status
 
     def resume(self):
         # M64CMD_RESUME = 8
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_RESUME.value, c.c_int(), c.c_void_p())
-        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+        if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            self.running = True
+        else:
             log.error("CoreDoCommand: Unable to resume emulation")
         return status
 
@@ -2595,6 +2616,8 @@ class API():
                         log.error("Unknown plugin")
                 except OSError as e:
                     log.warning(f"{filename}: Plugin not working or not compatible, skipping it. \n > {e}")
+                    #TODO: It's not that good to have the popup this early, before main window.
+                    self.frontend.trigger_popup("warning",f"{filename}: Plugin not working or not compatible, skipping it. \nReason: {e}")
         except (AttributeError, TypeError) as e:
             log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly. \n > {e}")
 

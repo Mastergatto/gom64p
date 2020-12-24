@@ -10,11 +10,13 @@
 from gi.repository import Gtk
 import logging as log
 
+parent = None
+
 #############
 ## CLASSES ##
 #############
 class FileChooserDialog(Gtk.FileChooserDialog):
-    def __init__(self, parent, category, options=None):
+    def __init__(self, parent2, category, options=None):
         title = "Dialog"
         self.path = None
         accept = "_Select"
@@ -265,3 +267,32 @@ class DialogAbout(Gtk.Dialog):
 
         response = about_frontend.run()
         about_frontend.destroy()
+
+class PopupDialog(Gtk.MessageDialog):
+    def __init__(self, which_type, text):
+        if which_type == "error":
+            message_type=Gtk.MessageType.ERROR
+            buttons=Gtk.ButtonsType.CANCEL
+            title="gom64p has encountered an error!"
+        elif which_type == "warning":
+            message_type=Gtk.MessageType.WARNING
+            buttons=Gtk.ButtonsType.OK
+            title="warning"
+        elif which_type == "info":
+            message_type=Gtk.MessageType.INFO
+            buttons=Gtk.ButtonsType.OK
+            title="information"
+        elif which_type == "question":
+            message_type=Gtk.MessageType.QUESTION
+            buttons=Gtk.ButtonsType.YES_NO
+            title="Question"
+
+        dialog = Gtk.MessageDialog(
+            transient_for=parent,
+            flags=0,
+            message_type=message_type,
+            buttons=buttons,
+            text=title)
+        dialog.format_secondary_text(str(text))
+        self.response = dialog.run()
+        dialog.destroy()

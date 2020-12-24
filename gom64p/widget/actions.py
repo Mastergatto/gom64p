@@ -44,7 +44,6 @@ class Actions:
     
     def rom_startup(self):
         GLib.idle_add(self.frontend.add_video_tab)
-        self.frontend.emulating = True
         #self.frontend.frontend_conf.open_section("Frontend")
         if self.frontend.frontend_conf.get_bool("Frontend", "Vidext") == True:
             self.frontend.m64p_wrapper.vext_override = True
@@ -54,13 +53,11 @@ class Actions:
 
         # Clean everything
         GLib.idle_add(self.frontend.remove_video_tab)
-        self.frontend.emulating = False
         
     ## Other ##
 
     def on_stop(self, *args):
         self.frontend.m64p_wrapper.stop()
-        self.frontend.emulating = False
 
     def on_pause(self, *args):
         self.frontend.m64p_wrapper.pause()

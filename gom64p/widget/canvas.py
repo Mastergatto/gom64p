@@ -57,13 +57,16 @@ class Canvas(Gtk.DrawingArea):
         #print(event.hardware_keycode)
         if event.get_event_type() == Gdk.EventType.KEY_PRESS:
             if self.window.get_focus_visible() == True:
-                if self.window.isfullscreen == True and event.hardware_keycode == 9:
-                    self.window.action.on_fullscreen(self, True)
+                if event.hardware_keycode == 9:
+                    if self.window.isfullscreen == True:
+                        self.window.action.on_fullscreen(self, True)
+                    else:
+                        self.window.trigger_popup(context="running")
                 else:                    
                     self.window.m64p_wrapper.send_sdl_keydown(w_key.keysym2sdl(event.hardware_keycode).value)
         elif event.get_event_type() == Gdk.EventType.KEY_RELEASE:
             if self.window.get_focus_visible() == True:
-                if self.window.isfullscreen == True and event.hardware_keycode == 9:
+                if event.hardware_keycode == 9:
                     pass
                 else:
                     self.window.m64p_wrapper.send_sdl_keyup(w_key.keysym2sdl(event.hardware_keycode).value)

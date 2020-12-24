@@ -18,6 +18,7 @@ import utils.config as u_conf
 import utils.environment as u_env
 import widget.actions as w_act
 import widget.canvas as w_cvs
+import widget.dialog as w_dlg
 import widget.menu as w_m
 import widget.rombrowser as w_brw
 import widget.keysym as w_key
@@ -40,11 +41,10 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app)
         self.window = self
+        w_dlg.parent = self
 
         ### Frontend
         self.application = app
-        self.emulating = False # This tells whether it's emulating a game or not
-        self.running = False   # And this tell whether the game is running or it is paused
         self.lock = True
         self.canvas = None
         self.parameters = {}
@@ -62,7 +62,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         args_debug = self.application.args.debug
         args_csd = self.application.args.enable_csd
 
-        # environment
+        # Environment
         self.environment = u_env.Environment(self.window)
         self.environment.set_directories()
         self.environment.set_wm()
@@ -70,12 +70,16 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.platform = self.environment.query()
         self.parameters['platform'] = self.platform
 
+        # Options
         self.frontend_conf = u_conf.FrontendConf(self.environment.frontend_config_dir)
         self.application.frontend_conf = self.frontend_conf
 
         self.environment.set(self.window)
 
+
+        # Create an instance of the wrapper
         self.m64p_wrapper = wrp.API(self.window, self.parameters)
+        self.m64p_wrapper.vidext_override = self.frontend_conf.get_bool("Frontend", "Vidext")
         self.lock = self.m64p_wrapper.lock
 
         self.cheats = u_conf.CheatsCfg(self.window)
@@ -245,7 +249,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         n_pages = self.notebook.get_n_pages()
         if n_pages == 1:
             #self.frontend_conf.open_section("Frontend")
-            if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
+            if self.m64p_wrapper.vidext_override == True:
                 self.canvas = w_cvs.Canvas(self.window)
                 wrp_vext.m64p_video.set_window(self.window)
                 self.video_box.add(self.canvas)
@@ -261,26 +265,39 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
     def remove_video_tab(self):
         self.notebook.remove_page(1)
         self.notebook.set_current_page(0)
-        if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
+        if self.m64p_wrapper.vidext_override == True:
             self.video_box.remove(self.canvas)
         else:
             self.video_box.remove(self.emulating_label)
 
+    def trigger_popup(self, which_type=None, text=None, context=None):
+        if context == "running":
+            which_type = "question"
+            text = "A game is currently running. Do you want to stop it?"
+            dialog = w_dlg.PopupDialog(which_type, text)
+            if dialog.response == Gtk.ResponseType.YES:
+                log.debug("Detected quit signal while game is running. Stopping it.")
+                self.action.on_stop()
+            elif dialog.response == Gtk.ResponseType.NO:
+                log.debug("Detected quit signal while game is running. Not stopping it.")
+        else:
+            return w_dlg.PopupDialog(which_type, text)
+
     ### SIGNALS (clicked for button, activate for menu)
 
     def quit_cb(self, *args):
-        if self.emulating == True:
-            #TODO: There should be a dialog asking if the user wants to stop emulation first
-            self.action.on_stop()
+        if self.m64p_wrapper.emulating == True:
+            self.trigger_popup(context="running")
+            # Don't close the windows yet!
             return True
         else:
             self.application.quit()
 
     def focus_cb(self, widget, event):
-        # Let's insert here like a milion of those checks, to make REALLY sure it doesn't trigger accidentally the pause action
-        if self.emulating == True:
-            if self.running == True:
-                if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
+        # Let's insert some checks, to make sure it doesn't trigger accidentally the pause action
+        if self.m64p_wrapper.emulating == True:
+            if self.m64p_wrapper.running == True:
+                if self.m64p_wrapper.vidext_override == True:
                     self.action.on_pause()
                     log.debug("The window has lost the focus! Stopping the emulation.")
             else:
@@ -292,7 +309,8 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                     self.window.height = height
                     self.window.canvas.register_size()
                     self.window.canvas.resize()
-                self.action.on_resume()
+                if self.m64p_wrapper.vidext_override == True:
+                    self.action.on_resume()
 
     def on_text_change(self, entry):
         self.browser_list.game_search_current = entry.get_text()
@@ -308,30 +326,24 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         if param == wrp_dt.m64p_core_param.M64CORE_EMU_STATE.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_emu_state(value).name}")
             if wrp_dt.m64p_emu_state(value).name == 'M64EMU_STOPPED':
-                self.running = False
-                self.emulating = False
                 if self.window.isfullscreen == True:
                     self.window.action.on_fullscreen(self, False)
                 self.main_menu.sensitive_menu_stop()
                 self.action.status_push( "*** Emulation STOPPED ***")
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_RUNNING':
-                if self.emulating == False:
+                if self.m64p_wrapper.emulating == False:
                     # Update window size when the canvas is being shown
                     self.height = self.get_allocated_height()
                     self.width = self.get_allocated_width()
                 self.main_menu.sensitive_menu_run()
-                self.running = True
-                self.emulating = True
                 self.action.status_push( "*** Emulation STARTED ***")
-                if self.frontend_conf.get_bool("Frontend", "Vidext") == True:
+                if self.m64p_wrapper.vidext_override == True:
                     if (self.window.canvas.width != wrp_vext.m64p_video.width) or (self.window.canvas.height != wrp_vext.m64p_video.height):
                         self.window.canvas.register_size()
                         self.window.canvas.resize()
             elif wrp_dt.m64p_emu_state(value).name == 'M64EMU_PAUSED':
                 self.main_menu.sensitive_menu_pause()
-                self.running = False
                 self.action.status_push( "*** Emulation PAUSED ***")
-
         elif param == wrp_dt.m64p_core_param.M64CORE_VIDEO_MODE.value:
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}: {wrp_dt.m64p_video_mode(value).name}")
         elif param == wrp_dt.m64p_core_param.M64CORE_SAVESTATE_SLOT.value:

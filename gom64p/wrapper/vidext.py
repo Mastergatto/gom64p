@@ -542,7 +542,7 @@ class Vidext():
             
             self.new_surface = False
         else:
-            if self.window.running == True:
+            if self.window.m64p_wrapper.running == True:
                 egl.eglSwapBuffers(self.egl_display, self.egl_surface)
 
         return wrp_dt.m64p_error.M64ERR_SUCCESS.value
