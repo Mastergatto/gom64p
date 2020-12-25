@@ -270,24 +270,30 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         else:
             self.video_box.remove(self.emulating_label)
 
-    def trigger_popup(self, which_type=None, text=None, context=None):
-        if context == "running":
-            which_type = "question"
-            text = "A game is currently running. Do you want to stop it?"
-            dialog = w_dlg.PopupDialog(which_type, text)
+    def trigger_popup(self, which_type, text, context=None):
+        dialog = w_dlg.PopupDialog(self.window, which_type, text)
+        if which_type == "question":
             if dialog.response == Gtk.ResponseType.YES:
-                log.debug("Detected quit signal while game is running. Stopping it.")
-                self.action.on_stop()
+                if context == "running":
+                    log.debug("Detected quit signal while game is running. Stopping it.")
+                    self.action.on_stop()
+                elif context == "dummy":
+                    log.debug("Decided to run anyways a game even with dummy plugin.")
+                    return True
             elif dialog.response == Gtk.ResponseType.NO:
-                log.debug("Detected quit signal while game is running. Not stopping it.")
+                if context == "running":
+                    log.debug("Detected quit signal while game is running. Not stopping it.")
+                elif context == "dummy":
+                    log.debug("Decided to not run a game with dummy plugin.")
+                    return False
         else:
-            return w_dlg.PopupDialog(which_type, text)
+            return dialog
 
     ### SIGNALS (clicked for button, activate for menu)
 
     def quit_cb(self, *args):
         if self.m64p_wrapper.emulating == True:
-            self.trigger_popup(context="running")
+            self.trigger_popup("question", "A game is currently running. Do you want to stop it?", "running")
             # Don't close the windows yet!
             return True
         else:

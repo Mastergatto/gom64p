@@ -31,9 +31,10 @@ class Vidext():
         self.title = None
         self.height = None
         self.width = None
-
-        self.modes = []
         self.former_size = None
+
+        self.new_surface = False
+        self.modes = []
 
     def __reset_egl(self):
         # (re)set EGL to its initial state
@@ -444,15 +445,19 @@ class Vidext():
                 value = c.pointer(c.c_int(0))
         elif attr == wrp_dt.m64p_GLattr.M64P_GL_CONTEXT_PROFILE_MASK.value:
             # OpenGL context profile is introduced in 3.2
-            if self.context_major >= 3 and self.context_minor >= 2:
-                # TODO: How to get the exact version of the context profile?
-                value = ogl.glGetIntegerv(ogl.GL_CONTEXT_PROFILE_MASK, pointer)
-                #egl.eglQueryContext(self.egl_display, self.egl_context, egl.EGL_CONTEXT_MAJOR_VERSION, pointer)
-            else:
-                # TODO: What's the value in case the gfx plugin doesn't support OGL 3.2+? Zero?
-                value = pvalue.contents.value
+            try:
+                if self.context_major >= 3 and self.context_minor >= 2:
+                    # TODO: How to get the exact version of the context profile?
+                    value = ogl.glGetIntegerv(ogl.GL_CONTEXT_PROFILE_MASK, pointer)
+                    #egl.eglQueryContext(self.egl_display, self.egl_context, egl.EGL_CONTEXT_MAJOR_VERSION, pointer)
+                else:
+                    # TODO: What's the value in case the gfx plugin doesn't support OGL 3.2+? Zero?
+                    value = pvalue.contents.value
+            except AttributeError as e:
+                log.error(f"Vidext: gl_get_attr() has reported M64ERR_SYSTEM_FAIL, unable to get attribute {wrp_dt.m64p_GLattr(attr).name}. \n > {e}")
+
         else:
-            log.warning("gom64p doesn't know how to handle {attr}")
+            log.warning("gom64p doesn't know how to handle {wrp_dt.m64p_GLattr(attr).name}")
 
         query = pointer.contents.value
         if  query == pvalue.contents.value:
@@ -515,12 +520,12 @@ class Vidext():
                 # TODO: Is this correct?
                 self.profile_bit = egl.EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT
         else:
-            log.warning(f"Vidext: gom64p doesn't know how to handle {attr}")
+            log.warning(f"Vidext: gom64p doesn't know how to handle {wrp_dt.m64p_GLattr(attr).name}")
 
         if retval == 0:
             return wrp_dt.m64p_error.M64ERR_SUCCESS.value
         else:
-            log.error(f"Vidext: gl_set_attr() has reported M64ERR_SYSTEM_FAIL, tried to set {value} for {attr}, but it returned error")
+            log.error(f"Vidext: gl_set_attr() has reported M64ERR_SYSTEM_FAIL, tried to set {value} for {wrp_dt.m64p_GLattr(attr).name}, but it returned error")
             return wrp_dt.m64p_error.M64ERR_SYSTEM_FAIL.value
 
     def gl_swap_buffer(self):

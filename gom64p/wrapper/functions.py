@@ -2213,9 +2213,18 @@ class API():
 
     def execute(self):
         # M64CMD_EXECUTE = 5
+        response = True
         self.emulating = True
         self.running = True
-        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_EXECUTE.value, c.c_int(), c.c_void_p())
+        if "dummy" in [self.gfx_filename, self.audio_filename, self.input_filename, self.rsp_filename]:
+            # TODO: assertion 'GDK_IS_FRAME_CLOCK (clock)' failed
+            response = self.frontend.trigger_popup("question",f"One of the plugins is set on 'dummy', which means the game won't work properly. \nDo you still want to run it?", "dummy")
+
+        if response == True:
+            status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_EXECUTE.value, c.c_int(), c.c_void_p())
+        else:
+            status = wrp_dt.m64p_error.M64ERR_PLUGIN_FAIL.value
+
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             pass
         else:
@@ -2617,7 +2626,7 @@ class API():
                 except OSError as e:
                     log.warning(f"{filename}: Plugin not working or not compatible, skipping it. \n > {e}")
                     #TODO: It's not that good to have the popup this early, before main window.
-                    self.frontend.trigger_popup("warning",f"{filename}: Plugin not working or not compatible, skipping it. \nReason: {e}")
+                    self.frontend.trigger_popup("warning", f"{filename}: Plugin not working or not compatible, skipping it. \nReason: {e}")
         except (AttributeError, TypeError) as e:
             log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly. \n > {e}")
 
