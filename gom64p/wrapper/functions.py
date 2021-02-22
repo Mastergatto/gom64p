@@ -1951,6 +1951,7 @@ class API():
         cartridge_letter = ""
         if country_code == 0x37:
             # 7, BETA
+            #country = 'ꞵ'
             pass
         elif country_code == 0x41:
             # A, asian NTSC
@@ -2575,8 +2576,15 @@ class API():
         if retval == 0:
             header = self.rom_get_header() ###
             self.rom_get_settings() ###
-            pif_region = "PifNtscPath" if header["country"] in ("U", "J", "UJ") else "PifPalPath"
-            self.pif_open(self.frontend.frontend_conf.get("Frontend", pif_region))
+            # TODO: Asia, Brazil
+            if header["country"] in ("U", "J", "UJ"):
+                pif_region = "PifNtscPath"
+            elif header["country"] in ("A", "E", "F", "G", "I", "S"):
+                pif_region = "PifPalPath"
+            else:
+                pif_region = None
+            if pif_region is not None:
+                self.pif_open(self.frontend.frontend_conf.get("Frontend", pif_region))
             self.plugins_attach()
             self.set_media_loader()
             if self.frontend.cheats:
