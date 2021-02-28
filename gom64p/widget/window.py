@@ -80,6 +80,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         # Create an instance of the wrapper
         self.m64p_wrapper = wrp.API(self.window, self.parameters)
         self.m64p_wrapper.vidext_override = self.frontend_conf.get_bool("Frontend", "Vidext")
+        self.m64p_wrapper.pif_loading = self.frontend_conf.get_bool("Frontend", "PifLoad")
         self.lock = self.m64p_wrapper.lock
 
         self.cheats = u_conf.CheatsCfg(self.window)

@@ -47,7 +47,7 @@ class API():
         self.frontend_api = 0x020103
 
         # CONFIG_API_VERSION
-        self.config_api = 0x20301
+        self.config_api = 0x020302
 
         # DEBUG_API_VERSION
         self.debug_api = 0x020001
@@ -82,6 +82,7 @@ class API():
         self.running = False   # And this tell whether the game is running or it is paused
         self.lock = False
         self.vext_override = False
+        self.pif_loading = False
         self.current_slot = 0
 
         # Wire in the callbacks
@@ -1719,6 +1720,25 @@ class API():
         else:
             log.error(f"ConfigGetParamString error: {name}")
 
+    def ConfigOverrideUserPaths(self, datapath, cachepath):
+        '''This function overrides user paths returned by ConfigGetUserDataPath()
+         and ConfigGetUserCachePath() .
+         REQUIREMENTS:
+         - The Mupen64Plus library must already be initialized before calling this function.
+         - This function was added in the Config API version 2.3.2.
+         PROTOTYPE:
+           m64p_error ConfigOverrideUserPaths(const char *DataPath, const char *CachePath)'''
+        function = wrp_dt.cfunc("ConfigOverrideUserPaths", self.m64p_lib_core, wrp_dt.m64p_error,
+                        ("DataPath", c.c_char_p, 1, datapath.encode("utf-8"),
+                        ("CachePath", c.c_char_p, 1, cachepath.encode("utf-8"))))
+
+        status = function()
+
+        if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            return status
+        else:
+            self.CoreErrorMessage(status, b"ConfigOverrideUserPaths")
+
     ## OS-Abstraction Functions
     def ConfigGetSharedDataFilepath(self, string):
         ''' It is common for shared data files on Unix systems to be installed
@@ -1898,7 +1918,7 @@ class API():
     def rom_get_header(self):
         '''This will retrieve the header data of the currently open ROM.
         REQUIREMENTS:
-        -  A ROM image must be open.
+        - A ROM image must be open.
         COMMAND:
          M64CMD_ROM_GET_HEADER = 3'''
         # TODO: Almost all outputs are raw (in integer). How to convert them to string?
@@ -2437,21 +2457,27 @@ class API():
 
     def pif_open(self, pif_path):
         # M64CMD_PIF_OPEN = 26
-        with open(pif_path, "rb") as self.load_pif:
-            self.read_pif = self.load_pif.read()
-            self.pif_size = len(self.read_pif)
-            self.pif_buffer = c.create_string_buffer(self.read_pif)
+        try:
+            with open(pif_path, "rb") as load_pif:
+                read_pif = load_pif.read()
+                pif_size = len(read_pif)
+                pif_buffer = c.create_string_buffer(read_pif)
 
-        if self.pif_size == 2048:
-            status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_PIF_OPEN.value,
-                                     c.c_int(self.pif_size), c.byref(self.pif_buffer))
+            if pif_size == 2048:
+                status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_PIF_OPEN.value,
+                                         c.c_int(pif_size), c.byref(pif_buffer))
+            else:
+                log.error("CoreDoCommand: PIF ROM file is not of the right size!")
+                return wrp_dt.m64p_error.M64ERR_FILES.value
 
-            if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-                log.error("CoreDoCommand: Opening of PIF ROM file has failed!")
-            return status
-        else:
-            log.error("CoreDoCommand: PIF ROM file is not of the right size!")
-            return wrp_dt.m64p_error.M64ERR_FILES.value
+        except FileNotFoundError as e:
+            status = wrp_dt.m64p_error.M64ERR_FILES.value
+            log.error(e)
+            self.frontend.trigger_popup("error", str(e))
+
+        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            log.error("CoreDoCommand: Opening of PIF ROM file has failed!")
+        return status
 
     ####################
 
@@ -2563,6 +2589,21 @@ class API():
         else:
             log.error("Error! Either the actual core is not compatible or something has gone wrong.")
 
+    def pif_load(self):
+        retval = 0
+        if self.pif_loading == True:
+            # TODO: Asia, Brazil?
+            if self.header["country"] in ("U", "J", "UJ"):
+                pif_region = "PifNtscPath"
+            elif self.header["country"] in ("A", "E", "F", "G", "I", "S"):
+                pif_region = "PifPalPath"
+            else:
+                pif_region = None
+            if pif_region is not None:
+                retval = self.pif_open(self.frontend.frontend_conf.get("Frontend", pif_region))
+
+        return retval
+
     def run(self, rom):
         if self.vext_override == True:
             wrp_vext.enable_vidext()
@@ -2574,21 +2615,14 @@ class API():
 
         retval = self.rom_open(rom)
         if retval == 0:
-            header = self.rom_get_header() ###
+            self.header = self.rom_get_header() ###
             self.rom_get_settings() ###
-            # TODO: Asia, Brazil
-            if header["country"] in ("U", "J", "UJ"):
-                pif_region = "PifNtscPath"
-            elif header["country"] in ("A", "E", "F", "G", "I", "S"):
-                pif_region = "PifPalPath"
-            else:
-                pif_region = None
-            if pif_region is not None:
-                self.pif_open(self.frontend.frontend_conf.get("Frontend", pif_region))
+            if self.pif_load() != 0:
+                return self.rom_close()
             self.plugins_attach()
             self.set_media_loader()
             if self.frontend.cheats:
-                self.frontend.cheats.set_game(header["crc1"], header["crc2"], header["country"])
+                self.frontend.cheats.set_game(self.header["crc1"], self.header["crc2"], self.header["country"])
                 self.frontend.cheats.dispatch()
             self.execute()
             if self.frontend.cheats:

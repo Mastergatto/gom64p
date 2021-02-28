@@ -49,7 +49,16 @@ class Actions:
             self.frontend.m64p_wrapper.vext_override = True
         else:
             self.frontend.m64p_wrapper.vext_override = False
-        self.frontend.m64p_wrapper.run(self.frontend.rom)
+
+        if self.frontend.frontend_conf.get_bool("Frontend", "PifLoad") == True:
+            self.frontend.m64p_wrapper.pif_loading = True
+        else:
+            self.frontend.m64p_wrapper.pif_loading = False
+
+        try:
+            self.frontend.m64p_wrapper.run(self.frontend.rom)
+        except:
+            log.error("An error occurred during emulation of a game.")
 
         # Clean everything
         GLib.idle_add(self.frontend.remove_video_tab)

@@ -437,6 +437,8 @@ class ConfigDialog(Gtk.Dialog):
 
         gamedir_frame.add(gamedir_box)
 
+        pif_chkbox = self.insert_checkbox('PifLoad', 'Frontend', 'frontend', "Enable PIFROM loading", "This option will allow to load the PIFROM at start of emulation")
+
         pif_ntsc_path_entry = self.insert_entry('PifNtscPath', 'Frontend', 'frontend', "Indicate the location of the NTSC N64 PIF ROM", "Indicate the location of the NTSC N64 PIF ROM")
         pif_ntsc_path_button = Gtk.Button.new_with_label("Open")
         pif_ntsc_path_button.connect("clicked", self.on_search_path, pif_ntsc_path_entry, "pif")
@@ -451,6 +453,7 @@ class ConfigDialog(Gtk.Dialog):
         pif_pal_box.pack_start(pif_pal_path_entry, True, True, 0)
         pif_pal_box.pack_start(pif_pal_path_button, False, False, 0)
 
+        pif_box.pack_start(pif_chkbox, True, True, 0)
         pif_box.pack_start(pif_ntsc_box, True, True, 0)
         pif_box.pack_start(pif_pal_box, True, True, 0)
 
