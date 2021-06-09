@@ -188,8 +188,10 @@ class Actions:
         '''Method that opens and reads a ROM, and finally returns valuable
          informations that are in it'''
         self.frontend.m64p_wrapper.rom_open(rom)
-        header = self.frontend.m64p_wrapper.rom_get_header()
-        settings = self.frontend.m64p_wrapper.rom_get_settings()
+        self.frontend.m64p_wrapper.rom_get_header()
+        header = self.frontend.m64p_wrapper.game_header
+        self.frontend.m64p_wrapper.rom_get_settings()
+        settings = self.frontend.m64p_wrapper.game_settings
         cic_value = self.frontend.m64p_wrapper.get_cic(header["country"])
         header['cic'] = cic_value
         self.frontend.m64p_wrapper.rom_close()

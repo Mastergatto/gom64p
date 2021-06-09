@@ -207,7 +207,7 @@ class m64p_rom_header(c.Structure):
         ("init_PI_BSB_DOM1_PGS_REG2", c.c_ubyte), # 0x03 - Page size (release?)
         ("ClockRate", c.c_uint),                  # 0x04 - Clockrate override
         ("PC", c.c_uint),                         # 0x08 - Program Code (entrypoint)
-        ("Release", c.c_uint),                    # 0x0C - Return Address
+        ("Release", c.c_uint),                    # 0x0C - Libultra version
         ("CRC1", c.c_uint),                       # 0x10 - Checksum, first part
         ("CRC2", c.c_uint),                       # 0x14 - Checksum, second part
         ("Unknown", c.c_uint * 2),                # 0x18

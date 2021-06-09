@@ -83,7 +83,10 @@ class API():
         self.lock = False
         self.vext_override = False
         self.pif_loading = False
-        self.current_slot = 0
+        self.current_slot = 0 # Don't touch it!
+        self.game_header = {}
+        self.game_settings = {}
+        self.plugin_info = {}
 
         # Wire in the callbacks
         wrp_cb.frontend = self.frontend
@@ -138,7 +141,7 @@ class API():
         self.plugins_validate()
 
     ### Basic core functions
-    def PluginGetVersion(self, plugin):
+    def PluginGetVersion(self, filename, pluginhandle):
         ''' This function retrieves version information from the core library
         or plugin.
         This function is the same for the core library and the plugins, so that
@@ -159,7 +162,7 @@ class API():
         pluginpointer = c.c_char_p()
         capabilities = c.c_int()
 
-        function = wrp_dt.cfunc("PluginGetVersion", plugin, wrp_dt.m64p_error,
+        function = wrp_dt.cfunc("PluginGetVersion", pluginhandle, wrp_dt.m64p_error,
                    ("PluginType", c.POINTER(c.c_int), 2, plugintype),
                    ("PluginVersion", c.POINTER(c.c_int), 2, pluginversion),
                    ("APIVersion", c.POINTER(c.c_int), 2, apiversion),
@@ -169,9 +172,15 @@ class API():
         function.errcheck = wrp_dt.m64p_errcheck
         status = function()
 
+        if pluginpointer.value != None:
+            pluginname = pluginpointer.value.decode()
+        else:
+            # If the plugin doesn't have a name, use the filename instead.
+            pluginname = filename
+
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return {"type": plugintype.value, "version": pluginversion.value,
-                    "apiversion": apiversion.value, "name": pluginpointer.value.decode(),
+                    "apiversion": apiversion.value, "name": pluginname,
                     "capabilities": capabilities.value}
         else:
             self.CoreErrorMessage(status, b"PluginGetVersion")
@@ -214,7 +223,6 @@ class API():
         - None
         PROTOTYPE:
         const char * CoreErrorMessage(m64p_error ReturnCode)'''
-        # FIXME: context variable behaviour is inconsistent.
 
         function = wrp_dt.cfunc("CoreErrorMessage", self.m64p_lib_core, c.c_char_p,
                         ("ReturnCode", c.c_int, 1, c.c_int(ReturnCode)))
@@ -227,6 +235,7 @@ class API():
                 log.error(f"{context}: {status.decode('utf-8')}")
         else:
             log.error(f"{status}")
+        return ReturnCode
 
     ### Frontend functions
     ## Startup/Shutdown
@@ -259,7 +268,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"CoreStartup")
+            return self.CoreErrorMessage(status, b"CoreStartup")
 
     def CoreShutdown(self):
         '''This function saves the configuration file, then destroys data
@@ -276,7 +285,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"CoreShutdown")
+            return self.CoreErrorMessage(status, b"CoreShutdown")
 
     def CoreAttachPlugin(self, plugin, handle):
         '''This function attaches the given plugin to the emulator core.
@@ -298,7 +307,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name.encode("utf-8"))
+            return self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name.encode("utf-8"))
 
     def CoreDetachPlugin(self, plugin):
         '''This function detaches the given plugin from the emulator core,
@@ -318,7 +327,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name.encode("utf-8"))
+            return self.CoreErrorMessage(status, wrp_dt.m64p_plugin_type(plugin).name.encode("utf-8"))
 
     ## Command
     def CoreDoCommand(self, command, arg1=None, arg2=None):
@@ -382,7 +391,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return rom_settings
         else:
-            self.CoreErrorMessage(status, b"CoreGetRomSettings")
+            return self.CoreErrorMessage(status, b"CoreGetRomSettings")
 
     ## Video Extension
     def CoreOverrideVidExt(self):
@@ -411,7 +420,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"CoreOverrideVidExt")
+            return self.CoreErrorMessage(status, b"CoreOverrideVidExt")
 
     ## Cheat Functions
     def CoreAddCheat(self, cheatname, codelist):
@@ -441,7 +450,7 @@ class API():
             log.info(f"Cheats: activate '{cheatname}'")
             return status
         else:
-            self.CoreErrorMessage(status, b"CoreAddCheat")
+            return self.CoreErrorMessage(status, b"CoreAddCheat")
 
     def CoreCheatEnabled(self, cheatname, enabled):
         '''This function enables or disables a specified Cheat Function.
@@ -464,7 +473,7 @@ class API():
                 log.info(f"Cheats: deactivating '{cheatname}'")
             return status
         else:
-            self.CoreErrorMessage(status, b"CoreCheatEnabled")
+            return self.CoreErrorMessage(status, b"CoreCheatEnabled")
 
     ### Video Extension
     ### XXX: Those functions aren't intended to be used by frontend, but rather
@@ -482,7 +491,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_Init")
+            return self.CoreErrorMessage(status, b"VidExt_Init")
 
     def __VidExt_Quit(self):
         # WARNING: Not for use
@@ -495,7 +504,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_Quit")
+            return self.CoreErrorMessage(status, b"VidExt_Quit")
 
     ## Screen Handling
     def __VidExt_ListFullscreenModes(self):
@@ -511,7 +520,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_ListFullscreenModes")
+            return self.CoreErrorMessage(status, b"VidExt_ListFullscreenModes")
 
     def __VidExt_SetVideoMode(self, width, height, bits, screenmode, flags):
         # WARNING: Not for use
@@ -531,7 +540,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_SetVideoMode")
+            return self.CoreErrorMessage(status, b"VidExt_SetVideoMode")
 
     def __VidExt_SetCaption(self, title):
         # WARNING: Not for use
@@ -546,7 +555,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_SetCaption")
+            return self.CoreErrorMessage(status, b"VidExt_SetCaption")
 
     def __VidExt_ToggleFullScreen(self):
         # WARNING: Not for use
@@ -560,7 +569,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_ToggleFullScreen")
+            return self.CoreErrorMessage(status, b"VidExt_ToggleFullScreen")
 
     def __VidExt_ResizeWindow(self, width, height):
         # WARNING: Not for use
@@ -575,7 +584,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_ResizeWindow")
+            return self.CoreErrorMessage(status, b"VidExt_ResizeWindow")
 
     ## OpenGL
     def __VidExt_GL_GetProcAddress(self, proc):
@@ -605,7 +614,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_GL_SetAttribute")
+            return self.CoreErrorMessage(status, b"VidExt_GL_SetAttribute")
 
     def __VidExt_GL_GetAttribute(self, attr, pvalue):
         # WARNING: Not for use
@@ -620,7 +629,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_GL_GetAttribute")
+            return self.CoreErrorMessage(status, b"VidExt_GL_GetAttribute")
 
     def __VidExt_GL_SwapBuffers(self):
         # WARNING: Not for use
@@ -634,7 +643,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"VidExt_GL_SwapBuffers")
+            return self.CoreErrorMessage(status, b"VidExt_GL_SwapBuffers")
 
     ### Debugger https://github.com/mupen64plus/mupen64plus-core/blob/master/doc/emuwiki-api-doc/Mupen64Plus-v2.0-Core-Debugger.mediawiki
     ## General functions
@@ -669,7 +678,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"DebugSetCallbacks")
+            return self.CoreErrorMessage(status, b"DebugSetCallbacks")
 
     def DebugSetCoreCompare(self):
         '''This function is called by the front-end to supply callback function pointers
@@ -710,7 +719,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"DebugSetCoreCompare")
+            return self.CoreErrorMessage(status, b"DebugSetCoreCompare")
 
     def DebugSetRunState(self):
         '''This function sets the run state of the R4300 CPU emulator.
@@ -729,7 +738,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"DebugSetRunState")
+            return self.CoreErrorMessage(status, b"DebugSetRunState")
 
     def DebugGetState(self):
         '''This function reads and returns a debugger state variable, which
@@ -744,8 +753,10 @@ class API():
         function = wrp_dt.cfunc("DebugGetState", self.m64p_lib_core, c.c_int,
                         ("statenum", wrp_dt.m64p_dbg_state, 1))
 
-        function.errcheck = wrp_dt.m64p_errcheck
-        status = function()
+        #function.errcheck = wrp_dt.m64p_errcheck
+        value = function()
+
+        return value
 
     def DebugStep(self):
         '''This function signals the debugger to advance one instruction when
@@ -766,7 +777,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"DebugStep")
+            return self.CoreErrorMessage(status, b"DebugStep")
 
     def DebugDecodeOp(self):
         ''' This is a helper function for the debugger front-end.
@@ -831,7 +842,9 @@ class API():
                         ("address", c.c_uint, 1))
 
         function.errcheck = wrp_dt.m64p_errcheck
-        status = function()
+        value = function()
+
+        return value
 
     def DebugMemGetPointer(self):
         '''This function returns a memory pointer (in x86 memory space) to a block
@@ -862,7 +875,9 @@ class API():
                         ("address", c.c_uint, 1, address))
 
         function.errcheck = wrp_dt.m64p_errcheck
-        status = function()
+        value = function()
+
+        return value
 
     def DebugMemRead32(self, address):
         '''This function retrieve a value from the emulated N64 memory.
@@ -877,7 +892,9 @@ class API():
                         ("address", c.c_uint, 1, address))
 
         function.errcheck = wrp_dt.m64p_errcheck
-        status = function()
+        value = function()
+
+        return value
 
     def DebugMemRead16(self, address):
         '''This function retrieve a value from the emulated N64 memory.
@@ -892,7 +909,9 @@ class API():
                         ("address", c.c_uint, 1, address))
 
         function.errcheck = wrp_dt.m64p_errcheck
-        status = function(self)
+        value = function(self)
+
+        return value
 
     def DebugMemRead8(self, address):
         '''This function retrieve a value from the emulated N64 memory.
@@ -907,7 +926,9 @@ class API():
                         ("address", c.c_uint, 1, address))
 
         function.errcheck = wrp_dt.m64p_errcheck
-        status = function()
+        value = function()
+
+        return value
 
     def DebugMemWrite64(self, address, value):
         '''These functions write a value into the emulated N64 memory.
@@ -1012,7 +1033,9 @@ class API():
                         ("flags", c.c_uint, 1))
 
         function.errcheck = wrp_dt.m64p_errcheck
-        status = function()
+        value = function()
+
+        return value
 
     def DebugBreakpointCommand(self):
         '''This function is used to process common breakpoint commands, such as
@@ -1035,7 +1058,9 @@ class API():
                         ("bkp", c.POINTER(wrp_dt.m64p_breakpoint), 1))
 
         function.errcheck = wrp_dt.m64p_errcheck
-        status = function()
+        value = function()
+
+        return value
 
     def DebugBreakpointTriggeredBy(self):
         '''This function is used to programmatically access the trigger reason
@@ -1099,7 +1124,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"ConfigListSections")
+            return self.CoreErrorMessage(status, b"ConfigListSections")
 
     def ConfigOpenSection(self, section):
         ''' This function is used to give a configuration section handle to the
@@ -1130,7 +1155,7 @@ class API():
             self.config_handle = handle.value
             return status
         else:
-            self.CoreErrorMessage(status, b"ConfigListSections")
+            return self.CoreErrorMessage(status, b"ConfigListSections")
 
     def ConfigListParameters(self):
         '''This function is called to enumerate the list of Parameters in a
@@ -1153,7 +1178,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"ConfigListParameters")
+            return self.CoreErrorMessage(status, b"ConfigListParameters")
 
     def ConfigHasUnsavedChanges(self, section):
         '''This function is called to determine if a given Section (or all sections)
@@ -1168,15 +1193,13 @@ class API():
         function = wrp_dt.cfunc("ConfigHasUnsavedChanges", self.m64p_lib_core, c.c_int,
                    ("SectionName", c.c_char_p, 1, section.encode("utf-8")))
 
-        # function.errcheck is not required here as there's no m64p_error
         status = function()
 
         if status == True:
             log.debug(section + ": Changes detected!")
-            return status
         else:
             log.debug(section + ": No unsaved changes. Move along, nothing to see here.")
-            return status
+        return status
 
     ## Modifier functions
     def ConfigDeleteSection(self, section):
@@ -1195,7 +1218,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"ConfigDeleteSection")
+            return self.CoreErrorMessage(status, b"ConfigDeleteSection")
 
     def ConfigSaveFile(self):
         '''This function saves the Mupen64Plus configuration file to disk.
@@ -1212,7 +1235,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"ConfigSaveFile")
+            return self.CoreErrorMessage(status, b"ConfigSaveFile")
 
     def ConfigSaveSection(self, section):
         '''This function saves one section of the current Mupen64Plus
@@ -1233,7 +1256,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"ConfigSaveSection")
+            return self.CoreErrorMessage(status, b"ConfigSaveSection")
 
     def ConfigRevertChanges(self, section):
         ''' This function reverts changes previously made to one section of the
@@ -1255,7 +1278,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"ConfigRevertChanges")
+            return self.CoreErrorMessage(status, b"ConfigRevertChanges")
 
     ## Generic Get/Set Functions
     def ConfigSetParameter(self, name, paramvalue):
@@ -1299,7 +1322,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"ConfigSetParameter")
+            return self.CoreErrorMessage(status, b"ConfigSetParameter")
 
     def ConfigSetParameterHelp(self, name, help):
         '''This function sets the help string of one of the emulator's
@@ -1323,7 +1346,7 @@ class API():
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             return status
         else:
-            self.CoreErrorMessage(status, b"ConfigSetParameterHelp")
+            return self.CoreErrorMessage(status, b"ConfigSetParameterHelp")
 
     def ConfigGetParameter(self, name):
         '''This function retrieves the value of one of the emulator's parameters
@@ -1334,7 +1357,6 @@ class API():
         PROTOTYPE:
          m64p_error ConfigGetParameter(m64p_handle ConfigSectionHandle,
              const char *ParamName, m64p_type ParamType, void *ParamValue, int MaxSize)'''
-        # TODO: Something is not right. Check if there are memory corruptions.
         paramvalue = None
 
         # First check type of the parameter
@@ -1923,7 +1945,7 @@ class API():
          M64CMD_ROM_GET_HEADER = 3'''
         # TODO: Almost all outputs are raw (in integer). How to convert them to string?
 
-        header = None
+        self.game_header = {}
         country = None
 
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_HEADER.value, \
@@ -1971,10 +1993,10 @@ class API():
         cartridge_letter = ""
         if country_code == 0x37:
             # 7, BETA
-            #country = 'ꞵ'
-            pass
+            country = 'ꞵ'
         elif country_code == 0x41:
             # A, asian NTSC
+            # Yes, it should be Asian, but it's used instead for dual-region English/Japanese 1080° Snowboarding
             country = 'JU'
         elif country_code == 0x42:
             # Brazil
@@ -2085,6 +2107,14 @@ class API():
         elif crc1 == "2BC1FCF2" and crc2 == "7B9A0DF4":
             # Shadowgate 64 - Trials Of The Four Towers (E) (M3) (Fre-Ger-Dut) [!]
             cartridge_letter = "X"
+        elif crc1 == "42CF5EA3" and crc2 == "9A1334DF":
+            # StarCraft 64 (A) [!]
+            cartridge_region = "AUS"
+            cartridge_letter = "P"
+        elif crc1 == "1A4D3AD8" and crc2 == "59AF7FA9":
+            # Top Gear Rally (As) [!]
+            cartridge_region = "ASM"
+            cartridge_letter = "X"
         elif crc1 == "B6BE20A5" and crc2 == "FACAF66D":
             # Turok - Rage Wars (E) (M3) (Eng-Fre-Ita) [!]
             pass
@@ -2108,7 +2138,7 @@ class API():
         else:
             cartridge = f'NUS-{manufacturer_raw}{cartridge_bit}{cartridge_letter}-{cartridge_region}'
 
-        header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2,
+        self.game_header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2,
                   "clockrate": clockrate, "pc": pc, "release": release,
                   "crc1": crc1, "crc2": crc2, "internalname": name,
                   "manufacturer": manufacturer, "cartridge": cartridge,
@@ -2116,9 +2146,7 @@ class API():
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Couldn't retrieve the ROM's header.")
-            return status
-        else:
-            return header
+        return status
 
     def rom_get_header_raw(self):
         # M64CMD_ROM_GET_HEADER = 3
@@ -2126,7 +2154,7 @@ class API():
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_HEADER.value,
                         c.c_int(c.sizeof(self.rom_header)), c.pointer(self.rom_header))
 
-        header = None
+        self.game_header = {}
 
         lat = self.rom_header.init_PI_BSB_DOM1_LAT_REG
         pgs1 = self.rom_header.init_PI_BSB_DOM1_PGS_REG
@@ -2147,7 +2175,7 @@ class API():
         # Have to convert hexadecimal to int, because Python treats hex as str...
         country = int(hex(country_raw & 0xFF), base=16)
 
-        header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2,
+        self.game_header = {"lat": lat, "pgs1": pgs1, "pwd": pwd, "pgs2": pgs2,
                   "clockrate": clockrate, "pc": pc, "release": release,
                   "crc1": crc1, "crc2": crc2, "internalname": name,
                   "manufacturer": manufacturer, "cartridge": cartridge,
@@ -2155,9 +2183,7 @@ class API():
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Couldn't retrieve the ROM's header.")
-            return status
-        else:
-            return header
+        return status
 
     def rom_get_settings(self):
         # M64CMD_ROM_GET_SETTINGS = 4
@@ -2165,44 +2191,44 @@ class API():
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_SETTINGS.value,
                         c.c_int(c.sizeof(self.rom_settings)), c.pointer(self.rom_settings))
 
-        name = self.rom_settings.goodname.decode("utf-8")
+        if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
+            self.game_settings = {}
 
-        md5 = self.rom_settings.MD5.decode("utf-8")
-        savetype_raw = self.rom_settings.savetype
-        if savetype_raw == 0:
-            savetype = "EEPROM 4 kb"
-        elif savetype_raw == 1:
-            savetype = "EEPROM 16 kb"
-        elif savetype_raw == 2:
-            savetype = "SRAM 256 kb"
-        elif savetype_raw == 3:
-            savetype = "FlashRAM 1 Mb"
-        elif savetype_raw == 4:
-            #TODO: what's this value for? controller pak maybe? or it's SRAM 768 kb for dezaemon 3d?
-            #savetype = "Controller Pak 2 Mb"
-            savetype = savetype_raw
-        elif savetype_raw == 5:
-            savetype = "None"
+            name = self.rom_settings.goodname.decode("utf-8")
+
+            md5 = self.rom_settings.MD5.decode("utf-8")
+            savetype_raw = self.rom_settings.savetype
+            if savetype_raw == 0:
+                savetype = "EEPROM 4 kb"
+            elif savetype_raw == 1:
+                savetype = "EEPROM 16 kb"
+            elif savetype_raw == 2:
+                savetype = "SRAM 256 kb"
+            elif savetype_raw == 3:
+                savetype = "FlashRAM 1 Mb"
+            elif savetype_raw == 4:
+                #TODO: what's this value for? controller pak maybe? or it's SRAM 768 kb for dezaemon 3d?
+                #savetype = "Controller Pak 2 Mb"
+                savetype = savetype_raw
+            elif savetype_raw == 5:
+                savetype = "None"
+            else:
+                savetype = savetype_raw
+
+            m64pstatus = self.rom_settings.status
+            players = self.rom_settings.players
+            rumble = bool(self.rom_settings.rumble)
+            transferpak = bool(self.rom_settings.transferpak)
+            mempak = bool(self.rom_settings.mempak)
+            biopak = bool(self.rom_settings.biopak)
+
+            self.game_settings = {"goodname": name, "md5": md5, "savetype": savetype,
+                        "status": m64pstatus, "players": players, "rumble": rumble,
+                        "transferpak": transferpak, "mempak": mempak, "biopak": biopak}
+
         else:
-            savetype = savetype_raw
-
-        m64pstatus = self.rom_settings.status
-        players = self.rom_settings.players
-        rumble = bool(self.rom_settings.rumble)
-        transferpak = bool(self.rom_settings.transferpak)
-        mempak = bool(self.rom_settings.mempak)
-        biopak = bool(self.rom_settings.biopak)
-
-        settings = {"goodname": name, "md5": md5, "savetype": savetype,
-                    "status": m64pstatus, "players": players, "rumble": rumble,
-                    "transferpak": transferpak, "mempak": mempak, "biopak": biopak}
-
-        if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Couldn't retrieve the ROM's settings.")
-            return status
-        else:
-            #print(settings)
-            return settings
+        return status
 
     def rom_get_settings_raw(self):
         #M64CMD_ROM_GET_SETTINGS = 4
@@ -2211,26 +2237,26 @@ class API():
         status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_ROM_GET_SETTINGS.value,
                         c.c_int(c.sizeof(self.rom_settings)), c.pointer(self.rom_settings))
 
-        name = self.rom_settings.goodname
-
-        md5 = self.rom_settings.MD5
-        savetype = self.rom_settings.savetype
-        m64pstatus = self.rom_settings.status
-        players = self.rom_settings.players
-        rumble = self.rom_settings.rumble
-        transferpak = self.rom_settings.transferpak
-        mempak = self.rom_settings.mempak
-        biopak = self.rom_settings.biopak
-
-        settings = {"goodname": name, "md5": md5, "savetype": savetype,
-                    "status": m64pstatus, "players": players, "rumble": rumble,
-                    "transferpak": transferpak, "mempak": mempak, "biopak": biopak}
-
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
-            return settings
+            self.game_settings = {}
+
+            name = self.rom_settings.goodname
+
+            md5 = self.rom_settings.MD5
+            savetype = self.rom_settings.savetype
+            m64pstatus = self.rom_settings.status
+            players = self.rom_settings.players
+            rumble = self.rom_settings.rumble
+            transferpak = self.rom_settings.transferpak
+            mempak = self.rom_settings.mempak
+            biopak = self.rom_settings.biopak
+
+            self.game_settings = {"goodname": name, "md5": md5, "savetype": savetype,
+                        "status": m64pstatus, "players": players, "rumble": rumble,
+                        "transferpak": transferpak, "mempak": mempak, "biopak": biopak}
         else:
             log.error("CoreDoCommand: Couldn't retrieve the ROM's settings.")
-            return status
+        return status
 
     def execute(self):
         # M64CMD_EXECUTE = 5
@@ -2487,13 +2513,13 @@ class API():
            return crc_to_cic[crc]["ntsc-name"] if country in ["U", "J", "JU"] \
                     else crc_to_cic[crc]["pal-name"]
         else:
-           return crc_to_cic[0]
+           return "Unknown"
 
     def preload(self):
         try:
             self.m64p_lib_core = self.load_module(self.m64p_lib_core_path)
 
-            check_core = self.PluginGetVersion(self.m64p_lib_core)
+            check_core = self.PluginGetVersion(self.m64p_lib_core_path, self.m64p_lib_core)
             if check_core["version"] >= self.core_version:
                 self.compatible = True
 
@@ -2593,9 +2619,9 @@ class API():
         retval = 0
         if self.pif_loading == True:
             # TODO: Asia, Brazil?
-            if self.header["country"] in ("U", "J", "UJ"):
+            if self.game_header["country"] in ("U", "J", "UJ"):
                 pif_region = "PifNtscPath"
-            elif self.header["country"] in ("A", "E", "F", "G", "I", "S"):
+            elif self.game_header["country"] in ("A", "E", "F", "G", "I", "S"):
                 pif_region = "PifPalPath"
             else:
                 pif_region = None
@@ -2615,14 +2641,14 @@ class API():
 
         retval = self.rom_open(rom)
         if retval == 0:
-            self.header = self.rom_get_header() ###
+            self.rom_get_header() ###
             self.rom_get_settings() ###
             if self.pif_load() != 0:
                 return self.rom_close()
             self.plugins_attach()
             self.set_media_loader()
             if self.frontend.cheats:
-                self.frontend.cheats.set_game(self.header["crc1"], self.header["crc2"], self.header["country"])
+                self.frontend.cheats.set_game(self.game_header["crc1"], self.game_header["crc2"], self.game_header["country"])
                 self.frontend.cheats.dispatch()
             self.execute()
             if self.frontend.cheats:
@@ -2651,7 +2677,7 @@ class API():
                 try:
                     # x.name takes the file's name from the path
                     filename = os.path.splitext(plugin.name)[0]
-                    info = self.PluginGetVersion(self.load_module(f'{self.plugins_dir}{filename}{self.extension_filename}'))
+                    info = self.PluginGetVersion(filename, self.load_module(f'{self.plugins_dir}{filename}{self.extension_filename}'))
                     log.debug(info)
                     if info["type"] == wrp_dt.m64p_plugin_type.M64PLUGIN_CORE.value:
                         pass
