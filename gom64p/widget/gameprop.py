@@ -35,13 +35,15 @@ class PropertiesDialog(Gtk.Dialog):
         title = f"Configuration for {self.game}"
         self.prop_window = Gtk.Dialog()
         self.prop_window.set_properties(self, title=title)
-        self.prop_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        #self.prop_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
         self.prop_window.set_transient_for(parent)
+        self.prop_window.set_modal(True)
 
         #self.apply_button = self.prop_window.add_button("Apply",Gtk.ResponseType.APPLY)
         #self.apply_button.set_sensitive(False)
         self.prop_window.add_button("Cancel", Gtk.ResponseType.CANCEL)
         self.prop_window.add_button("OK", Gtk.ResponseType.OK)
+        self.prop_window.connect("response", self.on_response)
 
         if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
 
@@ -63,9 +65,9 @@ class PropertiesDialog(Gtk.Dialog):
             notebook.append_page(custom_tab, custom_label)
 
             dialog_box = self.prop_window.get_content_area()
-            dialog_box.add(notebook)
+            dialog_box.append(notebook)
 
-            self.prop_window.show_all()
+            self.prop_window.show()
 
             if tab == "info":
                 notebook.set_current_page(0)
@@ -78,23 +80,11 @@ class PropertiesDialog(Gtk.Dialog):
             label = Gtk.Label("Mupen64plus' core library is incompatible, please upgrade it.")
             dialog_box = self.prop_window.get_content_area()
             dialog_box.add(label)
-            self.prop_window.show_all()
-
-        response = Gtk.ResponseType.APPLY
-        while response == Gtk.ResponseType.APPLY:
-            response = self.prop_window.run()
-            if response == Gtk.ResponseType.OK:
-                #self.parent.m64p_wrapper.ConfigSaveFile()
-                self.parent.cheats.write()
-                self.prop_window.destroy()
-            elif response == Gtk.ResponseType.APPLY:
-                pass
-            else:
-                self.prop_window.destroy()
+            self.prop_window.show()
 
     def info_handler(self):
         # Tab ROM handler#
-        info_box = Gtk.VBox()
+        info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         file_entry = self.insert_entry("File name:", os.path.basename(self.game))
         path_entry = self.insert_entry("Path:", self.game)
@@ -109,7 +99,7 @@ class PropertiesDialog(Gtk.Dialog):
         biopak_entry = self.insert_entry("Biopak support:", self.settings["biopak"])
 
         country_entry = self.insert_entry("Country:", self.header["country"])
-        crc_box = Gtk.HBox()
+        crc_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         crc1_entry = self.insert_entry("CRC1:", self.header["crc1"])
         crc2_entry = self.insert_entry("CRC2:", self.header["crc2"])
 
@@ -128,55 +118,57 @@ class PropertiesDialog(Gtk.Dialog):
         pc_entry = self.insert_entry("pc:", self.header["pc"])
 
 
-        info_box.pack_start(name_entry, False, False, 0)
-        info_box.pack_start(country_entry, False, False, 0)
-        info_box.pack_start(file_entry, False, False, 0)
-        info_box.pack_start(status_entry, False, False, 0)
-        info_box.pack_start(cartridge_entry, False, False, 0)
-        info_box.pack_start(players_entry, False, False, 0)
-        info_box.pack_start(manufacturer_entry, False, False, 0)
+        info_box.append(name_entry)
+        info_box.append(country_entry)
+        info_box.append(file_entry)
+        info_box.append(status_entry)
+        info_box.append(cartridge_entry)
+        info_box.append(players_entry)
+        info_box.append(manufacturer_entry)
 
         # Group all the info on the pak accessories
-        pak_frame = Gtk.Frame(label="Accessories support", shadow_type=1)
-        pak_box = Gtk.VBox()
-        pak_box.pack_start(rumble_entry, False, False, 0)
-        pak_box.pack_start(tpak_entry, False, False, 0)
-        pak_box.pack_start(mempak_entry, False, False, 0)
-        pak_box.pack_start(biopak_entry, False, False, 0)
+        pak_frame = Gtk.Frame(label="Accessories support")
+        self.set_margin(pak_frame, 5, 5, 5, 5)
+        pak_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        pak_box.append(rumble_entry)
+        pak_box.append(tpak_entry)
+        pak_box.append(mempak_entry)
+        pak_box.append(biopak_entry)
 
-        pak_frame.add(pak_box)
-        info_box.pack_start(pak_frame, False, False, 0)
+        pak_frame.set_child(pak_box)
+        info_box.append(pak_frame)
 
         # Group all the technical details
-        tech_frame = Gtk.Frame(label="Technical details", shadow_type=1)
-        tech_box = Gtk.VBox()
+        tech_frame = Gtk.Frame(label="Technical details")
+        self.set_margin(tech_frame, 5, 5, 5, 5)
+        tech_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-        tech_box.pack_start(path_entry, False, False, 0)
-        tech_box.pack_start(internal_entry, False, False, 0)
-        tech_box.pack_start(md5_entry, False, False, 0)
+        tech_box.append(path_entry)
+        tech_box.append(internal_entry)
+        tech_box.append(md5_entry)
 
-        crc_box.pack_start(crc1_entry, False, False, 0)
-        crc_box.pack_start(crc2_entry, False, False, 0)
-        tech_box.pack_start(crc_box, False, False, 0)
+        crc_box.append(crc1_entry)
+        crc_box.append(crc2_entry)
+        tech_box.append(crc_box)
 
-        tech_box.pack_start(cic_entry, False, False, 0)
-        tech_box.pack_start(save_entry, False, False, 0)
+        tech_box.append(cic_entry)
+        tech_box.append(save_entry)
 
-        tech_frame.add(tech_box)
-        info_box.pack_start(tech_frame, False, False, 0)
+        tech_frame.set_child(tech_box)
+        info_box.append(tech_frame)
 
         return info_box
 
     def custom_settings(self):
-        label = Gtk.Label("Not yet implemented, please come back later.")
-        tab_area = Gtk.VBox()
-        tab_area.add(label)
+        label = Gtk.Label(label="Not yet implemented, please come back later.")
+        tab_area = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        tab_area.append(label)
 
         return tab_area
 
     def insert_entry(self, text, field, case=None):
-        box = Gtk.HBox()
-        label = Gtk.Label(text)
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        label = Gtk.Label(label=text)
         entry = Gtk.Entry()
         entry.set_hexpand(True)
         entry.set_editable(False)
@@ -188,7 +180,22 @@ class PropertiesDialog(Gtk.Dialog):
         else:
             entry.set_text(str(field))
 
-        box.pack_start(label, False, False, 0)
-        box.pack_start(entry, False, False, 0)
+        box.append(label)
+        box.append(entry)
 
         return box
+
+    def set_margin(self, widget, left, right, top, bottom):
+        widget.set_margin_start(left)
+        widget.set_margin_end(right)
+        widget.set_margin_top(top)
+        widget.set_margin_bottom(bottom)
+
+    def on_response(self, widget, response_id):
+        if response_id == Gtk.ResponseType.OK:
+            self.parent.cheats.write()
+            self.prop_window.destroy()
+        elif response_id == Gtk.ResponseType.APPLY:
+            pass
+        else:
+            self.prop_window.destroy()

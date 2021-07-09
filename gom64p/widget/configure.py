@@ -19,7 +19,7 @@ import widget.plugin as w_plugin
 #############
 
 class ConfigDialog(Gtk.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent, unused):
         self.parent = parent
         self.former_values = {}
         self.former_update()
@@ -29,18 +29,72 @@ class ConfigDialog(Gtk.Dialog):
             self.parent.m64p_wrapper.plugins_shutdown()
             self.parent.m64p_wrapper.ConfigOpenSection('Core')
 
-        self.config_window = Gtk.Dialog()
-        self.config_window.set_properties(self, title="Configure")
-        self.config_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-        self.config_window.set_default_size(480, 550)
-        self.config_window.set_transient_for(parent)
+        self.window = Gtk.Dialog()
+        self.window.set_properties(self, title="Configure")
+        #self.window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        self.window.set_default_size(480, 550)
+        self.window.set_transient_for(parent)
+        self.window.set_modal(True)
+        self.window.connect("response", self.on_response)
 
-        self.apply_button = self.config_window.add_button("Apply",Gtk.ResponseType.APPLY)
+        self.apply_button = self.window.add_button("Apply",Gtk.ResponseType.APPLY)
         self.apply_button.set_sensitive(False)
-        self.config_window.add_button("Cancel",Gtk.ResponseType.CANCEL)
-        self.config_window.add_button("OK",Gtk.ResponseType.OK)
+        self.window.add_button("Cancel",Gtk.ResponseType.CANCEL)
+        self.window.add_button("OK",Gtk.ResponseType.OK)
 
         self.config_tabs()
+
+        self.window.show()
+
+    def set_margin(self, widget, left, right, top, bottom):
+        widget.set_margin_start(left)
+        widget.set_margin_end(right)
+        widget.set_margin_top(top)
+        widget.set_margin_bottom(bottom)
+
+    def on_response(self, widget, response_id):
+        if response_id == Gtk.ResponseType.OK:
+            self.parent.frontend_conf.write()
+
+            if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                self.parent.m64p_wrapper.plugins_preload()
+                self.parent.m64p_wrapper.plugins_startup()
+                self.parent.m64p_wrapper.ConfigSaveFile()
+
+            self.window.destroy()
+        elif response_id == Gtk.ResponseType.APPLY:
+            self.parent.frontend_conf.write()
+            if self.is_changed == True:
+                self.apply_button.set_sensitive(False)
+                self.former_update()
+
+                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
+                        self.parent.m64p_wrapper.ConfigSaveSection("Core")
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
+                        self.parent.m64p_wrapper.ConfigSaveSection("CoreEvents")
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
+                        self.parent.m64p_wrapper.ConfigSaveSection("Video-General")
+
+            if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                self.parent.m64p_wrapper.plugins_preload()
+
+        else:
+            if self.is_changed == True:
+                self.revert()
+
+                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
+                        self.parent.m64p_wrapper.ConfigRevertChanges("Core")
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
+                        self.parent.m64p_wrapper.ConfigRevertChanges("CoreEvents")
+                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
+                        self.parent.m64p_wrapper.ConfigRevertChanges("Video-General")
+
+            if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
+                self.parent.m64p_wrapper.plugins_startup()
+            self.window.destroy()
+
 
     def config_tabs(self):
         config_notebook = Gtk.Notebook()
@@ -49,16 +103,16 @@ class ConfigDialog(Gtk.Dialog):
         ## Frontend tab ##
         frontend_tab = Gtk.Label(label="Frontend")
 
-        m64plib_frame = Gtk.Frame(label="mupen64plus library", shadow_type=1)
-        language_frame = Gtk.Frame(label="Language", shadow_type=1)
-        HotkeyFrame = Gtk.Frame(label="Hotkey", shadow_type=1)
-        FrontendMiscellaneousFrame = Gtk.Frame(label="Miscellaneous", shadow_type=1)
+        m64plib_frame = Gtk.Frame(label="mupen64plus library")
+        language_frame = Gtk.Frame(label="Language")
+        HotkeyFrame = Gtk.Frame(label="Hotkey")
+        FrontendMiscellaneousFrame = Gtk.Frame(label="Miscellaneous")
 
-        frontend_box = Gtk.VBox()
+        frontend_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         m64p_paths_grid = Gtk.Grid()
-        language_box = Gtk.VBox()
-        HotkeyBox = Gtk.VBox()
-        FrontendMiscellaneousBox = Gtk.VBox()
+        language_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        HotkeyBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        FrontendMiscellaneousBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         m64p_lib_entry = self.insert_entry('M64pLib', 'Frontend', 'frontend', "Mupen64plus library .so, .dll or .dylib", "Mupen64plus library .so, .dll or .dylib")
         m64p_lib_button = Gtk.Button.new_with_label("Open")
@@ -88,7 +142,8 @@ class ConfigDialog(Gtk.Dialog):
         m64p_paths_grid.attach(data_dir_button, 1, 3, 1, 1)
         m64p_paths_grid.attach(library_warning, 0, 4, 1, 1)
 
-        m64plib_frame.add(m64p_paths_grid)
+        m64plib_frame.set_child(m64p_paths_grid)
+        self.set_margin(m64plib_frame, 5,5,5,5)
 
         language_combo_choices = ["English"]
 
@@ -101,14 +156,15 @@ class ConfigDialog(Gtk.Dialog):
 
         language_combo.connect('changed', self.on_combobox_changed, 'Language')
 
-        language_box.add(language_combo)
-        language_frame.add(language_box)
+        language_box.append(language_combo)
+        language_frame.set_child(language_box)
+        self.set_margin(language_frame, 5,5,5,5)
 
         #FrontendMiscellaneousBox.add()
         #FrontendMiscellaneousFrame.add(FrontendMiscellaneousBox)
 
-        frontend_box.pack_start(m64plib_frame, False, False, 0)
-        frontend_box.pack_start(language_frame, False, False, 0)
+        frontend_box.append(m64plib_frame)
+        frontend_box.append(language_frame)
         #frontend_box.pack_start(HotkeyFrame, False, False, 0)
         #frontend_box.pack_start(FrontendMiscellaneousFrame, False, False, 0)
 
@@ -118,13 +174,13 @@ class ConfigDialog(Gtk.Dialog):
         ## Emulation tab ##
         emulation_tab = Gtk.Label(label="Emulation")
 
-        cpu_core_frame = Gtk.Frame(label="CPU Core",shadow_type=1)
-        compatibility_frame = Gtk.Frame(label="Compatibility",shadow_type=1)
-        emu_miscellaneous_frame = Gtk.Frame(label="Miscellaneous",shadow_type=1)
+        cpu_core_frame = Gtk.Frame(label="CPU Core")
+        compatibility_frame = Gtk.Frame(label="Compatibility")
+        emu_miscellaneous_frame = Gtk.Frame(label="Miscellaneous")
 
-        emulation_box = Gtk.VBox()
-        cpu_core_box = Gtk.VBox()
-        compatibility_box = Gtk.VBox()
+        emulation_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        cpu_core_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        compatibility_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         emu_miscellaneous_grid = Gtk.Grid()
 
         cpu_core_combo = Gtk.ComboBoxText()
@@ -140,15 +196,17 @@ class ConfigDialog(Gtk.Dialog):
             cpu_core_combo.set_sensitive(False)
         cpu_core_combo.connect('changed', self.on_combobox_changed, 'R4300Emulator')
 
-        cpu_core_box.pack_start(cpu_core_combo, False, False, 0)
-        cpu_core_frame.add(cpu_core_box)
+        cpu_core_box.append(cpu_core_combo)
+        cpu_core_frame.set_child(cpu_core_box)
+        self.set_margin(cpu_core_frame, 5,5,5,5)
 
         no_comp_jump_chkbox = self.insert_checkbox('NoCompiledJump', "Core", "m64p", "Disable compiled jump", None)
         no_expansionpak_chkbox = self.insert_checkbox('DisableExtraMem', "Core", "m64p", "Disable memory expansion (8 MB)", None)
 
-        compatibility_box.pack_start(no_comp_jump_chkbox, False, False, 0)
-        compatibility_box.pack_start(no_expansionpak_chkbox, False, False, 0)
-        compatibility_frame.add(compatibility_box)
+        compatibility_box.append(no_comp_jump_chkbox)
+        compatibility_box.append(no_expansionpak_chkbox)
+        compatibility_frame.set_child(compatibility_box)
+        self.set_margin(compatibility_frame, 5,5,5,5)
 
         auto_saveslot_chkbox = self.insert_checkbox('AutoStateSlotIncrement', "Core", "m64p", "Auto increment save slot", None)
         random_interrupt_chkbox = self.insert_checkbox('RandomizeInterrupt', "Core", "m64p", "Randomize PI/SI Interrupt Timing", None)
@@ -171,24 +229,25 @@ class ConfigDialog(Gtk.Dialog):
         emu_miscellaneous_grid.attach(osd_chkbox, 0, 3, 2, 1)
         emu_miscellaneous_grid.attach(countxop_spin, 0, 4, 1, 1)
         emu_miscellaneous_grid.attach(countxop_label, 1, 4, 1, 1)
-        emu_miscellaneous_frame.add(emu_miscellaneous_grid)
+        emu_miscellaneous_frame.set_child(emu_miscellaneous_grid)
+        self.set_margin(emu_miscellaneous_frame, 5,5,5,5)
 
-        emulation_box.pack_start(cpu_core_frame, False, False, 0)
-        emulation_box.pack_start(compatibility_frame, False, False, 0)
-        emulation_box.pack_start(emu_miscellaneous_frame, False, False, 0)
+        emulation_box.append(cpu_core_frame)
+        emulation_box.append(compatibility_frame)
+        emulation_box.append(emu_miscellaneous_frame)
 
         config_notebook.append_page(emulation_box, emulation_tab)
 
         ## Video-General tab ##
         video_tab = Gtk.Label(label="Video")
 
-        video_general_frame = Gtk.Frame(label="General",shadow_type=1)
-        rotate_frame = Gtk.Frame(label="Rotate Screen",shadow_type=1)
-        webcam_frame = Gtk.Frame(label="Webcam",shadow_type=1)
+        video_general_frame = Gtk.Frame(label="General")
+        rotate_frame = Gtk.Frame(label="Rotate Screen")
+        webcam_frame = Gtk.Frame(label="Webcam")
 
-        video_box = Gtk.VBox()
-        video_general_box = Gtk.VBox()
-        video_width_height_box = Gtk.HBox()
+        video_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        video_general_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        video_width_height_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
         if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
             self.parent.m64p_wrapper.ConfigOpenSection('Video-General')
@@ -202,16 +261,17 @@ class ConfigDialog(Gtk.Dialog):
         width_spin = self.insert_spinbutton("ScreenWidth", "Video-General", "m64p", 1, 4096) #TODO: Check if exists a maximum value here
         height_spin = self.insert_spinbutton("ScreenHeight", "Video-General", "m64p", 1, 4096) #TODO: Check if exists a maximum value here
 
-        video_width_height_box.pack_start(widthxheight_label, False, False, 0)
-        video_width_height_box.pack_start(width_spin, False, False, 0)
-        video_width_height_box.pack_start(height_spin, False, False, 0)
+        video_width_height_box.append(widthxheight_label)
+        video_width_height_box.append(width_spin)
+        video_width_height_box.append(height_spin)
 
-        video_general_box.pack_start(fullscreen_chkbox, False, False, 0)
-        video_general_box.pack_start(vsync_chkbox, False, False, 0)
-        video_general_box.pack_start(vidext_chkbox, False, False, 0)
-        video_general_box.pack_start(video_width_height_box, False, False, 0)
+        video_general_box.append(fullscreen_chkbox)
+        video_general_box.append(vsync_chkbox)
+        video_general_box.append(vidext_chkbox)
+        video_general_box.append(video_width_height_box)
 
-        video_general_frame.add(video_general_box)
+        video_general_frame.set_child(video_general_box)
+        self.set_margin(video_general_frame, 5,5,5,5)
 
         rotate_combo = Gtk.ComboBoxText()
         rotate_combo.append('0',"Normal (0°)")
@@ -228,9 +288,10 @@ class ConfigDialog(Gtk.Dialog):
             rotate_combo.set_sensitive(False)
 
         rotate_combo.connect('changed', self.on_combobox_changed, 'Rotate')
-        rotate_frame.add(rotate_combo)
+        rotate_frame.set_child(rotate_combo)
+        self.set_margin(rotate_frame, 5,5,5,5)
 
-        webcam_box = Gtk.VBox() #TODO: Change with Gtk.Grid()
+        webcam_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL) #TODO: Change with Gtk.Grid()
 
         if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
             self.parent.m64p_wrapper.ConfigOpenSection('Core')
@@ -238,33 +299,35 @@ class ConfigDialog(Gtk.Dialog):
         #webcam1_button = Gtk.Button.new_with_label("Open")
         #webcam_button.connect("clicked", self.on_search_path_lib, webcam1_entry)
 
-        webcam_box.pack_start(webcam1_entry, False, False, 0)
-        webcam_frame.add(webcam_box)
+        webcam_box.append(webcam1_entry)
+        webcam_frame.set_child(webcam_box)
+        self.set_margin(webcam_frame, 5,5,5,5)
 
-        video_box.pack_start(video_general_frame, False, False, 0)
-        video_box.pack_start(rotate_frame, False, False, 0)
-        video_box.pack_start(webcam_frame, False, False, 0)
+        video_box.append(video_general_frame)
+        video_box.append(rotate_frame)
+        video_box.append(webcam_frame)
 
         config_notebook.append_page(video_box, video_tab)
 
         ## Plugins ##
         plugins_tab = Gtk.Label(label="Plugins")
 
-        gfx_frame = Gtk.Frame(label="Graphics Plugin", shadow_type=1)
-        audio_frame = Gtk.Frame(label="Audio Plugin", shadow_type=1)
-        input_frame = Gtk.Frame(label="Input Plugin", shadow_type=1)
-        rsp_frame = Gtk.Frame(label="RSP Plugin", shadow_type=1)
+        gfx_frame = Gtk.Frame(label="Graphics Plugin")
+        audio_frame = Gtk.Frame(label="Audio Plugin")
+        input_frame = Gtk.Frame(label="Input Plugin")
+        rsp_frame = Gtk.Frame(label="RSP Plugin")
 
-        plugins_box = Gtk.VBox()
-        gfx_box = Gtk.HBox()
-        audio_box = Gtk.HBox()
-        input_box = Gtk.HBox()
-        rsp_box = Gtk.HBox()
+        plugins_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        gfx_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        audio_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        input_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        rsp_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
         if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
             self.parent.m64p_wrapper.ConfigOpenSection('Core')
 
         gfx_combo = Gtk.ComboBoxText()
+        gfx_combo.set_hexpand(True)
         gfx_combo.append("dummy", "No video")
         for key,val in self.parent.m64p_wrapper.gfx_plugins.items():
             gfx_combo.append(key, val)
@@ -280,11 +343,13 @@ class ConfigDialog(Gtk.Dialog):
             gfx_combo.set_sensitive(False)
             self.gfx_configure_button.set_sensitive(False)
 
-        gfx_box.pack_start(gfx_combo, True, True, 5)
-        gfx_box.pack_start(self.gfx_configure_button, False, False, 0)
-        gfx_frame.add(gfx_box)
+        gfx_box.append(gfx_combo)
+        gfx_box.append(self.gfx_configure_button)
+        gfx_frame.set_child(gfx_box)
+        self.set_margin(gfx_frame, 5,5,5,5)
 
         audio_combo = Gtk.ComboBoxText()
+        audio_combo.set_hexpand(True)
         audio_combo.append("dummy", "No audio")
         for key,val in self.parent.m64p_wrapper.audio_plugins.items():
              audio_combo.append(key, val)
@@ -299,11 +364,13 @@ class ConfigDialog(Gtk.Dialog):
             audio_combo.set_sensitive(False)
             self.audio_configure_button.set_sensitive(False)
 
-        audio_box.pack_start(audio_combo, True, True, 5)
-        audio_box.pack_start(self.audio_configure_button, False, False, 0)
-        audio_frame.add(audio_box)
+        audio_box.append(audio_combo)
+        audio_box.append(self.audio_configure_button)
+        audio_frame.set_child(audio_box)
+        self.set_margin(audio_frame, 5,5,5,5)
 
         input_combo = Gtk.ComboBoxText()
+        input_combo.set_hexpand(True)
         input_combo.append("dummy", "No input")
         for key,val in self.parent.m64p_wrapper.input_plugins.items():
              input_combo.append(key, val)
@@ -320,11 +387,13 @@ class ConfigDialog(Gtk.Dialog):
             input_combo.set_sensitive(False)
             self.input_configure_button.set_sensitive(False)
 
-        input_box.pack_start(input_combo, True, True, 5)
-        input_box.pack_start(self.input_configure_button, False, False, 0)
-        input_frame.add(input_box)
+        input_box.append(input_combo)
+        input_box.append(self.input_configure_button)
+        input_frame.set_child(input_box)
+        self.set_margin(input_frame, 5,5,5,5)
 
         rsp_combo = Gtk.ComboBoxText()
+        rsp_combo.set_hexpand(True)
         rsp_combo.append("dummy", "No RSP")
         for key,val in self.parent.m64p_wrapper.rsp_plugins.items():
              rsp_combo.append(key, val)
@@ -339,14 +408,15 @@ class ConfigDialog(Gtk.Dialog):
             rsp_combo.set_sensitive(False)
             self.rsp_configure_button.set_sensitive(False)
 
-        rsp_box.pack_start(rsp_combo, True, True, 5)
-        rsp_box.pack_start(self.rsp_configure_button, False, False, 0)
-        rsp_frame.add(rsp_box)
+        rsp_box.append(rsp_combo)
+        rsp_box.append(self.rsp_configure_button)
+        rsp_frame.set_child(rsp_box)
+        self.set_margin(rsp_frame, 5,5,5,5)
 
-        plugins_box.pack_start(gfx_frame, False, False, 0)
-        plugins_box.pack_start(audio_frame, False, False, 0)
-        plugins_box.pack_start(input_frame, False, False, 0)
-        plugins_box.pack_start(rsp_frame, False, False, 0)
+        plugins_box.append(gfx_frame)
+        plugins_box.append(audio_frame)
+        plugins_box.append(input_frame)
+        plugins_box.append(rsp_frame)
 
         config_notebook.append_page(plugins_box, plugins_tab)
 
@@ -355,19 +425,19 @@ class ConfigDialog(Gtk.Dialog):
             self.parent.m64p_wrapper.ConfigOpenSection('Core')
         paths_tab = Gtk.Label(label="Paths")
 
-        paths_box = Gtk.VBox()
+        paths_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         m64p_paths_grid2 = Gtk.Grid()
-        gamedir_box = Gtk.VBox()
-        gamedir1_box = Gtk.HBox()
-        gamedir2_box = Gtk.HBox()
-        gamedir3_box = Gtk.HBox()
-        pif_box = Gtk.VBox()
-        pif_ntsc_box = Gtk.HBox()
-        pif_pal_box = Gtk.HBox()
+        gamedir_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        gamedir1_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        gamedir2_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        gamedir3_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        pif_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        pif_ntsc_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        pif_pal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
-        m64p_frame = Gtk.Frame(label="mupen64plus directories", shadow_type=1)
-        gamedir_frame = Gtk.Frame(label="game image directories", shadow_type=1)
-        pif_frame = Gtk.Frame(label="PIF ROM path", shadow_type=1)
+        m64p_frame = Gtk.Frame(label="mupen64plus directories")
+        gamedir_frame = Gtk.Frame(label="game image directories")
+        pif_frame = Gtk.Frame(label="PIF ROM path")
 
         sram_dir_entry = self.insert_entry('SaveSRAMPath', 'Core', 'm64p', "Choose a dir where SRAM/EEPROM/FlashRAM saves will be stored", None)
         sram_dir_button = Gtk.Button.new_with_label("Open")
@@ -406,117 +476,78 @@ class ConfigDialog(Gtk.Dialog):
         m64p_paths_grid2.attach(screenshot_entry, 0, 4, 1, 1)
         m64p_paths_grid2.attach(screenshot_button, 1, 4, 1, 1)
 
-        m64p_frame.add(m64p_paths_grid2)
+        m64p_frame.set_child(m64p_paths_grid2)
+        self.set_margin(m64p_frame, 5,5,5,5)
 
         # TODO: Replace with ListStore or CellRenderer? to allow multi directories
         #self.parent.frontend_conf.open_section("GameDirs")
         gamedir_entry = self.insert_entry('path1', 'GameDirs', 'frontend', "Choose the dir where game images are found", None)
+        gamedir_entry.set_hexpand(True)
         gamedir_button = Gtk.Button.new_with_label("Open")
         gamedir_button.connect("clicked", self.on_search_path_dir, gamedir_entry)
 
         gamedir2_entry = self.insert_entry('path2', 'GameDirs', 'frontend', "Choose the dir where game images are found", None)
+        gamedir2_entry.set_hexpand(True)
         gamedir2_button = Gtk.Button.new_with_label("Open")
         gamedir2_button.connect("clicked", self.on_search_path_dir, gamedir2_entry)
 
         gamedir3_entry = self.insert_entry('path3', 'GameDirs', 'frontend', "Choose the dir where game images are found", None)
+        gamedir3_entry.set_hexpand(True)
         gamedir3_button = Gtk.Button.new_with_label("Open")
         gamedir3_button.connect("clicked", self.on_search_path_dir, gamedir3_entry)
 
-        gamedir1_box.pack_start(gamedir_entry, True, True, 5)
-        gamedir1_box.pack_start(gamedir_button, False, False, 0)
-        gamedir2_box.pack_start(gamedir2_entry, True, True, 5)
-        gamedir2_box.pack_start(gamedir2_button, False, False, 0)
-        gamedir3_box.pack_start(gamedir3_entry, True, True, 5)
-        gamedir3_box.pack_start(gamedir3_button, False, False, 0)
-        gamedir_box.pack_start(gamedir1_box, False, False, 0)
-        gamedir_box.pack_start(gamedir2_box, False, False, 0)
-        gamedir_box.pack_start(gamedir3_box, False, False, 0)
+        gamedir1_box.append(gamedir_entry)
+        gamedir1_box.append(gamedir_button)
+        gamedir2_box.append(gamedir2_entry)
+        gamedir2_box.append(gamedir2_button)
+        gamedir3_box.append(gamedir3_entry)
+        gamedir3_box.append(gamedir3_button)
+        gamedir_box.append(gamedir1_box)
+        gamedir_box.append(gamedir2_box)
+        gamedir_box.append(gamedir3_box)
 
         recursive_chkbox = self.insert_checkbox('Recursive', 'Frontend', 'frontend', "Recursive mode", "The frontend will scan for games even in subdirectories")
-        gamedir_box.pack_start(recursive_chkbox, False, False, 0)
+        gamedir_box.append(recursive_chkbox)
 
-        gamedir_frame.add(gamedir_box)
+        gamedir_frame.set_child(gamedir_box)
+        self.set_margin(gamedir_frame, 5,5,5,5)
 
         pif_chkbox = self.insert_checkbox('PifLoad', 'Frontend', 'frontend', "Enable PIFROM loading", "This option will allow to load the PIFROM at start of emulation")
 
         pif_ntsc_path_entry = self.insert_entry('PifNtscPath', 'Frontend', 'frontend', "Indicate the location of the NTSC N64 PIF ROM", "Indicate the location of the NTSC N64 PIF ROM")
+        pif_ntsc_path_entry.set_hexpand(True)
         pif_ntsc_path_button = Gtk.Button.new_with_label("Open")
         pif_ntsc_path_button.connect("clicked", self.on_search_path, pif_ntsc_path_entry, "pif")
 
-        pif_ntsc_box.pack_start(pif_ntsc_path_entry, True, True, 0)
-        pif_ntsc_box.pack_start(pif_ntsc_path_button, False, False, 0)
+        pif_ntsc_box.append(pif_ntsc_path_entry)
+        pif_ntsc_box.append(pif_ntsc_path_button)
 
         pif_pal_path_entry = self.insert_entry('PifPalPath', 'Frontend', 'frontend', "Indicate the location of the PAL N64 PIF ROM", "Indicate the location of the PAL N64 PIF ROM")
+        pif_pal_path_entry.set_hexpand(True)
         pif_pal_path_button = Gtk.Button.new_with_label("Open")
         pif_pal_path_button.connect("clicked", self.on_search_path, pif_pal_path_entry, "pif")
 
-        pif_pal_box.pack_start(pif_pal_path_entry, True, True, 0)
-        pif_pal_box.pack_start(pif_pal_path_button, False, False, 0)
+        pif_pal_box.append(pif_pal_path_entry)
+        pif_pal_box.append(pif_pal_path_button)
 
-        pif_box.pack_start(pif_chkbox, True, True, 0)
-        pif_box.pack_start(pif_ntsc_box, True, True, 0)
-        pif_box.pack_start(pif_pal_box, True, True, 0)
+        pif_box.append(pif_chkbox)
+        pif_box.append(pif_ntsc_box)
+        pif_box.append(pif_pal_box)
 
-        pif_frame.add(pif_box)
+        pif_frame.set_child(pif_box)
+        self.set_margin(pif_frame, 5,5,5,5)
 
-        paths_box.pack_start(m64p_frame, False, False, 0)
-        paths_box.pack_start(gamedir_frame, False, False, 0)
-        paths_box.pack_start(pif_frame, False, False, 0)
+        paths_box.append(m64p_frame)
+        paths_box.append(gamedir_frame)
+        paths_box.append(pif_frame)
 
         config_notebook.append_page(paths_box, paths_tab)
 
         #Hotkey Tab
 
-        # NOTE: get_content_area() is needed because a Gtk.Box already exists as the child container of the Gtk.Dialog, let's give a name to dialog's box
-        self.config_box = self.config_window.get_content_area()
-        self.config_box.add(config_notebook)
-        self.config_window.show_all()
-
-        # NOTE: "while" is needed to relaunch dialog if Apply Button was hit
-        response = Gtk.ResponseType.APPLY
-        while response == Gtk.ResponseType.APPLY:
-            response = self.config_window.run()
-            if response == Gtk.ResponseType.OK:
-                self.parent.frontend_conf.write()
-
-                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-                    self.parent.m64p_wrapper.plugins_preload()
-                    self.parent.m64p_wrapper.plugins_startup()
-                    self.parent.m64p_wrapper.ConfigSaveFile()
-
-                self.config_window.destroy()
-            elif response == Gtk.ResponseType.APPLY:
-                self.parent.frontend_conf.write()
-                if self.is_changed == True:
-                    self.apply_button.set_sensitive(False)
-                    self.former_update()
-
-                    if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
-                            self.parent.m64p_wrapper.ConfigSaveSection("Core")
-                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
-                            self.parent.m64p_wrapper.ConfigSaveSection("CoreEvents")
-                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
-                            self.parent.m64p_wrapper.ConfigSaveSection("Video-General")
-
-                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-                    self.parent.m64p_wrapper.plugins_preload()
-
-            else:
-                if self.is_changed == True:
-                    self.revert()
-
-                    if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Core") == True:
-                            self.parent.m64p_wrapper.ConfigRevertChanges("Core")
-                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("CoreEvents") == True:
-                            self.parent.m64p_wrapper.ConfigRevertChanges("CoreEvents")
-                        if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Video-General") == True:
-                            self.parent.m64p_wrapper.ConfigRevertChanges("Video-General")
-
-                if self.parent.lock == False and self.parent.m64p_wrapper.compatible == True:
-                    self.parent.m64p_wrapper.plugins_startup()
-                self.config_window.destroy()
+        # NOTE: get_content_area() is needed because a Gtk.Box already exists as the child container of the Gtk.Dialog
+        self.config_box = self.window.get_content_area()
+        self.config_box.append(config_notebook)
 
     def on_combobox_changed(self, widget, param):
         self.is_changed = True
@@ -530,7 +561,11 @@ class ConfigDialog(Gtk.Dialog):
             self.parent.frontend_conf.set("Frontend", "Language", str(widget_id))
         elif param == 'GfxPlugin':
             self.parent.frontend_conf.set("Frontend", "GfxPlugin", widget_id)
+            #self.parent.m64p_wrapper.gfx_filename = widget_id
+            #for item in self.parent.m64p_wrapper.gfx_plugins.items():
+            #if widget_id in self.parent.m64p_wrapper.gfx_plugins:
             self.parent.m64p_wrapper.gfx_filename = widget_id
+            # if active_plugin in ['mupen64plus-video-GLideN64', 'mupen64plus-video-angrylion-plus', 'mupen64plus-video-glide64mk2', 'mupen64plus-video-rice', 'mupen64plus-video-z64']:
             if active_plugin == 'mupen64plus-video-GLideN64':
                 self.gfx_configure_button.set_sensitive(True)
             elif active_plugin == 'mupen64plus-video-angrylion-plus':
@@ -543,6 +578,10 @@ class ConfigDialog(Gtk.Dialog):
                 self.gfx_configure_button.set_sensitive(True)
             else:
                 self.gfx_configure_button.set_sensitive(False)
+            # else:
+            #     self.parent.m64p_wrapper.gfx_filename = "dummy"
+            #     self.gfx_configure_button.set_sensitive(False)
+
         elif param == 'AudioPlugin':
             self.parent.frontend_conf.set("Frontend", "AudioPlugin", widget_id)
             self.parent.m64p_wrapper.audio_filename = widget_id
@@ -604,7 +643,7 @@ class ConfigDialog(Gtk.Dialog):
             self.parent.m64p_wrapper.ConfigSetParameter(param, widget.get_value_as_int())
 
     def on_search_path(self, widget, entry, file):
-        dialog = w_dialog.FileChooserDialog(self.config_window, file)
+        dialog = w_dialog.FileChooserDialog(self.window, file)
         path = dialog.path
         if path != None:
             self.is_changed = True
@@ -612,7 +651,7 @@ class ConfigDialog(Gtk.Dialog):
             entry.set_text(path)
 
     def on_search_path_dir(self, widget, entry):
-        dialog = w_dialog.FileChooserDialog(self.config_window, "directory")
+        dialog = w_dialog.FileChooserDialog(self.window, "directory")
         dir_path = dialog.path
         if dir_path != None:
             self.is_changed = True
@@ -620,7 +659,7 @@ class ConfigDialog(Gtk.Dialog):
             entry.set_text(dir_path)
 
     def on_configure_button(self, widget, parent, plugin):
-        w_plugin.PluginDialog(parent, plugin)
+        w_plugin.PluginDialog(parent, None, plugin)
 
     def on_entry_changed(self, widget, section, param):
         self.is_changed = True
@@ -756,10 +795,4 @@ class ConfigDialog(Gtk.Dialog):
             spin.set_sensitive(False)
 
         return spin
-
-    def return_state_lock(self): #TODO: Use this for all m64p widgets
-        if self.parent.lock == True or self.parent.m64p_wrapper.compatible == False:
-            return False
-        else:
-            return True
         

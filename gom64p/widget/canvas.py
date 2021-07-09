@@ -31,16 +31,16 @@ class Canvas(Gtk.DrawingArea):
         self.set_can_focus(True)
         #self.canvas.add_device_events()
         #self.canvas.add_events(1024) #KEY_PRESS_MASK, seems already enabled by default
-        self.connect("key-press-event", self.on_key_events)
+        #self.connect("key-press-event", self.on_key_events) #XXX
         #self.canvas.add_events(2048) #KEY_RELEASE_MASK, seems already enabled by default
-        self.connect("key-release-event", self.on_key_events)
+        #self.connect("key-release-event", self.on_key_events) #XXX
         #self.canvas.add_events(4) #POINTER_MOTION_MASK
         #self.canvas.add_events(16) #BUTTON_MOTION_MASK
         # Mouse related events
-        self.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK | Gdk.EventMask.BUTTON_PRESS_MASK)
-        self.connect("enter-notify-event", self.on_mouse_events)
-        self.connect("leave-notify-event", self.on_mouse_events)
-        self.connect("button-press-event", self.on_mouse_events)
+        #self.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK | Gdk.EventMask.BUTTON_PRESS_MASK) #XXX
+        #self.connect("enter-notify-event", self.on_mouse_events) #XXX
+        #self.connect("leave-notify-event", self.on_mouse_events) #XXX
+        #self.connect("button-press-event", self.on_mouse_events) #XXX
         
         return self
     

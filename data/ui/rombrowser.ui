@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <menu id="contextmenu">
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Play this game</attribute>
+        <attribute name="action">win.load_this</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">Informations on this game</attribute>
+        <attribute name="action">win.info</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Cheats for this game</attribute>
+        <attribute name="action">win.cheats</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Custom settings</attribute>
+        <attribute name="action">win.custom</attribute>
+      </item>
+    </section>
+  </menu>
+</interface>

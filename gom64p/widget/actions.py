@@ -9,6 +9,7 @@
 #############
 from gi.repository import Gtk, Gdk, GLib
 import threading
+import logging as log
 
 import widget.dialog as w_dialog
 import wrapper.datatypes as wrp_dt
@@ -20,6 +21,7 @@ import wrapper.datatypes as wrp_dt
 class Actions:
     def __init__(self, parent):
         self.frontend = parent
+        self.response = None
         
     ## General ##
     
@@ -28,19 +30,32 @@ class Actions:
 
     ## ROM startup ##
     
+    def dummy_popup(self):
+        if "dummy" in [self.frontend.m64p_wrapper.gfx_filename, self.frontend.m64p_wrapper.audio_filename, \
+                        self.frontend.m64p_wrapper.input_filename, self.frontend.m64p_wrapper.rsp_filename]:
+            dialog = w_dialog.PopupDialog(self.frontend, \
+             f"One of the plugins is set on 'dummy', which means the game won't work properly. \nDo you still want to run it?", \
+                                           "dummy")
+            self.response = dialog.response
+
     def thread_rom(self):
         if self.frontend.rom != None and self.frontend.m64p_wrapper.compatible == True:
-            thread = threading.Thread(name="Emulation", target=self.rom_startup)
-            try:
-                thread.start()
-                return thread
-            except:
-                log.error("The emulation thread has encountered an unexpected error")
-                threading.main_thread()
-            #except (KeyboardInterrupt, SystemExit):
-            #    #https://docs.python.org/3/library/signal.html
-            #    thread.stop()
-            #    sys.exit()
+            self.dummy_popup()
+            if self.response:
+                self.thread = threading.Thread(name="Emulation", target=self.rom_startup)
+                try:
+                    self.thread.start()
+                    return self.thread
+                except:
+                    log.error("The emulation thread has encountered an unexpected error")
+                    threading.main_thread()
+                #except (KeyboardInterrupt, SystemExit):
+                #    #https://docs.python.org/3/library/signal.html
+                #    thread.stop()
+                #    sys.exit()
+
+                # Make the main loop still running
+                return True
     
     def rom_startup(self):
         GLib.idle_add(self.frontend.add_video_tab)
@@ -84,7 +99,7 @@ class Actions:
         self.frontend.m64p_wrapper.reset(1)
         self.status_push("*** Emulation RESETTED ***")
 
-    def on_savestate(self, widget, path=False, *args):
+    def on_savestate(self, path=False, unused=None):
         if path == True:
             dialog = w_dialog.FileChooserDialog(self.frontend, "snapshot", 1) # Gtk.FileChooserAction for save
             file = dialog.path
@@ -93,7 +108,7 @@ class Actions:
             self.frontend.m64p_wrapper.state_save()
         self.status_push("Saved")
 
-    def on_loadstate(self, widget, path=False, *args):
+    def on_loadstate(self, path=False, unused=None):
         if path == True:
             dialog = w_dialog.FileChooserDialog(self.frontend, "snapshot", 0) #Gtk.FileChooserAction for load
             file = dialog.path
@@ -147,34 +162,6 @@ class Actions:
         self.frontend.m64p_wrapper.advance_frame()
         
     ## Window ##
-    
-    def on_filter_toggle(self, *args):
-        filter_checkbox = self.frontend.view_menu_filter
-        n64list_filter = self.frontend.filter_box
-        if filter_checkbox.get_active() == 1:
-            n64list_filter.show_all()
-            self.frontend.frontend_conf.set("Frontend", "FilterConfig", "True")
-        else:
-            n64list_filter.hide()
-            self.frontend.frontend_conf.set("Frontend", "FilterConfig", "False")
-
-    def on_statusbar_toggle(self, *args):
-        statusbar_checkbox = self.frontend.view_menu_status
-        m64p_statusbar = self.frontend.statusbar
-        if statusbar_checkbox.get_active() == 1:
-            m64p_statusbar.show()
-            self.frontend.frontend_conf.set("Frontend", "StatusConfig", "True")
-        else:
-            m64p_statusbar.hide()
-            self.frontend.frontend_conf.set("Frontend", "StatusConfig", "False")
-            
-    def on_toolbar_toggle(self, *args):
-        if self.frontend.main_menu.view_menu_toolbar.get_active() == True:
-            self.frontend.toolbar.show_all()
-            self.frontend.frontend_conf.set("Frontend", "ToolbarConfig", "True")
-        else:
-            self.frontend.toolbar.hide()
-            self.frontend.frontend_conf.set("Frontend", "ToolbarConfig", "False")
 
     def return_state_lock(self):
         if self.frontend.lock == True or self.frontend.m64p_wrapper.compatible == False:

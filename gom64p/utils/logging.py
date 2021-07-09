@@ -30,21 +30,24 @@ class CustomFormatter(log.Formatter):
     red = "\x1b[31;22m"
     bold_red = "\x1b[31;4m"
     reset = "\x1b[0m"
-    logformat = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
-    date_format = '%Y-%m-%d, %H:%M:%S'
+    dbgformat = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    simpleformat = "[%(asctime)s] %(levelname)s - %(message)s"
+    errformat = "(%(filename)s:%(lineno)d)"
     #format = '[%(asctime)s] %(levelname)s - %(filename)s:%(funcName)s:%(lineno)d - %(message)s'
 
     FORMATS = {
-        log.DEBUG: cyan + logformat + reset,
-        log.INFO: white + logformat + reset,
-        log.WARNING: yellow + logformat + reset,
-        log.ERROR: red + logformat + reset,
-        log.CRITICAL: bold_red + logformat + reset
+        log.DEBUG: cyan + dbgformat + reset,
+        log.INFO: white + simpleformat + reset,
+        log.WARNING: yellow + simpleformat + reset,
+        log.ERROR: red + simpleformat + errformat + reset,
+        log.CRITICAL: bold_red + simpleformat + errformat + reset
     }
 
     def format(self, record):
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = log.Formatter(log_fmt)
+        log_format = self.FORMATS.get(record.levelno)
+        #date_format = '%Y-%m-%d, %H:%M:%S'
+        date_format = '%H:%M:%S'
+        formatter = log.Formatter(log_format, date_format )
         return formatter.format(record)
 
 class Logger:

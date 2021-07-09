@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <menu id="menubar">
+    <submenu>
+      <attribute name="label" translatable="yes">_File</attribute>
+      <section>
+        <item>
+          <attribute name="id">open</attribute>
+          <attribute name="label" translatable="yes">Load ROM</attribute>
+          <attribute name="action">app.open</attribute>
+        </item>
+        <item>
+          <attribute name="id">refresh</attribute>
+          <attribute name="label" translatable="yes">Refresh list</attribute>
+          <attribute name="action">win.refresh</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Recents</attribute>
+          <attribute name="action">win.recents</attribute>
+          <attribute name="custom">custom-recents</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="id">quit</attribute>
+          <attribute name="label" translatable="yes">Quit</attribute>
+          <attribute name="action">app.quit</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu>
+      <attribute name="label" translatable="yes">Emulation</attribute>
+      <section>
+        <item>
+          <attribute name="id">play</attribute>
+          <attribute name="label" translatable="yes">Play</attribute>
+          <attribute name="action">win.play</attribute>
+        </item>
+        <item>
+          <attribute name="id">pause</attribute>
+          <attribute name="label" translatable="yes">Pause</attribute>
+          <attribute name="action">win.pause</attribute>
+        </item>
+        <item>
+          <attribute name="id">stop</attribute>
+          <attribute name="label" translatable="yes">Stop</attribute>
+          <attribute name="action">win.stop</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="id">sreset</attribute>
+          <attribute name="label" translatable="yes">Soft reset</attribute>
+          <attribute name="action">win.sreset</attribute>
+        </item>
+        <item>
+          <attribute name="id">hreset</attribute>
+          <attribute name="label" translatable="yes">Hard reset</attribute>
+          <attribute name="action">win.hreset</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Save state</attribute>
+          <attribute name="action">win.save</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Save state as...</attribute>
+          <attribute name="action">win.save-as</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Load state</attribute>
+          <attribute name="action">win.load</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Load state from...</attribute>
+          <attribute name="action">win.load-from</attribute>
+        </item>
+      </section>
+      <section>
+        <submenu>
+          <attribute name="label" translatable="yes">Current save state slot</attribute>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">Slot 0</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-zero</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Slot 1</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-one</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Slot 2</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-two</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Slot 3</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-three</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Slot 4</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-four</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Slot 5</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-five</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Slot 6</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-six</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Slot 7</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-seven</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Slot 8</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-eight</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Slot 9</attribute>
+              <attribute name="action">win.radioslot</attribute>
+              <attribute name="target">slot-nine</attribute>
+            </item>
+          </section>
+        </submenu>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Media loader</attribute>
+          <attribute name="action">win.media-loader</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu>
+      <attribute name="label" translatable="yes">Options</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Configure</attribute>
+          <attribute name="action">win.configure</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Graphics Plugin</attribute>
+          <attribute name="action">win.gfx</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Audio Plugin</attribute>
+          <attribute name="action">win.audio</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Input Plugin</attribute>
+          <attribute name="action">win.input</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">RSP Plugin</attribute>
+          <attribute name="action">win.rsp</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Fullscreen</attribute>
+          <attribute name="action">win.fullscreen</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu>
+      <attribute name="label" translatable="yes">View</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Toolbar</attribute>
+          <attribute name="action">win.view-tool</attribute>
+          <!--<attribute name="target"></attribute>-->
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Filter</attribute>
+          <attribute name="action">win.view-filter</attribute>
+          <!--<attribute name="target"></attribute>-->
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Status</attribute>
+          <attribute name="action">win.view-status</attribute>
+          <!--<attribute name="target"></attribute>-->
+        </item>
+        <!--<item>
+          <attribute name="label" translatable="yes">Debugger</attribute>
+          <attribute name="target"></attribute>
+        </item>-->
+      </section>
+    </submenu>
+    <submenu>
+      <attribute name="label" translatable="yes">Help</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">About mupen64plus</attribute>
+          <attribute name="action">win.about_m64p</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">About the frontend</attribute>
+          <attribute name="action">win.about_frontend</attribute>
+        </item>
+      </section>
+    </submenu>
+  </menu>
+</interface>

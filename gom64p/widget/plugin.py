@@ -67,7 +67,7 @@ class BindDialog(Gtk.MessageDialog):
         self.destroy()
 
 class PluginDialog(Gtk.Dialog):
-    def __init__(self, parent, section):
+    def __init__(self, parent, unused, section):
         self.parent = parent
         self.section = None
         self.former_values = None
@@ -95,8 +95,10 @@ class PluginDialog(Gtk.Dialog):
         title = self.section + " configuration"
         self.plugin_window = Gtk.Dialog()
         self.plugin_window.set_properties(self, title=title)
-        self.plugin_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        #self.plugin_window.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
         self.plugin_window.set_transient_for(parent)
+        self.plugin_window.set_modal(True)
+        self.plugin_window.connect("response", self.on_response)
 
         #self.apply_button = self.plugin_window.add_button("Apply",Gtk.ResponseType.APPLY)
         #self.apply_button.set_sensitive(False)
@@ -113,45 +115,44 @@ class PluginDialog(Gtk.Dialog):
                 self.plugin_window.set_default_size(480 * self.scale_factor, 550 * self.scale_factor)
                 self.generic(self.section)
         else:
-            label = Gtk.Label("Mupen64plus' core library is incompatible, please upgrade it.")
+            label = Gtk.Label(label="Mupen64plus' core library is incompatible, please upgrade it.")
             dialog_box = self.plugin_window.get_content_area()
-            dialog_box.add(label)
+            dialog_box.append(label)
 
-        self.plugin_window.show_all()
+        self.plugin_window.show()
 
-        response = Gtk.ResponseType.APPLY
-        while response == Gtk.ResponseType.APPLY:
-            response = self.plugin_window.run()
-            if response == Gtk.ResponseType.OK:
-                self.parent.m64p_wrapper.ConfigSaveFile()
-                #sdl.SDL_JoystickUpdate()
-                self.pending = False
-                if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
-                    sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
-                if sdl.SDL_WasInit(sdl.SDL_INIT_VIDEO):
-                    sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
-                self.plugin_window.destroy()
-            elif response == Gtk.ResponseType.APPLY:
-                pass
+
+    def on_response(self, widget, response_id):
+        if response_id == Gtk.ResponseType.OK:
+            self.parent.m64p_wrapper.ConfigSaveFile()
+            #sdl.SDL_JoystickUpdate()
+            self.pending = False
+            if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
+                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
+            if sdl.SDL_WasInit(sdl.SDL_INIT_VIDEO):
+                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
+            self.plugin_window.destroy()
+        elif response_id == Gtk.ResponseType.APPLY:
+            pass
+        else:
+            if self.section == 'input-sdl':
+                if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control1") == 1:
+                    self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control1")
+                if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control2") == 1:
+                    self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control2")
+                if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control3") == 1:
+                    self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control3")
+                if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control4") == 1:
+                    self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control4")
             else:
-                if self.section == 'input-sdl':
-                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control1") == 1:
-                        self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control1")
-                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control2") == 1:
-                        self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control2")
-                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control3") == 1:
-                        self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control3")
-                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges("Input-SDL-Control4") == 1:
-                        self.parent.m64p_wrapper.ConfigRevertChanges("Input-SDL-Control4")
-                else:
-                    if self.parent.m64p_wrapper.ConfigHasUnsavedChanges(self.section) == 1:
-                        self.parent.m64p_wrapper.ConfigRevertChanges(self.section)
-                self.pending = False
-                if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
-                    sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
-                if sdl.SDL_WasInit(sdl.SDL_INIT_VIDEO):
-                    sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
-                self.plugin_window.destroy()
+                if self.parent.m64p_wrapper.ConfigHasUnsavedChanges(self.section) == 1:
+                    self.parent.m64p_wrapper.ConfigRevertChanges(self.section)
+            self.pending = False
+            if sdl.SDL_WasInit(sdl.SDL_INIT_JOYSTICK):
+                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_JOYSTICK)
+            if sdl.SDL_WasInit(sdl.SDL_INIT_VIDEO):
+                sdl.SDL_QuitSubSystem(sdl.SDL_INIT_VIDEO)
+            self.plugin_window.destroy()
 
     def generic(self, section):
         grid = Gtk.Grid()
@@ -166,7 +167,7 @@ class PluginDialog(Gtk.Dialog):
             if param_type == 1 or param_type == 2: #int
                 value = self.parent.m64p_wrapper.ConfigGetParameter(parameter)
                 value_param[parameter] = value
-                label = Gtk.Label(parameter)
+                label = Gtk.Label(label=parameter)
                 entry = Gtk.Entry()
                 entry.set_text(str(value))
                 entry.connect("changed", self.on_EntryChanged, parameter, param_type, value_param, section)
@@ -189,7 +190,7 @@ class PluginDialog(Gtk.Dialog):
             elif param_type == 4: #str
                 value = self.parent.m64p_wrapper.ConfigGetParameter(parameter)
                 value_param[parameter] = value
-                label = Gtk.Label(parameter)
+                label = Gtk.Label(label=parameter)
                 entry = Gtk.Entry()
                 entry.set_text(value)
                 entry.connect("changed", self.on_EntryChanged, parameter, param_type, value_param, section)
@@ -200,18 +201,20 @@ class PluginDialog(Gtk.Dialog):
             else:
                 log.warning("Unknown option, ignored")
         if len(value_param) == 0:
-            empty = Gtk.Label("No option have been found here!")
+            empty = Gtk.Label(label="No option have been found here!")
             grid.attach(empty, 0, counter, 1, 1)
         scroll = Gtk.ScrolledWindow()
-        scroll.add(grid)
-        scroll.set_propagate_natural_height(True)
+        scroll.set_child(grid)
+        #scroll.set_propagate_natural_height(True)
+        scroll.set_hexpand(True)
+        scroll.set_vexpand(True)
 
         # If there are tabs for multiple section opened in once, just return it, otherwise let's add it to dialog
         if self.section == 'input-sdl':
             return scroll
         else:
             dialog_box = self.plugin_window.get_content_area()
-            dialog_box.add(scroll)
+            dialog_box.append(scroll)
 
     def input_page(self, section):
         grid = Gtk.Grid()
@@ -222,7 +225,7 @@ class PluginDialog(Gtk.Dialog):
         self.parent.m64p_wrapper.ConfigListParameters()
         parameters = cb.parameters[section]
 
-        mode_label = Gtk.Label("Mode:")
+        mode_label = Gtk.Label(label="Mode:")
         self.mode_combo = Gtk.ComboBoxText()
         self.mode_combo.set_hexpand(True)
         self.mode_combo.set_halign(Gtk.Align.FILL)
@@ -256,7 +259,7 @@ class PluginDialog(Gtk.Dialog):
             pak_combo.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp('plugin'))
         pak_combo.connect('changed', self.on_combobox_changed, section, 'plugin')
 
-        device_label = Gtk.Label("Device:")
+        device_label = Gtk.Label(label="Device:")
         self.device_combo = Gtk.ComboBoxText()
         self.device_combo.insert(-1, '-1',"Keyboard")
 
@@ -302,9 +305,9 @@ class PluginDialog(Gtk.Dialog):
         button_c_right = self.insert_bind_button('C Button R',  section, 'C→ button')
         label_c_down = self.insert_image("/icons/ButtonIcon-N64-C-Down.svg", size)
         button_c_down = self.insert_bind_button('C Button D',  section, 'C↓ button')
-        label_mempak = Gtk.Label("Mempak ")
+        label_mempak = Gtk.Label(label="Mempak ")
         button_mempak = self.insert_bind_button('Mempak switch',  section, "Mempak switch")
-        label_rumble = Gtk.Label("Rumble ")
+        label_rumble = Gtk.Label(label="Rumble ")
         button_rumble = self.insert_bind_button('Rumblepak switch',  section, "Rumblepak switch")
         label_d_up = self.insert_image("/icons/ButtonIcon-N64-D-Pad-U.svg", size)
         button_d_up = self.insert_bind_button("DPad U",  section, 'DPad ↑')
@@ -358,7 +361,8 @@ class PluginDialog(Gtk.Dialog):
         buttons_grid.attach(y_axis_label, 6, 5, 1, 1)
         buttons_grid.attach(y_axis_button, 7, 5, 1, 1)
 
-        buttons_frame.add(buttons_grid)
+        buttons_frame.set_child(buttons_grid)
+        #XXX
         grid.attach(buttons_frame, 0, 2, 5, 1)
 
         other_frame = Gtk.Frame(label="Other options")
@@ -376,9 +380,10 @@ class PluginDialog(Gtk.Dialog):
         analog_peak = self.insert_double_spinbutton("AnalogPeak", section, other_grid)
 
         other_grid.attach(mouse_checkbox, 0, 0, 1, 1)
-        other_grid.attach(Gtk.Label("X"), 0, 1, 1, 1)
-        other_grid.attach(Gtk.Label("Y"), 0, 2, 1, 1)
-        other_frame.add(other_grid)
+        other_grid.attach(Gtk.Label(label="X"), 0, 1, 1, 1)
+        other_grid.attach(Gtk.Label(label="Y"), 0, 2, 1, 1)
+        other_frame.set_child(other_grid)
+        #XXX
         grid.attach(other_frame, 0, 3, 5, 1)
 
         page = self.filter_number(section)
@@ -401,42 +406,42 @@ class PluginDialog(Gtk.Dialog):
 
         # Tab "Player 1"#
         player1_tab = Gtk.Label(label="Player1")
-        player1_box = Gtk.VBox()
+        player1_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         area_input1 = self.input_page('Input-SDL-Control1')
-        player1_box.pack_start(area_input1, False, False, 0)
+        player1_box.append(area_input1)
 
         input_notebook.append_page(player1_box, player1_tab)
 
         # Tab "Player 2"
         player2_tab = Gtk.Label(label="Player2")
-        player2_box = Gtk.VBox()
+        player2_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         area_input2 = self.input_page('Input-SDL-Control2')
-        player2_box.pack_start(area_input2, False, False, 0)
+        player2_box.append(area_input2)
 
         input_notebook.append_page(player2_box, player2_tab)
 
         # Tab "Player 3"
         player3_tab = Gtk.Label(label="Player3")
-        player3_box = Gtk.VBox()
+        player3_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         area_input3 = self.input_page('Input-SDL-Control3')
-        player3_box.pack_start(area_input3, False, False, 0)
+        player3_box.append(area_input3)
 
         input_notebook.append_page(player3_box, player3_tab)
 
         # Tab "Player 4"
         player4_tab = Gtk.Label(label="Player4")
-        player4_box = Gtk.VBox()
+        player4_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         area_input4 = self.input_page('Input-SDL-Control4')
-        player4_box.pack_start(area_input4, False, False, 0)
+        player4_box.append(area_input4)
 
         input_notebook.append_page(player4_box, player4_tab)
 
         dialog_box = self.plugin_window.get_content_area()
-        dialog_box.add(input_notebook)
+        dialog_box.append(input_notebook)
 
         #sdl.SDL_SetHint(sdl.SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, b"1")
         sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO) #necessary for SDL_GetKeyFromScancode
@@ -729,13 +734,13 @@ class PluginDialog(Gtk.Dialog):
         second_spin.set_tooltip_text(self.parent.m64p_wrapper.ConfigGetParameterHelp(param) + "\n This value refers to the axis Y.")
 
         if param == "MouseSensitivity":
-            label = Gtk.Label("Mouse sensitivity: ")
+            label = Gtk.Label(label="Mouse sensitivity: ")
             position = 1
         elif param == "AnalogDeadzone":
-            label = Gtk.Label("Analog deadzone: ")
+            label = Gtk.Label(label="Analog deadzone: ")
             position = 2
         elif param == "AnalogPeak":
-            label = Gtk.Label("Analog peak: ")
+            label = Gtk.Label(label="Analog peak: ")
             position = 3
         grid.attach(label, position, 0, 1, 1)
         grid.attach(first_spin, position, 1, 1, 1)

@@ -35,8 +35,8 @@ import wrapper.vidext as wrp_vext
 #############
 
 class GoodOldM64pWindow(Gtk.ApplicationWindow):
-    def __repr__(self):
-        return '<gom64p_window>'
+    #def __repr__(self):
+    #    return '<gom64p_window>'
 
     def __init__(self, app):
         super().__init__(application=app)
@@ -45,10 +45,17 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         ### Frontend
         self.application = app
+        self.args = self.application.args
+        #args_debug = self.application.args.debug
+        #args_csd = self.application.args.enable_csd
+
+        if self.application.args.debug:
+            self.application.logger.set_level(log.DEBUG)
+            log.debug("Debug is enabled!")
+
         self.lock = True
         self.canvas = None
         self.parameters = {}
-        self.args = self.application.args
         self.cache = None
         self.m64p_dir = None
         self.rom = None
@@ -59,15 +66,12 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.pos_x = None
         self.pos_y = None
 
-        args_debug = self.application.args.debug
-        args_csd = self.application.args.enable_csd
-
         # Environment
         self.environment = u_env.Environment(self.window)
+        self.environment.query()
         self.environment.set_directories()
-        self.environment.set_wm()
         self.m64p_dir = self.environment.get_current_path()
-        self.platform = self.environment.query()
+        self.platform = self.environment.platform["system"]
         self.parameters['platform'] = self.platform
 
         # Options
@@ -86,26 +90,80 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         self.cheats = u_conf.CheatsCfg(self.window)
         self.action = w_act.Actions(self.window)
 
-        if args_debug == True:
-            self.application.logger.set_level(log.DEBUG)
-            log.debug("Debug is enabled!")
-            log.debug(f"GTK+ version: {Gtk.MAJOR_VERSION}.{Gtk.MINOR_VERSION}.{Gtk.MICRO_VERSION}")
-        #else:
-        #    logger = u_log.Logger(log.INFO)
         #self.set_application_name("mupen64plus")
         self.set_title("Good Old Mupen64+")
-        self.set_position(Gtk.WindowPosition.CENTER)
         self.set_default_size(800, 640)
         self.set_size_request(640, 560) # TODO: What's the good looking minimum size for the main window?
-        self.set_default_icon_from_file(str(pathlib.Path(self.m64p_dir + "/icons/mupen64plus.svg")))
+        #self.set_default_icon_from_file(str(pathlib.Path(self.m64p_dir + "/icons/mupen64plus.svg")))
 
         ##If detected, it will close the application ##
-        self.window.connect("delete-event", self.quit_cb)
+        self.window.connect("close-request", self.quit_cb)
 
         # If the window lose the focus, stops the emulation and calls a dialog
-        self.window.connect("focus-in-event", self.focus_cb)
-        self.window.connect("focus-out-event", self.focus_cb)
+        #self.window.connect("focus-in-event", self.focus_cb)
+        #self.window.connect("focus-out-event", self.focus_cb)
 
+        # LAYOUT main window: csd,menubar,toolbar,box filter(label,entry),box((treeview,scroll),videoext),statusbar
+
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.browser_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.video_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.filter_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+
+        if self.application.args.enable_csd == 1:
+            self.csd()
+            log.debug("CSD enabled")
+
+        ## Statusbar ##
+        self.statusbar = Gtk.Statusbar()
+        self.statusbar_context = self.statusbar.get_context_id("m64p_status")
+        self.action.status_push("Welcome to Good Old M64+!")
+
+        self.main_menu = w_m.Menu(self)
+
+        ## Menubar ##
+        self.menubar = self.main_menu.menubar_init()
+
+        ## Toolbar ##
+        self.toolbar = self.main_menu.toolbar_init()
+
+        # Notebook #
+        self.notebook = Gtk.Notebook()
+        self.notebook.set_vexpand(True)
+        self.notebook.set_show_tabs(False)
+        self.notebook.set_show_border(False)
+        self.notebook.set_margin_start(1)
+        self.notebook.set_margin_end(1)
+
+        browser_tab = Gtk.Label(label="browser")
+
+        self.notebook.append_page(self.browser_box, browser_tab)
+
+        ## Alright, let's add the box ##
+        self.main_box.append(self.menubar)
+        self.main_box.append(self.toolbar)
+        self.main_box.append(self.notebook)
+        self.main_box.append(self.statusbar)
+
+        self.window.set_child(self.main_box)
+
+        # Set whether the following are visible or not, by user config
+        if self.frontend_conf.get("Frontend", "StatusConfig") == "False":
+            self.statusbar.hide()
+
+        if self.frontend_conf.get("Frontend", "FilterConfig") == "False":
+            self.filter_box.hide()
+
+        self.window.show()
+
+        # Now that the window is shown, let's get its size.
+        self.height = self.get_allocated_height()
+        self.width = self.get_allocated_width()
+        self.environment.get_current_mode()
+
+        self.wrapper_init()
+
+    def wrapper_init(self):
         # NOTE: This callback code has to be declared before launching the wrapper
         STATEPROTO = c.CFUNCTYPE(None, c.POINTER(c.c_void_p), c.c_int, c.c_int)
         self.CB_STATE = STATEPROTO(self.m64p_state_callback)
@@ -119,114 +177,41 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
 
         if self.m64p_wrapper.compatible == True:
             #self.lock?
+            self.m64p_wrapper.plugins_validate()
             self.m64p_wrapper.initialise()
 
             self.cache = u_cache.CacheData(self.environment.cache_dir)
 
-        # LAYOUT main window: csd,menubar,toolbar,box filter(label,entry),box((treeview,scroll),videoext),statusbar
-
-        self.main_box = Gtk.VBox()
-        self.browser_box = Gtk.VBox()
-        self.video_box = Gtk.VBox()
-        self.filter_box = Gtk.HBox()
-
-        if args_csd == 1:
-            self.csd()
-            log.debug("CSD enabled")
-
-        ## Statusbar ##
-        self.statusbar = Gtk.Statusbar()
-        self.statusbar_context = self.statusbar.get_context_id("m64p_status")
-        self.action.status_push("Welcome to Good Old M64+!")
-
-        self.main_menu = w_m.Menu(self)
-
-        ## Menubar ##
-        self.menubar = self.main_menu.menubar_call()
-        self.file_menu_quit = self.main_menu.file_menu_quit
-        self.file_menu_quit.connect("activate", self.quit_cb)
-        self.file_menu_reload = self.main_menu.file_menu_reload
-        self.file_menu_reload.connect('activate', self.on_reload)
-        self.view_menu_filter = self.main_menu.view_menu_filter
-        self.view_menu_filter.connect("toggled", self.action.on_filter_toggle)
-        self.view_menu_status = self.main_menu.view_menu_status
-        self.view_menu_status.connect("toggled", self.action.on_statusbar_toggle)
-
-        ## Toolbar ##
-        self.toolbar = self.main_menu.toolbar_call()
-
-        # Notebook #
-        self.notebook = Gtk.Notebook()
-        self.notebook.set_vexpand(True)
-        self.notebook.set_show_tabs(False)
-        self.notebook.set_show_border(False)
-        self.notebook.set_margin_start(1)
-        self.notebook.set_margin_end(1)
-
-        browser_tab = Gtk.Label(label="browser")
-
         ## Filter entry ##
+        # TODO: Move to rombrowser
         if self.lock == False and self.m64p_wrapper.compatible == True:
             self.filter_label = Gtk.Label(label="Filter:")
             self.filter_entry = Gtk.SearchEntry()
-            self.filter_entry.set_placeholder_text("Type to filter...")
+            self.filter_entry.set_property("placeholder_text", "Type to filter...")
+            self.filter_entry.set_hexpand(True)
             self.filter_entry.connect('changed', self.on_text_change)
-            self.filter_box.pack_start(self.filter_label, False, True, 5)
-            self.filter_box.pack_start(self.filter_entry, True, True, 5)
-            self.browser_box.pack_start(self.filter_box, False, False, 5)
+            self.filter_box.append(self.filter_label)
+            self.filter_box.append(self.filter_entry)
+            self.browser_box.append(self.filter_box)
 
             self.browser_list = w_brw.List(self.window)
             treeview = self.browser_list.treeview_call()
 
-            self.browser_box.add(treeview)
+            self.browser_box.append(treeview)
         else:
             if self.lock == True:
                 if self.platform == "Windows":
                     warning = Gtk.Label(label="Mupen64Plus's core library hasn't been found. \n Please check it in Options > Configure \n You may also need to check the path for the plugins' directory.")
                 else:
                     warning = Gtk.Label(label="Mupen64Plus's core library hasn't been found. \n Please check it in Options > Configure")
-                self.browser_box.add(warning)
-                self.browser_box.show_all()
+                self.browser_box.append(warning)
 
             else:
                 if self.platform == "Windows":
                     warning = Gtk.Label(label="Mupen64Plus's core library version is incompatible. Please upgrade it. \n You may also need to check the path for the plugins' directory.")
                 else:
                     warning = Gtk.Label(label="Mupen64Plus's core library version is incompatible. Please upgrade it.")
-                self.browser_box.add(warning)
-                self.browser_box.show_all()
-
-        self.notebook.append_page(self.browser_box, browser_tab)
-
-        ## Alright, let's add the box ##
-        self.main_box.pack_start(self.menubar, False, False, 0)
-        self.main_box.pack_start(self.toolbar, False, False, 0)
-        self.main_box.pack_start(self.notebook, True, True, 0)
-        self.main_box.pack_end(self.statusbar, False, False, 0)
-
-        self.window.add(self.main_box)
-
-        ## Configurations InsertMenu
-
-        if self.frontend_conf.get_bool("Frontend", "ToolbarConfig") == True:
-            self.main_menu.view_menu_toolbar.set_active(True)
-        if self.frontend_conf.get_bool("Frontend", "FilterConfig") == True:
-            self.main_menu.view_menu_filter.set_active(True)
-        if self.frontend_conf.get_bool("Frontend", "StatusConfig") == True:
-            self.main_menu.view_menu_status.set_active(True)
-
-        ##Now load the instance with all the widgets and boxes ##
-
-        self.main_box.show()
-        self.menubar.show_all()
-
-        self.notebook.show_all()
-        self.window.show()
-
-        # Now that the window is shown, let's get its size.
-        self.height = self.get_allocated_height()
-        self.width = self.get_allocated_width()
-        self.environment.get_current_mode()
+                self.browser_box.append(warning)
 
     def csd(self):
         # HeaderBar (Client Side Decoration, only for GNOME)
@@ -242,7 +227,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         button.add(image)
 
         self.headerbar.pack_end(button)
-        self.headerbar.show_all()
+        self.headerbar.show()
 
     def add_video_tab(self):
         ## VideoBox ##
@@ -253,13 +238,13 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
             if self.m64p_wrapper.vidext_override == True:
                 self.canvas = w_cvs.Canvas(self.window)
                 wrp_vext.m64p_video.set_window(self.window)
-                self.video_box.add(self.canvas)
+                self.video_box.append(self.canvas)
             else:
                 self.emulating_label = Gtk.Label(label="Emulator is running.")
-                self.video_box.add(self.emulating_label)
+                self.video_box.append(self.emulating_label)
 
             self.notebook.append_page(self.video_box, vidext_tab)
-            self.notebook.show_all()
+            self.notebook.show()
         self.notebook.set_current_page(1)
         self.canvas.grab_focus()
 
@@ -271,31 +256,26 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         else:
             self.video_box.remove(self.emulating_label)
 
-    def trigger_popup(self, which_type, text, context=None):
-        dialog = w_dlg.PopupDialog(self.window, which_type, text)
-        if which_type == "question":
-            if dialog.response == Gtk.ResponseType.YES:
-                if context == "running":
-                    log.debug("Detected quit signal while game is running. Stopping it.")
-                    self.action.on_stop()
-                elif context == "dummy":
-                    log.debug("Decided to run anyways a game even with dummy plugin.")
-                    return True
-            elif dialog.response == Gtk.ResponseType.NO:
-                if context == "running":
-                    log.debug("Detected quit signal while game is running. Not stopping it.")
-                elif context == "dummy":
-                    log.debug("Decided to not run a game with dummy plugin.")
-                    return False
-        else:
-            return dialog
+    def trigger_popup(self, text, context=None):
+        dialog = w_dlg.PopupDialog(self.window, text, context)
+        return dialog.response
+
+    def headsup(self, which_type, text, context=None):
+        self.info_bar = Gtk.InfoBar()
+        self.info_bar.set_show_close_button(True)
+        self.main_box.prepend(self.info_bar)
+        label = f"{which_type}: {text}"
+        message_label = Gtk.Label(label=label)
+        self.info_bar.add_child(message_label)
+        self.info_bar.connect("response", self.on_info_close)
+        #label.ellipsize_labels_recursively(content_area)
 
     ### SIGNALS (clicked for button, activate for menu)
 
     def quit_cb(self, *args):
         if self.m64p_wrapper.emulating == True:
-            self.trigger_popup("question", "A game is currently running. Do you want to stop it?", "running")
-            # Don't close the windows yet!
+            self.trigger_popup("A game is currently running. Do you want to stop it?", "running")
+            # Don't close the window yet!
             return True
         else:
             self.application.quit()
@@ -319,11 +299,16 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
                 if self.m64p_wrapper.vidext_override == True:
                     self.action.on_resume()
 
+    def on_info_close(self, widget, response_id):
+        widget.hide()
+
+    # TODO: move to rombrowser
     def on_text_change(self, entry):
         self.browser_list.game_search_current = entry.get_text()
         self.browser_list.game_search_filter.refilter()
 
-    def on_reload(self, widget):
+    # TODO: move to rombrowser
+    def on_refresh(self, widget, x):
         self.action.status_push("Refreshing the list...")
         self.browser_list.cache.generate()
         self.action.status_push("Refreshing the list...DONE")
@@ -356,7 +341,7 @@ class GoodOldM64pWindow(Gtk.ApplicationWindow):
         elif param == wrp_dt.m64p_core_param.M64CORE_SAVESTATE_SLOT.value:
             if self.m64p_wrapper.current_slot != value:
                 self.m64p_wrapper.current_slot = value
-                self.main_menu.save_slot_items[value].set_active(True)
+                #self.main_menu.save_slot_items[value].set_active(True) #FIXME
             log.info(f"({context_dec}) {wrp_dt.m64p_core_param(param).name}, SLOT: {value}")
             self.action.status_push( "Slot selected: " + str(value))
         elif param == wrp_dt.m64p_core_param.M64CORE_SPEED_FACTOR.value:

@@ -118,6 +118,12 @@ class API():
         self.input_plugins = {}
         self.rsp_plugins = {}
 
+        self.m64p_lib_core = None
+        self.m64p_lib_gfx = None
+        self.m64p_lib_audio = None
+        self.m64p_lib_input = None
+        self.m64p_lib_rsp = None
+
         # Determine which library extension is used.
         if self.platform == "Linux":
             self.extension_filename = ".so"
@@ -138,7 +144,7 @@ class API():
         self.config_ext_handle = None
 
         # Lastly, we must check if each plugins found are compatible
-        self.plugins_validate()
+        #self.plugins_validate()
 
     ### Basic core functions
     def PluginGetVersion(self, filename, pluginhandle):
@@ -1899,7 +1905,7 @@ class API():
         except FileNotFoundError as e:
             log.error(e)
             status = wrp_dt.m64p_error.M64ERR_FILES.value
-            self.frontend.trigger_popup("error", str(e))
+            self.frontend.headsup("error", str(e))
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Opening of ROM file has failed!")
@@ -2260,17 +2266,10 @@ class API():
 
     def execute(self):
         # M64CMD_EXECUTE = 5
-        response = True
         self.emulating = True
         self.running = True
-        if "dummy" in [self.gfx_filename, self.audio_filename, self.input_filename, self.rsp_filename]:
-            # TODO: assertion 'GDK_IS_FRAME_CLOCK (clock)' failed
-            response = self.frontend.trigger_popup("question",f"One of the plugins is set on 'dummy', which means the game won't work properly. \nDo you still want to run it?", "dummy")
 
-        if response == True:
-            status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_EXECUTE.value, c.c_int(), c.c_void_p())
-        else:
-            status = wrp_dt.m64p_error.M64ERR_PLUGIN_FAIL.value
+        status = self.CoreDoCommand(wrp_dt.m64p_command.M64CMD_EXECUTE.value, c.c_int(), c.c_void_p())
 
         if status == wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             pass
@@ -2499,7 +2498,7 @@ class API():
         except FileNotFoundError as e:
             status = wrp_dt.m64p_error.M64ERR_FILES.value
             log.error(e)
-            self.frontend.trigger_popup("error", str(e))
+            self.frontend.headsup("error", str(e))
 
         if status != wrp_dt.m64p_error.M64ERR_SUCCESS.value:
             log.error("CoreDoCommand: Opening of PIF ROM file has failed!")
@@ -2520,6 +2519,10 @@ class API():
             self.m64p_lib_core = self.load_module(self.m64p_lib_core_path)
 
             check_core = self.PluginGetVersion(self.m64p_lib_core_path, self.m64p_lib_core)
+            version = list(hex(check_core['version']).lstrip('0x'))
+            version[1] = "."
+            version[3] = "."
+            log.info(f"Core library: {''.join(version)}")
             if check_core["version"] >= self.core_version:
                 self.compatible = True
 
@@ -2694,7 +2697,7 @@ class API():
                 except OSError as e:
                     log.warning(f"{filename}: Plugin not working or not compatible, skipping it. \n > {e}")
                     #TODO: It's not that good to have the popup this early, before main window.
-                    self.frontend.trigger_popup("warning", f"{filename}: Plugin not working or not compatible, skipping it. \nReason: {e}")
+                    self.frontend.headsup("warning", f"{filename}: Plugin not working or not compatible, skipping it. \nReason: {e}")
         except (AttributeError, TypeError) as e:
             log.error(f"The plugin directory is NOT FOUND! gom64p needs this directory to work properly. \n > {e}")
 

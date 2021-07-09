@@ -80,13 +80,14 @@ class Vidext():
         log.debug("Vidext: video_init()")
         
         if self.window.platform == 'Linux':
-            #if self.window.environment.wm == 'X11':
-            from gi.repository import GdkX11
-            self.window_handle = self.window.canvas.get_property('window').get_xid()
-            #elif self.window.environment.wm == 'Wayland':
-            #    from gi.repository import GdkWayland # No bindings...?
-            #    # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
-            #    self.window_handle = GdkWayland.window_get_wl_surface(self.parent.get_window())
+            if self.window.environment.wm == 'X11':
+                from gi.repository import GdkX11
+                self.window_handle = self.window.canvas.get_property('window').get_xid()
+            elif self.window.environment.wm == 'Wayland':
+                from gi.repository import GdkWayland # No bindings...?
+                # XXX: It won't work on wayland without forcing GDK_BACKEND=x11, but I can live with that.
+                #https://developer.gnome.org/gdk4/stable/gdk4-Wayland-Interaction.html
+                self.window_handle = GdkWayland.window_get_wl_surface(self.parent.get_window())
         elif self.window.platform == 'Windows':
             # https://stackoverflow.com/questions/23021327/how-i-can-get-drawingarea-window-handle-in-gtk3/27236258#27236258
             # https://gitlab.gnome.org/GNOME/gtk/issues/510

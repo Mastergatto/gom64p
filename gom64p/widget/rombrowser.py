@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import Gtk, Gdk, GObject, GLib, GdkPixbuf
+from gi.repository import Gtk, Gdk, GObject, GLib, GdkPixbuf, Gio
 import sys, os, os.path, threading, ast, hashlib, time, pathlib
 
 import logging as log
@@ -23,42 +23,49 @@ import widget.gameprop as w_gprop
 
 class List:
     def __init__(self, parent):
-        self.parent = parent
+        self.frontend = parent
         self.recent_manager = Gtk.RecentManager.get_default()
         self.rom_list = None
         self.parsed_list = None
 
-        self.cache = Cache(self.parent)
-        self.rom_list = ast.literal_eval(self.parent.cache.generated_list)
+        self.cache = Cache(self.frontend)
+        self.rom_list = ast.literal_eval(self.frontend.cache.generated_list)
         self.is_cache_validated = self.cache.validate()
 
-        self.menu()
+    def on_text_change(self, entry):
+        self.game_search_current = entry.get_text()
+        self.game_search_filter.refilter()
+
+    def on_refresh(self, widget, x):
+        self.action.status_push("Refreshing the list...")
+        self.browser_list.cache.generate()
+        self.action.status_push("Refreshing the list...DONE")
 
     def convert(self):
-        size_flag = 24 * self.parent.get_scale_factor()
-        size_rating = 76 * self.parent.get_scale_factor()
+        size_flag = 24 * self.frontend.get_scale_factor()
+        size_rating = 76 * self.frontend.get_scale_factor()
         new_list = []
 
-        usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/united-states.svg")), size_flag, -1, True)
-        japan = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/japan.svg")), size_flag, -1, True)
-        jpn_usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/us-jp.svg")), size_flag, -1, True)
-        europe = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/european-union.svg")), size_flag, -1, True)
-        australia = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/australia.svg")), size_flag, -1, True)
-        france = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/france.svg")), size_flag, -1, True)
-        germany = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/germany.svg")), size_flag, -1, True)
-        italy = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/italy.svg")), size_flag, -1, True)
-        spain = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/spain.svg")), size_flag, -1, True)
-        brazil = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/brazil.svg")), size_flag, -1, True)
-        #china = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/china.svg")), size_flag, -1, True)
-        #korea = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/korea.svg")), size_flag, -1, True)
-        unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/unknown.svg")), size_flag, -1, True)
+        usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/united-states.svg")), size_flag, -1, True)
+        japan = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/japan.svg")), size_flag, -1, True)
+        jpn_usa = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/us-jp.svg")), size_flag, -1, True)
+        europe = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/european-union.svg")), size_flag, -1, True)
+        australia = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/australia.svg")), size_flag, -1, True)
+        france = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/france.svg")), size_flag, -1, True)
+        germany = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/germany.svg")), size_flag, -1, True)
+        italy = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/italy.svg")), size_flag, -1, True)
+        spain = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/spain.svg")), size_flag, -1, True)
+        brazil = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/brazil.svg")), size_flag, -1, True)
+        #china = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/china.svg")), size_flag, -1, True)
+        #korea = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/korea.svg")), size_flag, -1, True)
+        unknown = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/unknown.svg")), size_flag, -1, True)
 
-        zero = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating0.svg")), size_rating, -1, True)
-        one = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating1.svg")), size_rating, -1, True)
-        two = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating2.svg")), size_rating, -1, True)
-        three = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating3.svg")), size_rating, -1, True)
-        four = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating4.svg")), size_rating, -1, True)
-        five = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.parent.m64p_dir + "/icons/rating5.svg")), size_rating, -1, True)
+        zero = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/rating0.svg")), size_rating, -1, True)
+        one = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/rating1.svg")), size_rating, -1, True)
+        two = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/rating2.svg")), size_rating, -1, True)
+        three = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/rating3.svg")), size_rating, -1, True)
+        four = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/rating4.svg")), size_rating, -1, True)
+        five = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(self.frontend.m64p_dir + "/icons/rating5.svg")), size_rating, -1, True)
 
         for i in self.rom_list:
             flag = i[0]
@@ -113,6 +120,7 @@ class List:
             self.romlist_store_model.clear()
             self.convert()
             for game in self.parsed_list:
+                # FIXME: https://gitlab.gnome.org/GNOME/pygobject/-/merge_requests/172
                 self.romlist_store_model.append(list(game))
         else:
             log.warning("Rombrowser: The list is empty!")
@@ -150,6 +158,7 @@ class List:
 
         #-creating the treeview, making it use the filter as a model, and adding the columns
         self.treeview = Gtk.TreeView.new_with_model(self.game_search_filter_sorted)
+        self.treeview.set_vexpand(True)
         self.treeview.set_activate_on_single_click(False)
         for i, column_title in enumerate(["Country", "Game", "Status", "Filename", "MD5 hash"]):
             if i == 0: # Country
@@ -173,11 +182,12 @@ class List:
             self.treeview.append_column(column)
         self.treeview.get_selection().connect('changed', self.on_row_select)
         self.treeview.connect('row-activated', self.on_row_activated)
-        self.treeview.connect('button_press_event', self.mouse_click)
+        self.gesture_click(self.treeview, self.mouse_click)
 
         self.treeview_win_scrollable = Gtk.ScrolledWindow()
-        self.treeview_win_scrollable.add(self.treeview)
-        self.treeview_win_scrollable.show_all()
+        self.treeview_win_scrollable.set_child(self.treeview)
+        self.menu_init()
+
         return self.treeview_win_scrollable
 
     def on_row_select(self, selection):
@@ -188,25 +198,25 @@ class List:
     def on_row_activated(self, treeview, treepath, column):
         model = treeview.get_model()
         treeiter = model.get_iter(treepath)
-        self.parent.rom = model.get_value(treeiter, 3)
+        self.frontend.rom = model.get_value(treeiter, 3)
 
-        rom_uri = GLib.filename_to_uri(self.parent.rom, None)
+        rom_uri = GLib.filename_to_uri(self.frontend.rom, None)
         if self.recent_manager.has_item(rom_uri) == False:
             self.recent_manager.add_item(rom_uri)
 
-        self.parent.action.thread_rom()
+        self.frontend.action.thread_rom()
 
-    def on_playitem_activated(self, widget):
-        rom_uri = GLib.filename_to_uri(self.parent.rom, None)
+    def on_playitem_activated(self, widget, x):
+        rom_uri = GLib.filename_to_uri(self.frontend.rom, None)
         if self.recent_manager.has_item(rom_uri) == False:
             self.recent_manager.add_item(rom_uri)
 
-        self.parent.action.thread_rom()
+        self.frontend.action.thread_rom()
 
-    def on_properties_activated(self, widget, tab):
-        dialog = w_gprop.PropertiesDialog(self.parent, self.parent.rom, tab)
+    def on_properties_activated(self, widget, x, tab):
+        dialog = w_gprop.PropertiesDialog(self.frontend, self.frontend.rom, tab)
 
-    def menu(self):
+    def menu2(self):
         # Context menu
         self.treeview_menu = Gtk.Menu()
 
@@ -225,32 +235,58 @@ class List:
         self.treeview_menu.append(cheats_item)
         self.treeview_menu.append(custom_item)
 
-    def mouse_click(self, tv, event):
-        if event.button == 3:
+    def menu_init(self):
+        model = Gtk.Builder()
+        model.add_from_file(str(pathlib.Path("../data/ui/rombrowser.ui")))
+        self.treeview_menu = Gtk.PopoverMenu.new_from_model(model.get_object('contextmenu'))
+        self.treeview_menu.set_parent(self.treeview_win_scrollable)
+
+        action_play = Gio.SimpleAction.new("load_this", None)
+        action_play.connect("activate", self.on_playitem_activated)
+        self.frontend.add_action(action_play)
+
+        action_info = Gio.SimpleAction.new("info", None)
+        action_info.connect("activate", self.on_properties_activated, "info")
+        self.frontend.add_action(action_info)
+
+        action_cheats = Gio.SimpleAction.new("cheats", None)
+        action_cheats.connect("activate", self.on_properties_activated, "cheats")
+        self.frontend.add_action(action_cheats)
+
+        action_custom = Gio.SimpleAction.new("custom", None)
+        action_custom.connect("activate", self.on_properties_activated, "custom")
+        self.frontend.add_action(action_custom)
+
+    def menu_popup(self, x, y):
+        rect = Gdk.Rectangle()
+        rect.x, rect.y, rect.width, rect.height  = x, y, 1, 1
+
+        self.treeview_menu.set_pointing_to(rect)
+        self.treeview_menu.popup()
+
+    def gesture_click(self, widget, function):
+        gesture = Gtk.GestureClick()
+        gesture.set_button(0)
+        gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        gesture.connect('pressed', function)
+        widget.add_controller(gesture)
+
+    def mouse_click(self, gesture, n_press, x, y):
+        if gesture.get_current_button() == 3:
             # right mouse button pressed popup the menu
+            self.treeview.grab_focus()
+            #self.treeview.set_cursor(path,col,0)
 
-            pthinfo = tv.get_path_at_pos(event.x, event.y)
-            if pthinfo != None:
-                path,col,cellx,celly = pthinfo
-                tv.grab_focus()
-                tv.set_cursor(path,col,0)
-
-                selection = tv.get_selection()
-                (model, treeiter) = selection.get_selected()
-                log.debug(f"You selected {model[treeiter][3]}")
-                self.parent.rom = model[treeiter][3]
-
-                self.treeview_menu.show_all()
-                self.treeview_menu.popup_at_pointer(event)
-
-    #UNUSED
-    def header(self,crc1,crc2):
-        command = self.parent.m64p_wrapper.CoreGetRomSettings(crc1,crc2)
+            selection = self.treeview.get_selection()
+            model, treeiter = selection.get_selected()
+            if treeiter != None:
+                self.frontend.rom = model[treeiter][3]
+                self.menu_popup(x,y)
 
 class Cache:
     def __init__(self, parent):
-        self.parent = parent
-        self.progressbar = ProgressScanning(self.parent)
+        self.frontend = parent
+        self.progressbar = ProgressScanning(self.frontend)
         self.thread = None
         self.version = 0
 
@@ -272,7 +308,7 @@ class Cache:
     def get_total_elements(self):
         '''Method that enlist and returns ROMs that are present in selected
          directories.'''
-        path_items = self.parent.frontend_conf.config.items('GameDirs')
+        path_items = self.frontend.frontend_conf.config.items('GameDirs')
         self.total_paths, self.total64dd = [], []
         self.format_allowed = ('.n64', '.v64', '.z64')
         self.format64dd_allowed = ('.ndd')
@@ -280,9 +316,9 @@ class Cache:
         for key, path in path_items:
             if path != '' and os.path.isdir(path) == True:
                 os.chdir(path)
-                self.walk(path, self.parent.frontend_conf.get_bool("Frontend", "Recursive"))
+                self.walk(path, self.frontend.frontend_conf.get_bool("Frontend", "Recursive"))
 
-        os.chdir(self.parent.m64p_dir)
+        os.chdir(self.frontend.m64p_dir)
         return self.total_paths
 
     def walk(self, path, recursion):
@@ -310,7 +346,7 @@ class Cache:
         GLib.idle_add(self.progressbar.set_amount, self.amount_roms)
 
         for rom in total_paths:
-            element = self.parent.action.scan_element(rom, "browser")
+            element = self.frontend.action.scan_element(rom, "browser")
             GLib.idle_add(self.progressbar.tick)
             self.rom_list += element
 
@@ -319,15 +355,15 @@ class Cache:
         log.info(f'Done scanning the directories')
 
         # Let's tell to the browser that the job is done here.
-        self.parent.browser_list.rom_list = self.rom_list
-        GLib.idle_add(self.parent.browser_list.generate_liststore)
+        self.frontend.browser_list.rom_list = self.rom_list
+        GLib.idle_add(self.frontend.browser_list.generate_liststore)
 
     def compare_and_manage(self):
         '''Threaded method to compare the list stored in the cache with this new list,
         any ROM not present in both lists will be added or removed'''
         log.info(f'Starting to compare lists and eventually add or remove files')
         list_cache = []
-        self.rom_list = self.parent.browser_list.rom_list
+        self.rom_list = self.frontend.browser_list.rom_list
         for item in self.rom_list:
             list_cache += [(item[3])]
 
@@ -346,7 +382,7 @@ class Cache:
 
             if new_elements:
                 for rom in new_elements:
-                    element = self.parent.action.scan_element(rom, "browser")
+                    element = self.frontend.action.scan_element(rom, "browser")
                     self.rom_list += element
                     GLib.idle_add(self.progressbar.tick)
             if missing_elements:
@@ -370,8 +406,8 @@ class Cache:
             self.write()
 
             # Let's tell to the browser that the job is done here.
-            self.parent.browser_list.rom_list = self.rom_list
-            GLib.idle_add(self.parent.browser_list.generate_liststore)
+            self.frontend.browser_list.rom_list = self.rom_list
+            GLib.idle_add(self.frontend.browser_list.generate_liststore)
         else:
             log.info(f'No changes, there\'s no need to update the cache.')
             # There are no ROMs to be added or removed, but we pretend to update the list just to please the user.
@@ -408,18 +444,18 @@ class Cache:
         #validation = {"version": False, "amount": False, "identical": False}
         validation = [False, False, False]
 
-        if self.version == int(self.parent.cache.version):
+        if self.version == int(self.frontend.cache.version):
             validation[0] = True
             log.info(f'The version of the cache is validated.')
 
         self.amount_roms = len(list_rom)
-        if self.amount_roms == int(self.parent.cache.total_roms):
+        if self.amount_roms == int(self.frontend.cache.total_roms):
             validation[1] = True
             log.info(f'The amount of games is validated.')
         else:
             log.warning(f'The amount of games is NOT validated.')
 
-        self.rom_list = ast.literal_eval(self.parent.cache.generated_list)
+        self.rom_list = ast.literal_eval(self.frontend.cache.generated_list)
         list_cache = []
         for i in self.rom_list:
             list_cache += [(i[3])]
@@ -437,14 +473,14 @@ class Cache:
 
     def write(self):
         '''Store those values to file.'''
-        self.parent.cache.generated_list = self.rom_list
-        self.parent.cache.total_roms = str(self.amount_roms)
+        self.frontend.cache.generated_list = self.rom_list
+        self.frontend.cache.total_roms = str(self.amount_roms)
         log.info(f'Amount of games found: {self.amount_roms}')
-        self.parent.cache.write_cache()
+        self.frontend.cache.write_cache()
 
 class ProgressScanning(Gtk.Dialog):
     def __init__(self, parent):
-        self.parent = parent
+        self.frontend = parent
         self.fraction = 0
         self.dialog = None
         self.progressbar = None
@@ -463,17 +499,17 @@ class ProgressScanning(Gtk.Dialog):
 
     def start(self, text):
         self.dialog = Gtk.Dialog.new()
-        self.dialog.set_transient_for(self.parent)
-        self.dialog.connect("delete-event", self.stop)
+        self.dialog.set_transient_for(self.frontend)
+        self.dialog.set_modal(True)
+        #self.dialog.connect("delete-event", self.stop) #FIXME Broken
         content_area = self.dialog.get_content_area()
 
         self.progressbar = Gtk.ProgressBar()
         self.message(text)
 
-        content_area.add(self.progressbar)
+        content_area.append(self.progressbar)
 
-        self.dialog.show_all()
-        self.dialog.run()
+        self.dialog.show()
 
     def set_amount(self, amount):
         self.amount = amount

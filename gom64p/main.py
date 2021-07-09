@@ -17,7 +17,7 @@ if __name__ == "__main__":
     system = platform.system()
     if system == 'Linux':
         #TODO: For now force x11 backend on linux, remove this later.
-        os.environ['GDK_BACKEND'] = 'x11'
+        #os.environ['GDK_BACKEND'] = 'x11'
         if os.environ.get('GDK_BACKEND'):
             if os.environ['GDK_BACKEND'] == 'x11':
                 try:
@@ -44,8 +44,8 @@ if __name__ == "__main__":
 ## MODULES ##
 #############
 import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
 gi.require_version("Gio", "2.0")
 gi.require_version("GLib", "2.0")
 

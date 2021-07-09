@@ -7,7 +7,7 @@
 #############
 ## MODULES ##
 #############
-from gi.repository import GLib, Gdk
+from gi.repository import Gtk, GLib, Gdk
 import platform, pathlib, os
 import ctypes.util as cu
 
@@ -20,7 +20,6 @@ import logging as log
 class Environment:
     def __init__(self, parent):
         self.parent = parent
-        self.system = platform.system()
         self.current_path = None
         self.frontend_config_dir = None
         self.cache_dir = None
@@ -28,19 +27,63 @@ class Environment:
         self.modes = []
         self.current_mode = None
 
+        self.py_version = None
+        self.py_implementation = None
+
+        self.platform = {
+            "system": None,
+            "release": None,
+            "version": None,
+            "machine": None,
+            "processor": None
+        }
+
+    def get_python_info(self):
+        self.py_version = platform.python_version()
+        self.py_implementation = platform.python_implementation()
+
+    def get_uname(self):
+        uname = platform.uname()
+
+        if uname.system == "Darwin":
+            self.platform["system"] = "macOS"
+        else:
+            self.platform["system"] = uname.system
+        self.platform["release"] = uname.release
+        self.platform["version"] = uname.version
+        self.platform["machine"] = uname.machine
+        self.platform["processor"] = platform.processor()
+
     def query(self):
-        return self.system
+        self.get_uname()
+        #print(platform.system_alias(self.platform["system"], self.platform["release"], self.platform["version"]))
+        self.get_python_info()
+        self.get_wm()
+
+        log.info(f"Machine: {self.platform['system']} {self.platform['release']} {self.platform['machine']}")
+        if self.platform["system"] == "Linux":
+            try:
+                with open("/etc/os-release", "r") as f:
+                    for line in f.readlines():
+                        if line.startswith("NAME"):
+                            out = line[6:][:-2]
+                log.info(f"Distro: {out}")
+            except:
+                log.info(f"Distro: N/A")
+        log.info(f"Window Manager: {self.wm}")
+        log.info(f"GTK version: {Gtk.MAJOR_VERSION}.{Gtk.MINOR_VERSION}.{Gtk.MICRO_VERSION}")
+        log.info(f"Python: {self.py_implementation} {self.py_version}")
 
     def get_current_path(self):
         self.current_path = os.getcwd()
         return self.current_path
 
     def get_modes(self):
-        if self.system == "Windows":
+        if self.platform["system"] == "Windows":
             #TODO
             import win32api
             print(len(win32api.EnumDisplayMonitors()))
-        elif self.system == "Darwin":
+        elif self.platform["system"] == "macOS":
             pass
         else:
             import subprocess
@@ -68,15 +111,15 @@ class Environment:
                 log.info(f'Monitor { monitor }: {geometry.width}x{geometry.height}, {rate} Hz')
                 modes.append((monitor, geometry.width, geometry.height, rate))
         else:
-            cur_mon = display.get_monitor_at_window(self.parent.get_toplevel().get_window())
+            cur_mon = display.get_monitor_at_surface(self.parent.get_root().get_surface())
             geometry = cur_mon.get_geometry()
             rate = int(round(cur_mon.get_refresh_rate()/1000, 0))
-            self.current_mode = {"width":geometry.width, "height": geometry.height, "refresh": rate}
+            self.current_mode = {"width": geometry.width, "height": geometry.height, "refresh": rate}
             log.info(f'Monitor: {self.current_mode["width"]}x{self.current_mode["height"]}, {rate} Hz')
 
     def set_directories(self):
         # Sets up the paths for gom64p to store own config and data
-        if self.system == "Darwin":
+        if self.platform["system"] == "macOS":
             if not os.getenv('XDG_CONFIG_HOME'):
                 config_dir = f'{os.path.expanduser("~/Library/Application Support/")}gom64p/'
             else:
@@ -85,7 +128,7 @@ class Environment:
                 cache_dir = f'{os.path.expanduser("~/Library/Caches/")}gom64p/'
             else:
                 cache_dir = f'{os.getenv("XDG_CACHE_HOME")}/gom64p/'
-        elif self.system == "Windows":
+        elif self.platform["system"] == "Windows":
             config_dir = f'{GLib.get_user_config_dir()}{os.sep}gom64p{os.sep}'
             cache_dir = f'{GLib.get_user_data_dir()}{os.sep}gom64p{os.sep}'
         else:
@@ -104,12 +147,14 @@ class Environment:
             self.cache_dir.mkdir(mode=0o755)
         log.info(f'User cache directory is: {self.cache_dir}')
 
-    def set_wm(self):
-        if self.system == "Darwin":
-            self.wm = "Quartz Compositor"
-        elif self.system == "Windows":
-            self.wm = "Desktop Window Manager"
+    def get_wm(self):
+        if self.platform["system"] == "macOS":
+            self.wm = "Quartz"
+        elif self.platform["system"] == "Windows":
+            # Stay creative, Microsoft...
+            self.wm = "DWM" # Desktop Window Manager
         else:
+            # Linux
             if os.getenv('WAYLAND_DISPLAY'):
                 self.wm = "Wayland"
             else:
@@ -174,18 +219,18 @@ class Environment:
         parent.parameters['rsp'] = parent.frontend_conf.get("Frontend", "RSPPlugin")
 
     def set_library_path(self):
-        if self.system == 'Windows':
+        if self.platform["system"] == 'Windows':
             #note: the windows build it is just a bunch of files thrown into a .zip
             #For now let's tell to the frontend that the user has to manually point the libraries.
             #return 1
             pass
-        elif self.system == 'Linux':
-            library = self.find_library_so('mupen64plus')
+        elif self.platform["system"] == 'Linux':
+            library = self.find_library_so("mupen64plus")
 
             if library != None:
                 return library
 
-        elif self.system == 'Darwin':
+        elif self.platform["system"] == "macOS":
             # TODO: Untested
             library = cu.find_library("mupen64plus")
             print(library)
@@ -193,12 +238,12 @@ class Environment:
             log.warning("Platform not supported.")
 
     def set_plugins_dir_path(self):
-        if self.system == 'Windows':
+        if self.platform["system"] == "Windows":
             #note: the windows build it is just a bunch of files thrown into a .zip
             #For now let's tell to the frontend that the user has to manually point the libraries.
             #return 1
             pass
-        elif self.system == 'Linux':
+        elif self.platform["system"] == "Linux":
             library = self.find_library_so('mupen64plus')
 
             if library != None:
@@ -208,7 +253,7 @@ class Environment:
                 # Let's hope that all distros follow same logic
                 plugins_directory = str(parent) + "/mupen64plus/"
                 return plugins_directory
-        elif self.system == 'Darwin':
+        elif self.platform["system"] == "macOS":
             # TODO: Untested
             library = cu.find_library("mupen64plus")
             if library != None:
@@ -225,9 +270,9 @@ class Environment:
         # This function is taken directly by Lib/ctypes/util.py, but with the modified variable regex.
         import struct, os, re, subprocess
         if struct.calcsize('l') == 4:
-            machine = os.uname().machine + '-32'
+            machine = self.platform["machine"] + "-32"
         else:
-            machine = os.uname().machine + '-64'
+            machine = self.platform["machine"] + "-64"
         mach_map = {
             'x86_64-64': 'libc6,x86-64',
             'ppc64-64': 'libc6,64bit',
@@ -256,7 +301,7 @@ class Environment:
         # Found on stackoverflow
         import struct, os, re, subprocess
         # see ctypes.find_library code
-        uname = os.uname()[4]
+        uname = self.platform["machine"]
         if uname.startswith("arm"):
             uname = "arm"
         if struct.calcsize('l') == 4:
